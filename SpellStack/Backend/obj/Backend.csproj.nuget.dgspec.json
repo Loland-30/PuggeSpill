@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Gøran\\Documents\\Programming\\Fullstack\\SpellStack\\Backend\\Backend.csproj": {}
+    "C:\\Users\\Gøran\\Documents\\GitHub\\PuggeSpill\\SpellStack\\Backend\\Backend.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Gøran\\Documents\\Programming\\Fullstack\\SpellStack\\Backend\\Backend.csproj": {
+    "C:\\Users\\Gøran\\Documents\\GitHub\\PuggeSpill\\SpellStack\\Backend\\Backend.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Gøran\\Documents\\Programming\\Fullstack\\SpellStack\\Backend\\Backend.csproj",
+        "projectUniqueName": "C:\\Users\\Gøran\\Documents\\GitHub\\PuggeSpill\\SpellStack\\Backend\\Backend.csproj",
         "projectName": "Backend",
-        "projectPath": "C:\\Users\\Gøran\\Documents\\Programming\\Fullstack\\SpellStack\\Backend\\Backend.csproj",
+        "projectPath": "C:\\Users\\Gøran\\Documents\\GitHub\\PuggeSpill\\SpellStack\\Backend\\Backend.csproj",
         "packagesPath": "C:\\Users\\Gøran\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Gøran\\Documents\\Programming\\Fullstack\\SpellStack\\Backend\\obj\\",
+        "outputPath": "C:\\Users\\Gøran\\Documents\\GitHub\\PuggeSpill\\SpellStack\\Backend\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Gøran\\AppData\\Roaming\\NuGet\\NuGet.Config"

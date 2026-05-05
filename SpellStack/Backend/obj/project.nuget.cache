@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "+3Ip6NxYp0o=",
+  "dgSpecHash": "tZ2ofG4HRS0=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Gøran\\Documents\\Programming\\Fullstack\\SpellStack\\Backend\\Backend.csproj",
+  "projectFilePath": "C:\\Users\\Gøran\\Documents\\GitHub\\PuggeSpill\\SpellStack\\Backend\\Backend.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Gøran\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\Gøran\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.3\\microsoft.aspnetcore.openapi.10.0.3.nupkg.sha512",
