@@ -1,4 +1,7 @@
 using System.Security.Cryptography;
+using System.Net;
+using System.Net.Mail;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LexiGo.Api.Data;
@@ -9,9 +12,13 @@ namespace LexiGo.Api.Controllers {
     [Route("api/[controller]")]
     public class AuthController : ControllerBase {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<AuthController> _logger;
 
-        public AuthController(AppDbContext context) {
+        public AuthController(AppDbContext context, IConfiguration configuration, ILogger<AuthController> logger) {
             _context = context;
+            _configuration = configuration;
+            _logger = logger;
         }
 
         [HttpPost("register")]
@@ -54,6 +61,58 @@ namespace LexiGo.Api.Controllers {
 
             var token = await CreateSession(user);
             return Ok(ToAuthResponse(user, token));
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request) {
+            var email = request.Email.Trim().ToLowerInvariant();
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email);
+
+            if (user != null) {
+                var rawToken = CreateUrlSafeToken();
+                var resetToken = new PasswordResetToken {
+                    UserId = user.Id,
+                    TokenHash = HashResetToken(rawToken),
+                    ExpiresAt = DateTime.UtcNow.AddMinutes(30)
+                };
+
+                _context.PasswordResetTokens.Add(resetToken);
+                await _context.SaveChangesAsync();
+
+                var frontendUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
+                var resetLink = $"{frontendUrl}/reset-password?token={Uri.EscapeDataString(rawToken)}";
+
+                await SendPasswordResetEmail(user.Email, resetLink);
+                _logger.LogWarning("Password reset link for {Email}: {ResetLink}", user.Email, resetLink);
+            }
+
+            return Ok(new { message = "Hvis e-posten finnes, sender vi en reset-lenke." });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request) {
+            if (request.NewPassword.Length < 6) return BadRequest("Passord må være minst 6 tegn");
+
+            var tokenHash = HashResetToken(request.Token);
+            var resetToken = await _context.PasswordResetTokens
+                .Include(t => t.User)
+                .FirstOrDefaultAsync(t =>
+                    t.TokenHash == tokenHash &&
+                    t.UsedAt == null &&
+                    t.ExpiresAt > DateTime.UtcNow);
+
+            if (resetToken == null) return BadRequest("Reset-lenken er ugyldig eller utløpt");
+
+            var salt = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+            resetToken.User.PasswordSalt = salt;
+            resetToken.User.PasswordHash = HashPassword(request.NewPassword, salt);
+            resetToken.UsedAt = DateTime.UtcNow;
+
+            var sessions = _context.UserSessions.Where(s => s.UserId == resetToken.UserId);
+            _context.UserSessions.RemoveRange(sessions);
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Passordet er oppdatert. Logg inn med nytt passord." });
         }
 
         [HttpGet("me")]
@@ -119,6 +178,43 @@ namespace LexiGo.Api.Controllers {
             return Convert.ToBase64String(hashBytes);
         }
 
+        private static string CreateUrlSafeToken() {
+            return Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
+                .Replace("+", "-")
+                .Replace("/", "_")
+                .TrimEnd('=');
+        }
+
+        private static string HashResetToken(string token) {
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+            return Convert.ToBase64String(bytes);
+        }
+
+        private async Task SendPasswordResetEmail(string email, string resetLink) {
+            var host = _configuration["Smtp:Host"];
+            if (string.IsNullOrWhiteSpace(host)) return;
+
+            var port = int.TryParse(_configuration["Smtp:Port"], out var parsedPort) ? parsedPort : 587;
+            var username = _configuration["Smtp:Username"];
+            var password = _configuration["Smtp:Password"];
+            var from = _configuration["Smtp:From"] ?? username ?? "spellstack@localhost";
+
+            using var client = new SmtpClient(host, port) {
+                EnableSsl = bool.TryParse(_configuration["Smtp:EnableSsl"], out var enableSsl) ? enableSsl : true
+            };
+
+            if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password)) {
+                client.Credentials = new NetworkCredential(username, password);
+            }
+
+            using var message = new MailMessage(from, email) {
+                Subject = "Reset SpellStack password",
+                Body = $"Reset passordet ditt her: {resetLink}\n\nLenken utløper om 30 minutter."
+            };
+
+            await client.SendMailAsync(message);
+        }
+
         private static AuthResponse ToAuthResponse(User user, string token) {
             return new AuthResponse(token, ToUserResponse(user));
         }
@@ -136,6 +232,8 @@ namespace LexiGo.Api.Controllers {
 
     public record RegisterRequest(string Username, string Email, string Password, string? FavoriteLanguage);
     public record LoginRequest(string Email, string Password);
+    public record ForgotPasswordRequest(string Email);
+    public record ResetPasswordRequest(string Token, string NewPassword);
     public record AuthResponse(string Token, UserResponse User);
     public record UserResponse(int Id, string Username, string Email, string FavoriteLanguage, DateTime CreatedAt);
 }

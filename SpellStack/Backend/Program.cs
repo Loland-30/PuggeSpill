@@ -57,6 +57,20 @@ using (var scope = app.Services.CreateScope()) {
     db.Database.ExecuteSqlRaw("""
         CREATE UNIQUE INDEX IF NOT EXISTS IX_UserSessions_Token ON UserSessions (Token);
     """);
+    db.Database.ExecuteSqlRaw("""
+        CREATE TABLE IF NOT EXISTS PasswordResetTokens (
+            Id INTEGER NOT NULL CONSTRAINT PK_PasswordResetTokens PRIMARY KEY AUTOINCREMENT,
+            UserId INTEGER NOT NULL,
+            TokenHash TEXT NOT NULL,
+            CreatedAt TEXT NOT NULL,
+            ExpiresAt TEXT NOT NULL,
+            UsedAt TEXT NULL,
+            CONSTRAINT FK_PasswordResetTokens_Users_UserId FOREIGN KEY (UserId) REFERENCES Users (Id) ON DELETE CASCADE
+        );
+    """);
+    db.Database.ExecuteSqlRaw("""
+        CREATE INDEX IF NOT EXISTS IX_PasswordResetTokens_TokenHash ON PasswordResetTokens (TokenHash);
+    """);
     AddColumnIfMissing(db, "ALTER TABLE Decks ADD COLUMN LearningLanguage TEXT NOT NULL DEFAULT '';");
     AddColumnIfMissing(db, "ALTER TABLE Decks ADD COLUMN UserId INTEGER NOT NULL DEFAULT 0;");
     AddColumnIfMissing(db, "ALTER TABLE GameSessions ADD COLUMN UserId INTEGER NOT NULL DEFAULT 0;");

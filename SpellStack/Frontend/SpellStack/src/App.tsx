@@ -6,6 +6,7 @@ import CreateDeckPage from "./Pages/CreateDeckPage"
 import PlayPage from "./Pages/PlayPage"
 import AuthPage from "./Pages/AuthPage"
 import ProfileContainer from "./Pages/ProfileContainer"
+import ResetPasswordPage from "./Pages/ResetPasswordPage"
 import ThemePage from "./Pages/ThemePage"
 import ThemedPage from "./components/ThemedPage"
 
@@ -27,6 +28,7 @@ function App() {
                 <Routes location={location} key={location.pathname}>
                     <Route path="/" element={<DeckPage />} />
                     <Route path="/login" element={<AuthPage />} />
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
                     <Route path="/profile" element={<ProfileContainer />} />
                     <Route path="/theme" element={<ThemePage />} />
                     <Route path="/decks" element={<DeckPage />} />

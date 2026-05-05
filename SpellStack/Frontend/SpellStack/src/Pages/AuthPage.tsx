@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { requestPasswordReset } from "../api/auth"
 import { useAuth } from "../auth/AuthContext"
 import FadeIn from "../components/FadeIn"
 import { languages } from "../data/languages"
@@ -13,10 +14,12 @@ export default function AuthPage() {
     const [password, setPassword] = useState("")
     const [favoriteLanguage, setFavoriteLanguage] = useState("Spansk")
     const [error, setError] = useState("")
+    const [message, setMessage] = useState("")
     const [submitting, setSubmitting] = useState(false)
 
     const handleSubmit = async () => {
         setError("")
+        setMessage("")
         setSubmitting(true)
 
         try {
@@ -26,6 +29,26 @@ export default function AuthPage() {
                 await registerUser(username, email, password, favoriteLanguage)
             }
             navigate("/profile")
+        } catch (error) {
+            setError(error instanceof Error ? error.message : "Noe gikk galt")
+        } finally {
+            setSubmitting(false)
+        }
+    }
+
+    const handleForgotPassword = async () => {
+        setError("")
+        setMessage("")
+
+        if (!email) {
+            setError("Skriv inn e-posten din først")
+            return
+        }
+
+        setSubmitting(true)
+        try {
+            const result = await requestPasswordReset(email)
+            setMessage(result)
         } catch (error) {
             setError(error instanceof Error ? error.message : "Noe gikk galt")
         } finally {
@@ -101,6 +124,7 @@ export default function AuthPage() {
                     </div>
 
                     {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
+                    {message && <p className="mt-4 text-sm text-green-300">{message}</p>}
 
                     <button
                         onClick={handleSubmit}
@@ -109,6 +133,17 @@ export default function AuthPage() {
                     >
                         {submitting ? "Working..." : mode === "login" ? "Login" : "Create account"}
                     </button>
+
+                    {mode === "login" && (
+                        <button
+                            type="button"
+                            onClick={handleForgotPassword}
+                            disabled={submitting}
+                            className="mt-4 w-full text-sm font-semibold text-orange-200 transition hover:text-orange-100 disabled:opacity-50"
+                        >
+                            Forgot password?
+                        </button>
+                    )}
                 </FadeIn>
             </div>
         </div>

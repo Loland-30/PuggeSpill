@@ -12,5 +12,6 @@ namespace LexiGo.Api.Data {
         public DbSet<GameSession> GameSessions { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<UserSession> UserSessions { get; set; }
+        public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
     }
 }
