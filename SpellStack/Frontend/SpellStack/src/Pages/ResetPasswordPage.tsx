@@ -40,8 +40,8 @@ export default function ResetPasswordPage() {
     }
 
     return (
-        <div className="mx-auto grid min-h-[calc(100vh-6rem)] max-w-md place-items-center text-white">
-            <FadeIn className="w-full rounded-lg border border-white/10 bg-white/10 p-6 shadow-2xl backdrop-blur">
+        <div className="mx-auto grid min-h-[calc(100vh-6rem)] w-full max-w-[102rem] place-items-center text-white">
+            <FadeIn className="w-full max-w-md rounded-lg border border-white/10 bg-white/10 p-6 shadow-2xl backdrop-blur">
                 <p className="text-sm font-bold uppercase tracking-[0.35em] text-orange-300">SpellStack</p>
                 <h1 className="mt-3 text-3xl font-black">Reset password</h1>
 

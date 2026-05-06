@@ -58,7 +58,7 @@ export default function AuthPage() {
 
     return (
         <div className="min-h-screen bg-gray-950 px-6 py-12 text-white">
-            <div className="mx-auto grid min-h-[calc(100vh-6rem)] max-w-5xl items-center gap-10 md:grid-cols-[1fr_420px]">
+            <div className="mx-auto grid min-h-[calc(100vh-6rem)] w-full max-w-[102rem] items-center gap-10 md:grid-cols-[1fr_420px]">
                 <FadeIn>
                 <div>
                     <p className="text-sm font-bold uppercase tracking-[0.35em] text-orange-300">SpellStack</p>

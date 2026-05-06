@@ -94,7 +94,8 @@ export default function CreateDeckPage() {
 
     return (
         <PageContentTransition>
-            <div className="relative z-10 mx-auto max-w-2xl">
+            <div className="relative z-10 mx-auto w-full max-w-[102rem]">
+                <div className="max-w-2xl">
                 <FadeIn>
                 <button
                     onClick={() => navigate("/decks")}
@@ -202,6 +203,7 @@ export default function CreateDeckPage() {
                 {isEditing ? "Save changes" : "Create deck"}
             </button>
             </FadeIn>
+                </div>
             </div>
         </PageContentTransition>
     )

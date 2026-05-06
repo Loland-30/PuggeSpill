@@ -77,7 +77,7 @@ export default function DeckPage() {
                 onSelect={handleModeSelect}
             />
 
-            <div className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col">
+            <div className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[102rem] flex-col">
                 <div className="flex justify-end">
                     <div className="relative">
                         <button

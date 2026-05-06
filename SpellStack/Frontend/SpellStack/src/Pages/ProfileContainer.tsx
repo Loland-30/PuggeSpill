@@ -129,7 +129,7 @@ export default function ProfileContainer() {
     return (
         <div
             onWheel={handleWheel}
-            className={`relative z-10 mx-auto flex h-[calc(100vh-4rem)] w-full flex-col overflow-hidden ${pageIndex === 1 ? "max-w-[102rem]" : "max-w-6xl"}`}
+            className="relative z-10 mx-auto flex h-[calc(100vh-4rem)] w-full max-w-[102rem] flex-col overflow-hidden"
         >
             <header className="flex items-center justify-between">
                 <button

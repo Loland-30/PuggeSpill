@@ -8,6 +8,10 @@ import PageContentTransition from "../components/PageContentTransition"
 
 type PaletteView = "solid" | "gradient"
 
+const maxPaletteOptionCount = Math.max(
+    ...["solid", "gradient"].map(kind => paletteThemes.filter(option => option.kind === kind).length)
+)
+
 export default function ThemePage() {
     const navigate = useNavigate()
     const { theme, palette, setBackground, setPalette, setCustomBackgroundImage, setOverlayStrength, setTextTone } = useTheme()
@@ -27,7 +31,7 @@ export default function ThemePage() {
 
     return (
         <PageContentTransition>
-            <div className="relative z-10 mx-auto max-w-5xl">
+            <div className="relative z-10 mx-auto w-full max-w-[102rem]">
                 <FadeIn>
                 <button
                     onClick={() => navigate("/decks")}
@@ -170,7 +174,7 @@ export default function ThemePage() {
                         />
                     </div>
 
-                    <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="mt-5 grid auto-rows-[9.75rem] gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         {paletteThemes.filter(option => option.kind === paletteView).map(option => {
                             const selected = theme.paletteId === option.id
 
@@ -178,18 +182,29 @@ export default function ThemePage() {
                                 <button
                                     key={option.id}
                                     onClick={() => setPalette(option.id)}
-                                    className={`rounded-lg border-2 p-4 text-left transition ${
+                                    className={`flex h-full flex-col rounded-lg border-2 p-4 text-left transition ${
                                         selected ? `${option.border} ${option.glow}` : "border-white/10 hover:border-white/40"
                                     }`}
                                 >
                                     <div className={`h-14 rounded-md ${option.preview}`} />
-                                    <div className="mt-4 flex items-center justify-between gap-3">
-                                        <p className="font-bold">{option.name}</p>
-                                        {selected && <Check size={18} strokeWidth={3} />}
+                                    <div className="mt-4 flex min-h-6 items-center justify-between gap-3">
+                                        <p className="truncate font-bold">{option.name}</p>
+                                        <span className="grid h-5 w-5 shrink-0 place-items-center">
+                                            {selected && <Check size={18} strokeWidth={3} />}
+                                        </span>
                                     </div>
                                 </button>
                             )
                         })}
+                        {Array.from({
+                            length: maxPaletteOptionCount - paletteThemes.filter(option => option.kind === paletteView).length
+                        }).map((_, index) => (
+                            <div
+                                key={`palette-placeholder-${index}`}
+                                aria-hidden="true"
+                                className="invisible h-full rounded-lg border-2 p-4"
+                            />
+                        ))}
                     </div>
                 </section>
                 </FadeIn>

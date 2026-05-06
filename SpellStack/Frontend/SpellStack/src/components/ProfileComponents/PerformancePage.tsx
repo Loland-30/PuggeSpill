@@ -55,8 +55,8 @@ export default function PerformancePage({
     })
 
     return (
-        <div className="mx-auto grid min-h-[calc(100vh-12rem)] w-full max-w-[98rem] items-center gap-16 pt-20 lg:grid-cols-[minmax(0,52rem)_520px]">
-            <div>
+        <div className="mx-auto grid min-h-[calc(100vh-12rem)] w-full max-w-[102rem] items-start gap-10 pt-20 lg:grid-cols-[minmax(0,52rem)_minmax(26rem,34rem)] xl:gap-16">
+            <div className="self-start">
                 <PerformanceTabs
                     activeTab={activeTab}
                     onSelectTab={setActiveTab}
@@ -90,16 +90,16 @@ export default function PerformancePage({
                 )}
             </div>
 
-            <div className="relative left-[180px] flex flex-col items-center justify-center justify-self-end">
+            <div className="flex min-w-0 flex-col items-center justify-center justify-self-center lg:justify-self-end">
                 <RankRing
                     rank={performance.rank}
                     accuracy={performance.averageAccuracy}
                     paletteId={theme.paletteId}
                 />
 
-                <div className="mt-8 text-center">
-                    <p className="text-4xl text-white">Average Accuracy</p>
-                    <p className="mt-4 text-6xl text-white">{performance.averageAccuracy}%</p>
+                <div className="mt-8 max-w-full text-center">
+                    <p className="text-3xl text-white xl:text-4xl">Average Accuracy</p>
+                    <p className="mt-4 text-5xl text-white xl:text-6xl">{performance.averageAccuracy}%</p>
                     <p className="mt-3 text-xl text-white/70">
                         {getNextRankText(performance.averageAccuracy)}
                     </p>
@@ -389,7 +389,7 @@ function RankRing({
     }, [accuracy, paletteId])
 
     return (
-        <div className="relative grid h-[32rem] w-[32rem] place-items-center">
+        <div className="relative grid h-[clamp(22rem,30vw,32rem)] w-[clamp(22rem,30vw,32rem)] place-items-center">
             <svg
                 viewBox="0 0 360 360"
                 className="absolute inset-0 h-full w-full -rotate-90"

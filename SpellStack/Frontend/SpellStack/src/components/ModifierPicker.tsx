@@ -51,6 +51,10 @@ const modifierOptions: ModifierOption[] = [
     }
 ]
 
+const maxModifierOptionCount = Math.max(
+    ...["easier", "harder"].map(group => modifierOptions.filter(option => option.group === group).length)
+)
+
 export function getModifierNames(modifiers: ActiveGameModifier[]) {
     if (modifiers.length === 0) return "None"
     return modifiers
@@ -126,7 +130,7 @@ export default function ModifierPicker({ selectedModifiers, onChange, onClose }:
             </div>
 
             <div className="rounded-lg bg-white p-5 shadow-2xl">
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                <div className="grid auto-rows-[11.5rem] grid-cols-2 gap-4 sm:grid-cols-3">
                     {visibleOptions.map(option => {
                         const enabled = selectedModifiers.includes(option.id)
 
@@ -134,7 +138,7 @@ export default function ModifierPicker({ selectedModifiers, onChange, onClose }:
                             <button
                                 key={option.id}
                                 onClick={() => toggleModifier(option.id)}
-                                className={`flex min-h-36 flex-col items-center justify-center gap-2 rounded-lg border-2 p-4 text-center transition ${
+                                className={`flex h-full flex-col items-center justify-center gap-2 rounded-lg border-2 p-4 text-center transition ${
                                     enabled
                                         ? "border-orange-400 bg-orange-400 text-white shadow-lg"
                                         : "border-orange-300 bg-white text-orange-400 hover:bg-orange-50"
@@ -152,12 +156,19 @@ export default function ModifierPicker({ selectedModifiers, onChange, onClose }:
                             </button>
                         )
                     })}
+                    {Array.from({ length: maxModifierOptionCount - visibleOptions.length }).map((_, index) => (
+                        <div
+                            key={`modifier-placeholder-${index}`}
+                            aria-hidden="true"
+                            className="invisible h-full rounded-lg border-2 p-4"
+                        />
+                    ))}
                 </div>
 
                 <div className="mt-5 grid gap-3 rounded-lg bg-gray-50 p-4 sm:grid-cols-[1fr_auto]">
                     <div>
                         <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Active mods</p>
-                        <p className="mt-1 text-sm font-semibold text-gray-700">{getModifierNames(selectedModifiers)}</p>
+                        <p className="mt-1 min-h-5 text-sm font-semibold text-gray-700">{getModifierNames(selectedModifiers)}</p>
                     </div>
 
                     <div className="rounded-lg bg-white px-5 py-3 text-right shadow-sm">
