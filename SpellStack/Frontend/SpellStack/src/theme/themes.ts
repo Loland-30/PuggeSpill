@@ -2,6 +2,7 @@ export type BackgroundThemeId = "night" | "aurora" | "sunset" | "forest" | "rose
 export type PaletteThemeId = "blue" | "pink" | "green" | "red" | "yellow" | "purpleGradient" | "mangoPop" | "frostByte"
 export type OverlayStrength = "low" | "medium" | "high"
 export type TextTone = "light" | "dark"
+import type { PaletteTheme, PaletteThemeId } from "../types/PaletteTheme"
 
 export interface BackgroundTheme {
     id: BackgroundThemeId
@@ -125,6 +126,9 @@ export const paletteThemes: PaletteTheme[] = [
         glow: "shadow-[0_0_28px_rgba(252,177,3,0.3)]",
         preview: "bg-[#fcb103]"
     },
+
+    // --- Gradients --- //
+
     {
         id: "purpleGradient",
         name: "Red Purple",
@@ -134,7 +138,12 @@ export const paletteThemes: PaletteTheme[] = [
         border: "border-fuchsia-500",
         card: "bg-slate-800/75",
         glow: "shadow-[0_0_34px_rgba(217,70,239,0.35)]",
-        preview: "bg-gradient-to-r from-rose-500 to-violet-600"
+        preview: "bg-gradient-to-r from-rose-500 to-violet-600",
+        frameGradient: "from-rose-500 to-violet-600",
+        frameFrom: "#f43f5e",
+        frameTo: "#7c3aed",
+        frameGlass: "bg-purple-950/[0.2]",
+        frameGlow: "shadow-[inset_0_0_32px_rgba(127,29,29,0.14)]"
     },
     {
         id: "mangoPop",
@@ -145,7 +154,12 @@ export const paletteThemes: PaletteTheme[] = [
         border: "border-[#ff7a1a]",
         card: "bg-rose-950/65",
         glow: "shadow-[0_0_34px_rgba(248,155,41,0.35)]",
-        preview: "bg-gradient-to-r from-[#ff0f7b] to-[#f89b29]"
+        preview: "bg-gradient-to-r from-[#ff0f7b] to-[#f89b29]",
+        frameGradient: "from-[#ff0f7b] to-[#f89b29]",
+        frameFrom: "#ff0f7b",
+        frameTo: "#f89b29",
+        frameGlass: "bg-red-950/[0.35]",
+        frameGlow: "shadow-[inset_0_0_32px_rgba(127,29,29,0.14)]"
     },
     {
         id: "frostByte",
@@ -156,7 +170,12 @@ export const paletteThemes: PaletteTheme[] = [
         border: "border-[#60efff]",
         card: "bg-blue-950/65",
         glow: "shadow-[0_0_34px_rgba(96,239,255,0.35)]",
-        preview: "bg-gradient-to-r from-[#0061ff] to-[#60efff]"
+        preview: "bg-gradient-to-r from-[#0061ff] to-[#60efff]",
+        frameGradient: "from-[#0061ff] to-[#60efff]",
+        frameFrom: "#0061ff",
+        frameTo: "#60efff",
+        frameGlass: "bg-blue-950/[0.3]",
+        frameGlow: "shadow-[inset_0_0_32px_rgba(96,239,255,0.10)]"
     }
 ]
 
@@ -203,6 +222,6 @@ export function getBackgroundTheme(id: BackgroundThemeId) {
     return backgroundThemes.find(theme => theme.id === id) ?? backgroundThemes[0]
 }
 
-export function getPaletteTheme(id: PaletteThemeId) {
-    return paletteThemes.find(theme => theme.id === id) ?? paletteThemes[0]
+export function getPaletteTheme(id: PaletteThemeId): PaletteTheme {
+    return paletteThemes.find(option => option.id === id) ?? paletteThemes[0]
 }

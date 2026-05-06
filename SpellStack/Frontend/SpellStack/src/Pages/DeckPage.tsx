@@ -11,6 +11,7 @@ import { useAuth } from "../auth/AuthContext"
 import ThemedPage from "../components/ThemedPage"
 import { useTheme } from "../theme/ThemeContext"
 import PageContentTransition from "../components/PageContentTransition"
+import GradientFrame from "../components/GradientFrame"
 
 function getLanguageFlag(code: string) {
     return languages.find(language => language.code === code)?.flagUrl
@@ -27,6 +28,7 @@ export default function DeckPage() {
 
     useEffect(() => {
         if (authLoading) return
+
         if (!user) {
             navigate("/login")
             return
@@ -40,7 +42,7 @@ export default function DeckPage() {
 
     const handleDelete = async (id: number) => {
         await deleteDeck(id)
-        setDecks(decks.filter(deck => deck.id !== id))
+        setDecks(currentDecks => currentDecks.filter(deck => deck.id !== id))
     }
 
     const handlePlay = (deck: Deck) => {
@@ -49,7 +51,11 @@ export default function DeckPage() {
 
     const handleModeSelect = (direction: GameDirection, modifiers: ActiveGameModifier[]) => {
         const params = new URLSearchParams({ direction })
-        if (modifiers.length > 0) params.set("mods", modifiers.join(","))
+
+        if (modifiers.length > 0) {
+            params.set("mods", modifiers.join(","))
+        }
+
         navigate(`/decks/${selectedDeck!.id}/play?${params.toString()}`)
     }
 
@@ -70,7 +76,7 @@ export default function DeckPage() {
     }
 
     return (
-            <PageContentTransition>
+        <PageContentTransition>
             <GameModeModal
                 isOpen={selectedDeck !== null}
                 deck={selectedDeck!}
@@ -100,25 +106,30 @@ export default function DeckPage() {
                         </button>
 
                         {profileMenuOpen && (
-                            <div className={`absolute right-0 top-16 z-20 w-44 overflow-hidden rounded-lg border ${palette.border} bg-slate-950/95 py-2 shadow-2xl backdrop-blur`}>
+                            <GradientFrame
+                                className="absolute right-0 top-16 z-20 w-44 rounded-lg"
+                                contentClassName="overflow-hidden rounded-[inherit] py-2"
+                            >
                                 <button
                                     onClick={() => navigate(user ? "/profile" : "/login")}
-                                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-white/80 transition hover:bg-fuchsia-500/20 hover:text-white"
+                                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white"
                                 >
                                     <UserRound size={17} strokeWidth={2.25} />
                                     Profile
                                 </button>
+
                                 <button
                                     onClick={() => navigate("/theme")}
-                                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-white/80 transition hover:bg-fuchsia-500/20 hover:text-white"
+                                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white"
                                 >
                                     <Palette size={17} strokeWidth={2.25} />
                                     Theme
                                 </button>
+
                                 {user ? (
                                     <button
                                         onClick={handleLogout}
-                                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-white/80 transition hover:bg-fuchsia-500/20 hover:text-white"
+                                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white"
                                     >
                                         <LogOut size={17} strokeWidth={2.25} />
                                         Log out
@@ -126,20 +137,23 @@ export default function DeckPage() {
                                 ) : (
                                     <button
                                         onClick={() => navigate("/login")}
-                                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-white/80 transition hover:bg-fuchsia-500/20 hover:text-white"
+                                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white"
                                     >
                                         <LogIn size={17} strokeWidth={2.25} />
                                         Log in
                                     </button>
                                 )}
-                            </div>
+                            </GradientFrame>
                         )}
                     </div>
                 </div>
 
                 <main className="mx-auto mt-14 flex w-full max-w-3xl flex-1 flex-col">
                     <FadeIn className="mb-8 grid grid-cols-[1fr_auto_auto] items-center gap-6">
-                        <h1 className={`text-2xl font-black ${palette.accentText}`}>Your profiles</h1>
+                        <h1 className={`text-2xl font-black ${palette.accentText}`}>
+                            Your profiles
+                        </h1>
+
                         <button
                             onClick={() => navigate("/decks/create")}
                             className={`grid h-12 w-12 place-items-center rounded-full text-3xl font-black shadow-lg transition ${palette.primaryButton}`}
@@ -147,6 +161,7 @@ export default function DeckPage() {
                         >
                             <Plus size={28} strokeWidth={3} />
                         </button>
+
                         <button
                             className={`flex h-12 items-center gap-2 rounded-full px-5 text-sm font-semibold shadow-lg transition ${palette.primaryButton}`}
                         >
@@ -156,15 +171,21 @@ export default function DeckPage() {
                     </FadeIn>
 
                     {decks.length === 0 ? (
-                        <FadeIn className={`rounded-lg border-2 ${palette.border} ${palette.card} p-10 text-center ${palette.glow}`}>
-                            <p className="text-2xl font-black">No decks yet</p>
-                            <p className="mt-2 text-white/70">Create your first deck to get started</p>
-                            <button
-                                onClick={() => navigate("/decks/create")}
-                                className={`mt-6 rounded-full px-7 py-3 font-bold text-white transition ${palette.primaryButton}`}
+                        <FadeIn>
+                            <GradientFrame
+                                glow
+                                contentClassName="p-10 text-center"
                             >
-                                Create deck
-                            </button>
+                                <p className="text-2xl font-black">No decks yet</p>
+                                <p className="mt-2 text-white/70">Create your first deck to get started</p>
+
+                                <button
+                                    onClick={() => navigate("/decks/create")}
+                                    className={`mt-6 rounded-full px-7 py-3 font-bold text-white transition ${palette.primaryButton}`}
+                                >
+                                    Create deck
+                                </button>
+                            </GradientFrame>
                         </FadeIn>
                     ) : (
                         <div className="flex flex-col gap-5">
@@ -187,7 +208,7 @@ export default function DeckPage() {
                     </FadeIn>
                 </main>
             </div>
-            </PageContentTransition>
+        </PageContentTransition>
     )
 }
 
@@ -199,17 +220,35 @@ function DeckRow({ deck, onPlay, onEdit, onDelete, palette }: {
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
     return (
-        <div className="mx-auto w-full max-w-xl overflow-visible">
-            <div className={`group relative grid min-h-24 w-full max-w-[calc(100vw-3rem)] grid-cols-[minmax(0,1fr)_auto_auto_0rem] items-center gap-4 overflow-hidden rounded-[28px] border-2 ${palette.border} ${palette.card} px-8 py-5 ${palette.glow} transition-all duration-300 hover:w-[42rem] hover:grid-cols-[minmax(0,1fr)_auto_auto_10rem] hover:bg-slate-700/80`}>
+        <div className="mx-auto w-full max-w-[42rem] overflow-visible">
+            <GradientFrame
+                glow
+                radius={28}
+                radiusClass="rounded-[28px]"
+                className="group w-full max-w-xl rounded-[28px] transition-all duration-300 hover:max-w-[42rem]"
+                contentClassName="grid min-h-24 grid-cols-[minmax(0,1fr)_auto_auto_0rem] items-center gap-4 overflow-hidden rounded-[inherit] px-8 py-5 transition-all duration-300 group-hover:grid-cols-[minmax(0,1fr)_auto_auto_10rem]"
+            >
                 <div className="min-w-0">
                     <h2 className="truncate text-3xl font-black">{deck.name}</h2>
-                    <p className="mt-1 text-sm font-semibold text-white/80">Word count: {deck.words.length}</p>
-                    <p className="text-xs text-white/50">Highscore: {deck.highScore}</p>
+                    <p className="mt-1 text-sm font-semibold text-white/80">
+                        Word count: {deck.words.length}
+                    </p>
+                    <p className="text-xs text-white/50">
+                        Highscore: {deck.highScore}
+                    </p>
                 </div>
 
                 <div className="flex shrink-0 items-center gap-4">
-                    <img src={getLanguageFlag(deck.language)} className="h-11 w-16 rounded-lg object-cover" />
-                    <img src={getLanguageFlag(deck.translationLanguage)} className="h-11 w-16 rounded-lg object-cover" />
+                    <img
+                        src={getLanguageFlag(deck.language)}
+                        alt={`${deck.language} flag`}
+                        className="h-11 w-16 rounded-lg object-cover"
+                    />
+                    <img
+                        src={getLanguageFlag(deck.translationLanguage)}
+                        alt={`${deck.translationLanguage} flag`}
+                        className="h-11 w-16 rounded-lg object-cover"
+                    />
                 </div>
 
                 <button
@@ -228,6 +267,7 @@ function DeckRow({ deck, onPlay, onEdit, onDelete, palette }: {
                         <Pencil size={27} strokeWidth={2.5} />
                         <span className="mt-1 text-xs font-bold">Edit</span>
                     </button>
+
                     <button
                         onClick={onDelete}
                         className="flex h-14 w-16 flex-col items-center justify-center rounded-lg text-white transition hover:bg-red-500/30"
@@ -237,7 +277,7 @@ function DeckRow({ deck, onPlay, onEdit, onDelete, palette }: {
                         <span className="mt-1 text-xs font-bold">Delete</span>
                     </button>
                 </div>
-            </div>
+            </GradientFrame>
         </div>
     )
 }
