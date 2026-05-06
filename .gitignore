@@ -1,0 +1,30 @@
+# .NET build output
+**/bin/
+**/obj/
+**/build-check/
+
+# Node/Vite build output
+**/node_modules/
+**/dist/
+**/dist-ssr/
+
+# Local databases
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/*.sqlite
+**/*.sqlite3
+
+# Logs and temporary files
+**/*.log
+**/*.tmp
+**/*.temp
+**/*.local
+
+# IDE and OS files
+.DS_Store
+Thumbs.db
+**/.vs/
+**/.vscode/
+**/*.user
+**/*.suo

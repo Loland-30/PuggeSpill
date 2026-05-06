@@ -14,7 +14,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddCors(options => {
     options.AddPolicy("AllowFrontend", policy => {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins(
+                  "http://localhost:5173",
+                  "http://127.0.0.1:5173",
+                  "http://localhost:5174",
+                  "http://127.0.0.1:5174"
+              )
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -70,6 +75,18 @@ using (var scope = app.Services.CreateScope()) {
     """);
     db.Database.ExecuteSqlRaw("""
         CREATE INDEX IF NOT EXISTS IX_PasswordResetTokens_TokenHash ON PasswordResetTokens (TokenHash);
+    """);
+    db.Database.ExecuteSqlRaw("""
+        CREATE TABLE IF NOT EXISTS UserAchievements (
+            Id INTEGER NOT NULL CONSTRAINT PK_UserAchievements PRIMARY KEY AUTOINCREMENT,
+            UserId INTEGER NOT NULL,
+            AchievementId TEXT NOT NULL,
+            UnlockedAt TEXT NOT NULL,
+            CONSTRAINT FK_UserAchievements_Users_UserId FOREIGN KEY (UserId) REFERENCES Users (Id) ON DELETE CASCADE
+        );
+    """);
+    db.Database.ExecuteSqlRaw("""
+        CREATE UNIQUE INDEX IF NOT EXISTS IX_UserAchievements_UserId_AchievementId ON UserAchievements (UserId, AchievementId);
     """);
     AddColumnIfMissing(db, "ALTER TABLE Decks ADD COLUMN LearningLanguage TEXT NOT NULL DEFAULT '';");
     AddColumnIfMissing(db, "ALTER TABLE Decks ADD COLUMN UserId INTEGER NOT NULL DEFAULT 0;");

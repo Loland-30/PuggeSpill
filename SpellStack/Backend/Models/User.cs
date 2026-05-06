@@ -10,5 +10,6 @@ namespace LexiGo.Api.Models {
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public ICollection<Deck> Decks { get; set; } = new List<Deck>();
+        public ICollection<UserAchievement> Achievements { get; set; } = new List<UserAchievement>();
     }
 }

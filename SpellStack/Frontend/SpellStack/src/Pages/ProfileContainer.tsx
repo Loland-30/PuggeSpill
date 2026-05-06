@@ -3,13 +3,14 @@ import { motion } from "framer-motion"
 import { useNavigate } from "react-router-dom"
 import { getLanguageStats, type LanguageStats } from "../api/auth"
 import { useAuth } from "../auth/AuthContext"
+import AchievementsPage from "../components/ProfileComponents/AchievementsPage"
 import PerformancePage from "../components/ProfileComponents/PerformancePage"
 import ProfilePage from "../components/ProfileComponents/ProfilePage"
 import type { ProfileLanguage } from "../components/ProfileComponents/types"
 import { languages } from "../data/languages"
 import { useTheme } from "../theme/ThemeContext"
 
-const profilePages = ["Profile", "Performance"] as const
+const profilePages = ["Profile", "Performance", "Achievements"] as const
 
 function getLanguageFromValue(value: string) {
     const normalized = value.trim().toLowerCase()
@@ -150,7 +151,6 @@ export default function ProfileContainer() {
                             {page}
                         </button>
                     ))}
-                    <span>Achievements</span>
                     <span>Multiplayer</span>
                 </nav>
 
@@ -171,10 +171,16 @@ export default function ProfileContainer() {
                     transition={{ duration: 0.28, ease: "easeOut" }}
                     className="absolute inset-0"
                 >
-                    {pageIndex === 0 ? (
+                    {pageIndex === 0 && (
                         <ProfilePage {...sharedProps} />
-                    ) : (
+                    )}
+
+                    {pageIndex === 1 && (
                         <PerformancePage {...sharedProps} />
+                    )}
+
+                    {pageIndex === 2 && (
+                        <AchievementsPage />
                     )}
                 </motion.div>
             </main>

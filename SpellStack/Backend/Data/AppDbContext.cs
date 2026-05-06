@@ -13,5 +13,6 @@ namespace LexiGo.Api.Data {
         public DbSet<User> Users { get; set; }
         public DbSet<UserSession> UserSessions { get; set; }
         public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+        public DbSet<UserAchievement> UserAchievements { get; set; }
     }
 }
