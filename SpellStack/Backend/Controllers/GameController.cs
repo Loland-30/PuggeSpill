@@ -29,7 +29,9 @@ namespace LexiGo.Api.Controllers {
 
             var shuffled = deck.Words.OrderBy(_ => Guid.NewGuid()).ToList();
             var firstWord = shuffled.First();
+
             var modifiers = NormalizeModifiers(request?.Modifiers, request?.Modifier);
+            var roundLimit = NormalizeRoundLimit(request?.RoundLimit);
 
             var session = new GameSession {
                 UserId = user.Id,
@@ -39,11 +41,14 @@ namespace LexiGo.Api.Controllers {
                 StreakCount = 0,
                 FinalScore = 0,
                 Lives = GetStartingLives(modifiers),
-                IsActive = true
+                IsActive = true,
+                RoundLimit = roundLimit,
+                QuestionsAnswered = 0
             };
 
             _context.GameSessions.Add(session);
             await _context.SaveChangesAsync();
+
             return Ok(session);
         }
 
@@ -62,6 +67,7 @@ namespace LexiGo.Api.Controllers {
             var direction = request.Direction?.ToLowerInvariant() == "translation"
                 ? "translation"
                 : "original";
+
             var modifiers = NormalizeModifiers(request.Modifiers, request.Modifier);
             var correct = IsAnswerCorrect(session.CurrentWord, request.Answer, direction);
 
@@ -69,6 +75,7 @@ namespace LexiGo.Api.Controllers {
                 var nextStreak = session.StreakCount + 1;
                 var timeBonus = Math.Max(0, request.TimeLeft ?? 0) * 5;
                 var streakBonus = nextStreak >= 3 ? nextStreak * 25 : 0;
+
                 var score = modifiers.Contains("zen") ? 0 : 100 + timeBonus + streakBonus;
                 score = (int)Math.Round(score * GetScoreMultiplier(modifiers));
 
@@ -80,20 +87,43 @@ namespace LexiGo.Api.Controllers {
                     (!modifiers.Contains("momentum") || (request.TimeLeft ?? 0) <= 0);
 
                 if (shouldLoseLife) session.Lives--;
+
                 session.StreakCount = 0;
+
                 if (session.Lives <= 0) {
                     session.IsActive = false;
                     await _context.SaveChangesAsync();
-                    return Ok(new { correct, session, gameOver = true });
+
+                    return Ok(new {
+                        correct,
+                        session,
+                        gameOver = true,
+                        gameComplete = false
+                    });
                 }
             }
 
-            // Neste ord
+            session.QuestionsAnswered++;
+
+            if (session.RoundLimit.HasValue && session.QuestionsAnswered >= session.RoundLimit.Value) {
+                session.IsActive = false;
+                await _context.SaveChangesAsync();
+
+                return Ok(new {
+                    correct,
+                    session,
+                    gameOver = false,
+                    gameComplete = true
+                });
+            }
+
             var deck = await _context.Decks
                 .Include(d => d.Words)
                 .FirstOrDefaultAsync(d => d.Id == session.DeckId && d.UserId == user.Id);
 
-            var nextWord = deck!.Words
+            if (deck == null) return NotFound();
+
+            var nextWord = deck.Words
                 .OrderBy(_ => Guid.NewGuid())
                 .FirstOrDefault(w => w.Id != session.CurrentWordId);
 
@@ -103,7 +133,13 @@ namespace LexiGo.Api.Controllers {
             }
 
             await _context.SaveChangesAsync();
-            return Ok(new { correct, session, gameOver = false });
+
+            return Ok(new {
+                correct,
+                session,
+                gameOver = false,
+                gameComplete = false
+            });
         }
 
         [HttpGet("state/{id}")]
@@ -117,6 +153,7 @@ namespace LexiGo.Api.Controllers {
                 .FirstOrDefaultAsync(s => s.Id == id && s.UserId == user.Id);
 
             if (session == null) return NotFound();
+
             return Ok(session);
         }
 
@@ -128,7 +165,7 @@ namespace LexiGo.Api.Controllers {
             var session = await _context.GameSessions
                 .Include(s => s.Deck)
                 .FirstOrDefaultAsync(s => s.Id == id && s.UserId == user.Id);
-            
+
             if (session == null) return NotFound();
 
             session.IsActive = false;
@@ -139,7 +176,11 @@ namespace LexiGo.Api.Controllers {
             }
 
             await _context.SaveChangesAsync();
-            return Ok(new { highScore = session.Deck.HighScore, isNewHighScore });
+
+            return Ok(new {
+                highScore = session.Deck.HighScore,
+                isNewHighScore
+            });
         }
 
         [HttpPost("rush-hour/{id}/complete")]
@@ -150,10 +191,12 @@ namespace LexiGo.Api.Controllers {
             var session = await _context.GameSessions
                 .Include(s => s.CurrentWord)
                 .FirstOrDefaultAsync(s => s.Id == id && s.UserId == user.Id);
+
             if (session == null) return NotFound();
             if (!session.IsActive) return BadRequest("Session er ikke aktiv");
 
             session.FinalScore += Math.Max(0, request.BonusScore);
+
             await _context.SaveChangesAsync();
 
             return Ok(session);
@@ -161,6 +204,7 @@ namespace LexiGo.Api.Controllers {
 
         private static bool IsAnswerCorrect(Word word, string answer, string direction) {
             var normalizedAnswer = Normalize(answer);
+
             if (direction == "translation") {
                 return normalizedAnswer == Normalize(word.Original);
             }
@@ -190,11 +234,23 @@ namespace LexiGo.Api.Controllers {
             if (modifiers.Contains("zen")) return 0;
 
             var multiplier = 1.0;
+
             if (modifiers.Contains("extraheart")) multiplier *= 0.75;
             if (modifiers.Contains("hardcore")) multiplier *= 1.5;
             if (modifiers.Contains("momentum")) multiplier *= 1.25;
 
             return multiplier;
+        }
+
+        private static int? NormalizeRoundLimit(int? roundLimit) {
+            return roundLimit switch {
+                null => null,
+                10 => 10,
+                25 => 25,
+                50 => 50,
+                100 => 100,
+                _ => 25
+            };
         }
 
         private static IReadOnlyCollection<string> NormalizeModifiers(string[]? modifiers, string? legacyModifier) {
@@ -239,12 +295,25 @@ namespace LexiGo.Api.Controllers {
 
         private string? GetBearerToken() {
             var header = Request.Headers.Authorization.ToString();
-            if (!header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)) return null;
+
+            if (!header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)) {
+                return null;
+            }
+
             return header["Bearer ".Length..].Trim();
         }
     }
 
-    public record StartGameRequest(string? Modifier, string[]? Modifiers);
-    public record AnswerRequest(string Answer, string? Direction, int? TimeLeft, string? Modifier, string[]? Modifiers, bool ProtectLife);
+    public record StartGameRequest(string? Modifier, string[]? Modifiers, int? RoundLimit);
+
+    public record AnswerRequest(
+        string Answer,
+        string? Direction,
+        int? TimeLeft,
+        string? Modifier,
+        string[]? Modifiers,
+        bool ProtectLife
+    );
+
     public record RushHourCompleteRequest(int BonusScore);
 }

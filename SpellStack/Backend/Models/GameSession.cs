@@ -10,6 +10,7 @@ namespace LexiGo.Api.Models {
         public int Lives { get; set; }
         public bool IsActive { get; set; }
         public int? RoundLimit { get; set; } // null = endless -> Thinker
+        public int QuestionsAnswered { get; set; }
         
         public Deck Deck { get; set; } = null!;
         public Word CurrentWord { get; set; } = null!;
