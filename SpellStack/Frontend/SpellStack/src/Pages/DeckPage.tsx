@@ -75,6 +75,7 @@ export default function DeckPage() {
                 isOpen={selectedDeck !== null}
                 deck={selectedDeck!}
                 onSelect={handleModeSelect}
+                onClose={() => setSelectedDeck(null)}
             />
 
             <div className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[102rem] flex-col">

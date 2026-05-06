@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { X } from "lucide-react"
 import type { Deck } from "../api/decks"
 import type { ActiveGameModifier, GameDirection } from "../api/gameSession"
 import { languages } from "../data/languages"
@@ -8,9 +9,10 @@ interface Props {
     isOpen: boolean
     deck: Deck
     onSelect: (direction: GameDirection, modifiers: ActiveGameModifier[]) => void
+    onClose: () => void
 }
 
-export default function GameModeModal({ isOpen, deck, onSelect }: Props) {
+export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props) {
     const [modifiers, setModifiers] = useState<ActiveGameModifier[]>([])
     const [showModifierPicker, setShowModifierPicker] = useState(false)
 
@@ -25,17 +27,28 @@ export default function GameModeModal({ isOpen, deck, onSelect }: Props) {
                 <div className="flex w-full max-w-4xl items-center justify-between gap-4">
                     <h2 className="text-3xl font-bold text-white">Choose game mode</h2>
 
-                    <button
-                        onClick={() => setShowModifierPicker(open => !open)}
-                        className={`flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold shadow-xl transition ${
-                            modifiers.length === 0
-                                ? "bg-white text-gray-700 hover:bg-orange-50"
-                                : "bg-orange-400 text-white hover:bg-orange-500"
-                        }`}
-                    >
-                        <span className="grid h-6 w-6 place-items-center rounded-full bg-black/10 text-xs">+</span>
-                        Mods: {getModifierNames(modifiers)}
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setShowModifierPicker(open => !open)}
+                            className={`flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold shadow-xl transition ${
+                                modifiers.length === 0
+                                    ? "bg-white text-gray-700 hover:bg-orange-50"
+                                    : "bg-orange-400 text-white hover:bg-orange-500"
+                            }`}
+                        >
+                            <span className="grid h-6 w-6 place-items-center rounded-full bg-black/10 text-xs">+</span>
+                            Mods: {getModifierNames(modifiers)}
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="grid h-11 w-11 place-items-center rounded-full bg-white text-gray-700 shadow-xl transition hover:bg-orange-400 hover:text-white"
+                            aria-label="Close game mode modal"
+                        >
+                            <X size={22} strokeWidth={2.7} />
+                        </button>
+                    </div>
                 </div>
 
                 {showModifierPicker ? (
