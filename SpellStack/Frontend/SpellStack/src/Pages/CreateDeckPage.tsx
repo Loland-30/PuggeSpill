@@ -5,6 +5,7 @@ import { Check, ChevronDown, X } from "lucide-react"
 import { createDeck, getDeck, updateDeck } from "../api/decks"
 import { addWord, deleteWord, updateWord } from "../api/words"
 import FadeIn from "../components/FadeIn"
+import GradientFrame from "../components/GradientFrame"
 import LanguageSelect from "../components/LanguageSelect"
 import PageContentTransition from "../components/PageContentTransition"
 import { useTheme } from "../theme/ThemeContext"
@@ -52,7 +53,7 @@ export default function CreateDeckPage() {
     const navigate = useNavigate()
     const { id } = useParams()
     const isEditing = !!id
-    const { theme, palette, textTone } = useTheme()
+    const { palette, textTone } = useTheme()
 
     const [deckName, setDeckName] = useState("")
     const [translationLanguage, setTranslationLanguage] = useState("no")
@@ -178,23 +179,11 @@ export default function CreateDeckPage() {
         navigate("/")
     }
 
-    const isRedPurple = theme.paletteId === "purpleGradient"
-    const redPurpleGlass = "border-fuchsia-400/80 bg-slate-950/45 shadow-[0_0_14px_rgba(217,70,239,0.14)] backdrop-blur-xl"
-    const inputClass = isRedPurple
-        ? `w-full min-w-0 rounded-lg border-2 ${redPurpleGlass} px-4 py-3 text-sm font-semibold ${textTone.inputClass} ${textTone.placeholderClass} outline-none transition focus:-translate-y-0.5 focus:border-rose-400 focus:bg-white/10`
-        : `w-full min-w-0 rounded-lg border-2 ${palette.border} ${textTone.panelClass} ${palette.glow} px-4 py-3 text-sm font-semibold ${textTone.inputClass} ${textTone.placeholderClass} outline-none backdrop-blur transition focus:-translate-y-0.5 focus:bg-white/15 focus:ring-2 focus:ring-white/20`
-    const cardClass = isRedPurple
-        ? `mb-6 rounded-lg border-2 ${redPurpleGlass} p-6`
-        : `${palette.card} mb-6 rounded-lg border ${palette.border} ${palette.glow} p-6`
-    const rowButtonClass = isRedPurple
-        ? `grid h-11 w-11 shrink-0 place-items-center rounded-lg text-white shadow-[0_0_12px_rgba(217,70,239,0.14)] transition hover:-translate-y-0.5 ${palette.primaryButton}`
-        : `grid h-11 w-11 shrink-0 place-items-center rounded-lg border-2 ${palette.border} bg-black/25 ${palette.glow} text-white/80 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white`
-    const deleteButtonClass = isRedPurple
-        ? "grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-red-300/45 bg-red-950/35 text-red-200 shadow-[0_0_10px_rgba(248,113,113,0.12)] backdrop-blur transition hover:-translate-y-0.5 hover:bg-red-500/25 hover:text-red-100"
-        : "grid h-11 w-11 shrink-0 place-items-center rounded-lg border-2 border-red-300/40 bg-black/25 text-red-300 backdrop-blur transition hover:-translate-y-0.5 hover:bg-red-500/20 hover:text-red-100"
-    const addWordClass = isRedPurple
-        ? "mb-6 w-full rounded-2xl border-2 border-dashed border-fuchsia-400/90 bg-slate-950/20 py-3 text-sm text-white/80 shadow-[0_0_10px_rgba(217,70,239,0.1)] backdrop-blur transition hover:bg-white/10 hover:text-white"
-        : `mb-6 w-full rounded-2xl border-2 border-dashed ${palette.border} py-3 text-sm text-white/70 transition hover:text-white`
+    const inputClass = `w-full min-w-0 rounded-lg border-2 ${palette.border} ${textTone.panelClass} ${palette.glow} px-4 py-3 text-sm font-semibold ${textTone.inputClass} ${textTone.placeholderClass} outline-none backdrop-blur transition focus:-translate-y-0.5 focus:bg-white/15 focus:ring-2 focus:ring-white/20`
+    const framedWordInputClass = `w-full min-w-0 rounded-[inherit] border-0 bg-transparent px-4 py-4 text-sm font-semibold ${textTone.inputClass} ${textTone.placeholderClass} outline-none transition focus:bg-white/10`
+    const rowButtonClass = `grid h-11 w-11 shrink-0 place-items-center rounded-lg border-2 ${palette.border} bg-black/25 ${palette.glow} text-white/80 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white`
+    const deleteButtonClass = "grid h-11 w-11 shrink-0 place-items-center rounded-lg border-2 border-red-300/40 bg-black/25 text-red-300 backdrop-blur transition hover:-translate-y-0.5 hover:bg-red-500/20 hover:text-red-100"
+    const addWordClass = `mb-6 w-full rounded-2xl border-2 border-dashed ${palette.border} py-3 text-sm text-white/70 transition hover:text-white`
 
     return (
         <PageContentTransition>
@@ -215,8 +204,7 @@ export default function CreateDeckPage() {
                         </h1>
                     </FadeIn>
 
-                    <FadeIn className={cardClass}>
-                        <div className="flex flex-col gap-4">
+                    <FadeIn className="mb-6 flex flex-col gap-4">
                             <div>
                                 <label className="mb-1 block text-sm text-white/70">Deck name</label>
                                 <input
@@ -238,7 +226,6 @@ export default function CreateDeckPage() {
                                     className={inputClass}
                                 />
                             </div>
-                        </div>
                     </FadeIn>
 
                     <FadeIn className="relative z-[100] mb-4 grid grid-cols-2 gap-4 px-1">
@@ -251,7 +238,7 @@ export default function CreateDeckPage() {
                                 value={language}
                                 onChange={setLanguage}
                                 inputClassName={textTone.inputClass}
-                                panelClassName={isRedPurple ? "border-transparent shadow-[0_0_14px_rgba(217,70,239,0.14)] backdrop-blur-xl" : textTone.panelClass}
+                                panelClassName={textTone.panelClass}
                             />
                         </div>
 
@@ -264,7 +251,7 @@ export default function CreateDeckPage() {
                                 value={translationLanguage}
                                 onChange={setTranslationLanguage}
                                 inputClassName={textTone.inputClass}
-                                panelClassName={isRedPurple ? "border-transparent shadow-[0_0_14px_rgba(217,70,239,0.14)] backdrop-blur-xl" : textTone.panelClass}
+                                panelClassName={textTone.panelClass}
                             />
                         </div>
                     </FadeIn>
@@ -279,32 +266,38 @@ export default function CreateDeckPage() {
                             <FadeIn key={word.clientId} className="w-full">
                                 <div className="relative mx-auto w-full max-w-2xl">
                                     <div className="grid grid-cols-2 gap-3">
-                                        <input
-                                            type="text"
-                                            placeholder="E.g. hola"
-                                            value={word.original}
-                                            onChange={event => updateWordRow(word.clientId, "original", event.target.value)}
-                                            className={inputClass}
-                                        />
+                                        <GradientFrame radius={8} radiusClass="rounded-lg" className="w-full" contentClassName="rounded-[inherit]">
+                                            <input
+                                                type="text"
+                                                placeholder="E.g. hola"
+                                                value={word.original}
+                                                onChange={event => updateWordRow(word.clientId, "original", event.target.value)}
+                                                className={framedWordInputClass}
+                                            />
+                                        </GradientFrame>
 
-                                        <input
-                                            type="text"
-                                            placeholder="E.g. hello"
-                                            value={word.translation}
-                                            onChange={event => updateWordRow(word.clientId, "translation", event.target.value)}
-                                            className={inputClass}
-                                        />
+                                        <GradientFrame radius={8} radiusClass="rounded-lg" className="w-full" contentClassName="rounded-[inherit]">
+                                            <input
+                                                type="text"
+                                                placeholder="E.g. hello"
+                                                value={word.translation}
+                                                onChange={event => updateWordRow(word.clientId, "translation", event.target.value)}
+                                                className={framedWordInputClass}
+                                            />
+                                        </GradientFrame>
                                     </div>
 
                                     {isExpanded && (
                                         <div className="absolute left-full top-0 ml-3 w-72">
-                                            <input
-                                                type="text"
-                                                placeholder="Accepted answer"
-                                                value={acceptedAnswer}
-                                                onChange={event => updateAcceptedAnswer(word.clientId, 0, event.target.value)}
-                                                className={inputClass}
-                                            />
+                                            <GradientFrame radius={8} radiusClass="rounded-lg" className="w-full" contentClassName="rounded-[inherit]">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Accepted answer"
+                                                    value={acceptedAnswer}
+                                                    onChange={event => updateAcceptedAnswer(word.clientId, 0, event.target.value)}
+                                                    className={framedWordInputClass}
+                                                />
+                                            </GradientFrame>
                                         </div>
                                     )}
 
@@ -383,12 +376,4 @@ function LearningLanguageToggle({ active, onClick }: { active: boolean; onClick:
         </button>
     )
 }
-
-
-
-
-
-
-
-
 

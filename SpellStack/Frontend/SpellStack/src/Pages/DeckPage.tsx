@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react"
+﻿import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { LogIn, LogOut, Palette, Pencil, Plus, Search, Trash2, UserRound } from "lucide-react"
+import { Pencil, Plus, Search, Trash2 } from "lucide-react"
 
 import { getDecks, deleteDeck, type Deck } from "../api/decks"
 import type { ActiveGameModifier, GameDirection } from "../api/gameSession"
@@ -12,6 +12,7 @@ import ThemedPage from "../components/ThemedPage"
 import { useTheme } from "../theme/ThemeContext"
 import PageContentTransition from "../components/PageContentTransition"
 import GradientFrame from "../components/GradientFrame"
+import ProfileDropdown from "../components/ProfileDropdown"
 
 function getLanguageFlag(code: string) {
     return languages.find(language => language.code === code)?.flagUrl
@@ -19,12 +20,11 @@ function getLanguageFlag(code: string) {
 
 export default function DeckPage() {
     const navigate = useNavigate()
-    const { user, loading: authLoading, logoutUser, profileImage } = useAuth()
+    const { user, loading: authLoading } = useAuth()
     const { palette } = useTheme()
     const [decks, setDecks] = useState<Deck[]>([])
     const [loading, setLoading] = useState(true)
     const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null)
-    const [profileMenuOpen, setProfileMenuOpen] = useState(false)
 
     useEffect(() => {
         if (authLoading) return
@@ -59,11 +59,6 @@ export default function DeckPage() {
         navigate(`/decks/${selectedDeck!.id}/play?${params.toString()}`)
     }
 
-    const handleLogout = async () => {
-        await logoutUser()
-        setProfileMenuOpen(false)
-        navigate("/login")
-    }
 
     if (authLoading || loading) {
         return (
@@ -86,66 +81,7 @@ export default function DeckPage() {
 
             <div className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[102rem] flex-col">
                 <div className="flex justify-end">
-                    <div className="relative">
-                        <button
-                            onClick={() => setProfileMenuOpen(open => !open)}
-                            className={`grid h-14 w-14 place-items-center overflow-hidden rounded-full border-2 ${palette.border} ${profileImage ? "bg-slate-900" : palette.primaryButton} text-xl font-black ${palette.glow} transition hover:scale-105`}
-                            aria-label="Open profile menu"
-                        >
-                            {profileImage ? (
-                                <img
-                                    src={profileImage}
-                                    alt={user ? `${user.username} profile` : "Profile"}
-                                    className="h-full w-full object-cover"
-                                />
-                            ) : user ? (
-                                user.username.slice(0, 1).toUpperCase()
-                            ) : (
-                                <UserRound size={24} strokeWidth={2.5} />
-                            )}
-                        </button>
-
-                        {profileMenuOpen && (
-                            <GradientFrame
-                                className="absolute right-0 top-16 z-20 w-44 rounded-lg"
-                                contentClassName="overflow-hidden rounded-[inherit] py-2"
-                            >
-                                <button
-                                    onClick={() => navigate(user ? "/profile" : "/login")}
-                                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white"
-                                >
-                                    <UserRound size={17} strokeWidth={2.25} />
-                                    Profile
-                                </button>
-
-                                <button
-                                    onClick={() => navigate("/theme")}
-                                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white"
-                                >
-                                    <Palette size={17} strokeWidth={2.25} />
-                                    Theme
-                                </button>
-
-                                {user ? (
-                                    <button
-                                        onClick={handleLogout}
-                                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white"
-                                    >
-                                        <LogOut size={17} strokeWidth={2.25} />
-                                        Log out
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={() => navigate("/login")}
-                                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white"
-                                    >
-                                        <LogIn size={17} strokeWidth={2.25} />
-                                        Log in
-                                    </button>
-                                )}
-                            </GradientFrame>
-                        )}
-                    </div>
+                    <ProfileDropdown />
                 </div>
 
                 <main className="mx-auto mt-14 flex w-full max-w-3xl flex-1 flex-col">

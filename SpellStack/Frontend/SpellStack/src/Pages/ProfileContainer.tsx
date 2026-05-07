@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type WheelEvent } from "react"
+﻿import { useEffect, useMemo, useRef, useState, type WheelEvent } from "react"
 import { motion } from "framer-motion"
 import { useNavigate } from "react-router-dom"
 import { getLanguageStats, type LanguageStats } from "../api/auth"
@@ -6,6 +6,7 @@ import { useAuth } from "../auth/AuthContext"
 import AchievementsPage from "../components/ProfileComponents/AchievementsPage"
 import PerformancePage from "../components/ProfileComponents/PerformancePage"
 import ProfilePage from "../components/ProfileComponents/ProfilePage"
+import ProfileDropdown from "../components/ProfileDropdown"
 import type { ProfileLanguage } from "../components/ProfileComponents/types"
 import { languages } from "../data/languages"
 import { useTheme } from "../theme/ThemeContext"
@@ -31,7 +32,7 @@ function getLanguageFromCode(code: string) {
 
 export default function ProfileContainer() {
     const navigate = useNavigate()
-    const { user, loading, logoutUser, profileImage, setProfileImage } = useAuth()
+    const { user, loading, profileImage, setProfileImage } = useAuth()
     const { palette } = useTheme()
     const [languageStats, setLanguageStats] = useState<LanguageStats[]>([])
     const [selectedLanguageCode, setSelectedLanguageCode] = useState<string | null>(null)
@@ -153,16 +154,7 @@ export default function ProfileContainer() {
                     ))}
                     <span>Multiplayer</span>
                 </nav>
-
-                <button
-                    onClick={async () => {
-                        await logoutUser()
-                        navigate("/login")
-                    }}
-                    className={`rounded-full border ${palette.border} px-4 py-2 text-sm font-semibold text-white/80 transition ${palette.glow} hover:text-white`}
-                >
-                    Logout
-                </button>
+                <ProfileDropdown />
             </header>
 
             <main className="relative flex-1">
@@ -187,3 +179,5 @@ export default function ProfileContainer() {
         </div>
     )
 }
+
+
