@@ -1,18 +1,18 @@
-﻿import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Pencil, Plus, Search, Trash2 } from "lucide-react"
 
 import { getDecks, deleteDeck, type Deck } from "../api/decks"
-import type { ActiveGameModifier, GameDirection } from "../api/gameSession"
+import type { ActiveGameModifier, GameDirection, RoundLimit } from "../api/gameSession"
 import { languages } from "../data/languages"
 import FadeIn from "../components/FadeIn"
 import GameModeModal from "../components/GameModeModal"
 import { useAuth } from "../auth/AuthContext"
-import ThemedPage from "../components/ThemedPage"
 import { useTheme } from "../theme/ThemeContext"
 import PageContentTransition from "../components/PageContentTransition"
 import GradientFrame from "../components/GradientFrame"
 import ProfileDropdown from "../components/ProfileDropdown"
+import LibraryViewPicker, { type LibraryView } from "../components/LibraryViewPicker"
 
 function getLanguageFlag(code: string) {
     return languages.find(language => language.code === code)?.flagUrl
@@ -49,29 +49,25 @@ export default function DeckPage() {
         setSelectedDeck(deck)
     }
 
-    const handleModeSelect = (direction: GameDirection, modifiers: ActiveGameModifier[]) => {
+    const handleLibraryViewChange = (view: LibraryView) => {
+        if (view === "trials") navigate("/trials")
+    }
+
+    const handleModeSelect = (direction: GameDirection, modifiers: ActiveGameModifier[], roundLimit: RoundLimit) => {
         const params = new URLSearchParams({ direction })
 
         if (modifiers.length > 0) {
             params.set("mods", modifiers.join(","))
         }
 
+        params.set("roundLimit", roundLimit === null ? "endless" : String(roundLimit))
+
         navigate(`/decks/${selectedDeck!.id}/play?${params.toString()}`)
     }
 
 
-    if (authLoading || loading) {
-        return (
-            <ThemedPage className="px-6 py-8 text-white">
-                <div className="relative z-10 mt-20 text-center text-gray-400">
-                    Loading...
-                </div>
-            </ThemedPage>
-        )
-    }
-
     return (
-        <PageContentTransition>
+        <>
             <GameModeModal
                 isOpen={selectedDeck !== null}
                 deck={selectedDeck!}
@@ -85,28 +81,32 @@ export default function DeckPage() {
                 </div>
 
                 <main className="mx-auto mt-14 flex w-full max-w-3xl flex-1 flex-col">
-                    <FadeIn className="mb-8 grid grid-cols-[1fr_auto_auto] items-center gap-6">
-                        <h1 className={`text-2xl font-black ${palette.accentText}`}>
-                            Your profiles
-                        </h1>
+                    <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+                        <LibraryViewPicker
+                            activeView="decks"
+                            onChange={handleLibraryViewChange}
+                        />
 
-                        <button
-                            onClick={() => navigate("/decks/create")}
-                            className={`grid h-12 w-12 place-items-center rounded-full text-3xl font-black shadow-lg transition ${palette.primaryButton}`}
-                            aria-label="Create deck"
-                        >
-                            <Plus size={28} strokeWidth={3} />
-                        </button>
+                        <div className="flex items-center gap-6">
+                            <button
+                                onClick={() => navigate("/decks/create")}
+                                className={`grid h-12 w-12 place-items-center rounded-full text-3xl font-black shadow-lg transition ${palette.primaryButton}`}
+                                aria-label="Create deck"
+                            >
+                                <Plus size={28} strokeWidth={3} />
+                            </button>
 
-                        <button
-                            className={`flex h-12 items-center gap-2 rounded-full px-5 text-sm font-semibold shadow-lg transition ${palette.primaryButton}`}
-                        >
-                            <Search size={20} strokeWidth={2.6} />
-                            Filter
-                        </button>
-                    </FadeIn>
+                            <button
+                                className={`flex h-12 items-center gap-2 rounded-full px-5 text-sm font-semibold shadow-lg transition ${palette.primaryButton}`}
+                            >
+                                <Search size={20} strokeWidth={2.6} />
+                                Filter
+                            </button>
+                        </div>
+                    </div>
 
-                    {decks.length === 0 ? (
+                    <PageContentTransition>
+                        {decks.length === 0 ? (
                         <FadeIn>
                             <GradientFrame
                                 glow
@@ -139,12 +139,13 @@ export default function DeckPage() {
                         </div>
                     )}
 
-                    <FadeIn className="mt-auto pb-16 pt-10 text-center text-lg text-white/80">
-                        Profile count: {decks.length}
-                    </FadeIn>
+                        <FadeIn className="mt-auto pb-16 pt-10 text-center text-lg text-white/80">
+                            Deck count: {decks.length}
+                        </FadeIn>
+                    </PageContentTransition>
                 </main>
             </div>
-        </PageContentTransition>
+        </>
     )
 }
 

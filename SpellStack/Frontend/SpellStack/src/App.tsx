@@ -8,16 +8,19 @@ import AuthPage from "./Pages/AuthPage"
 import ProfileContainer from "./Pages/ProfileContainer"
 import ResetPasswordPage from "./Pages/ResetPasswordPage"
 import ThemePage from "./Pages/ThemePage"
+import TrialPage from "./Pages/TrialPage"
+import TrialsMenuPage from "./Pages/TrialsMenuPage"
 import ThemedPage from "./components/ThemedPage"
 
 function App() {
     const location = useLocation()
-    const isGameplay = location.pathname.includes("/play")
+    const isGameplay = location.pathname.includes("/play") || location.pathname.includes("/trials/")
 
     if (isGameplay) {
         return (
             <Routes location={location}>
                 <Route path="/decks/:id/play" element={<PlayPage />} />
+                <Route path="/trials/:trialId" element={<TrialPage />} />
             </Routes>
         )
     }
@@ -31,6 +34,7 @@ function App() {
                     <Route path="/reset-password" element={<ResetPasswordPage />} />
                     <Route path="/profile" element={<ProfileContainer />} />
                     <Route path="/theme" element={<ThemePage />} />
+                    <Route path="/trials" element={<TrialsMenuPage />} />
                     <Route path="/decks" element={<DeckPage />} />
                     <Route path="/decks/create" element={<CreateDeckPage />} />
                     <Route path="/decks/:id/edit" element={<CreateDeckPage />} />

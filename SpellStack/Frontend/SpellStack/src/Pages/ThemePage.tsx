@@ -31,7 +31,7 @@ export default function ThemePage() {
 
     return (
         <PageContentTransition>
-            <div className="relative z-10 mx-auto w-full max-w-[102rem]">
+            <div className="relative z-10 mx-auto w-full max-w-[70rem]">
                 <FadeIn>
                 <button
                     onClick={() => navigate("/decks")}

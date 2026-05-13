@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 
-import { completeRushHour, endGame, answerWord, startGame, type ActiveGameModifier, type GameDirection, type GameSession, type ResolvedDirection } from "../api/gameSession"
+import { completeRushHour, endGame, answerWord, startGame, type ActiveGameModifier, type GameDirection, type GameSession, type ResolvedDirection, type RoundLimit } from "../api/gameSession"
 import FadeIn from "../components/FadeIn"
 import LivesDisplay from "../components/LivesDisplay"
+import RunResultScreen from "../components/game/RunResultScreen"
 import { useEnemy } from "../hooks/useEnemy"
+import { isAnswerAccepted, splitAcceptedAnswers } from "../utils/answerUtils"
 import correctSoundUrl from "../assets/SFX/correct_sound.mp3"
 import correctSoundTwoUrl from "../assets/SFX/correct_2.mp3"
 import gameOverMusicUrl from "../assets/SFX/game_over_music.mp3"
@@ -28,9 +30,6 @@ interface RunStats {
     bestStreak: number
 }
 
-function normalize(value: string) {
-    return value.trim().toLowerCase()
-}
 
 function resolveDirection(direction: GameDirection): ResolvedDirection {
     if (direction === "mixed") return Math.random() > 0.5 ? "original" : "translation"
@@ -44,6 +43,15 @@ function resolveModifiers(mods: string | null, legacyModifier: string | null): A
     )
 
     return Array.from(new Set(parsedMods))
+}
+
+function resolveRoundLimit(value: string | null): RoundLimit {
+    if (value === "endless") return null
+
+    const parsed = Number(value)
+    if (parsed === 10 || parsed === 25 || parsed === 50 || parsed === 100) return parsed
+
+    return 25
 }
 
 function getTimerDuration(modifiers: ActiveGameModifier[], isBossEncounter: boolean) {
@@ -97,6 +105,8 @@ export default function PlayPage() {
     const selectedDirection = (searchParams.get("direction") ?? "original") as GameDirection
     const selectedModifiers = resolveModifiers(searchParams.get("mods"), searchParams.get("modifier"))
     const selectedModifierKey = selectedModifiers.join(",")
+    const selectedRoundLimit = resolveRoundLimit(searchParams.get("roundLimit"))
+    const selectedRoundLimitKey = selectedRoundLimit ?? "endless"
     const { currentEnemy, streak, enemiesKilled, onCorrectAnswer, onWrongAnswer, resetEnemyRun } = useEnemy()
     const isBossEncounter = currentEnemy.type === "Boss" || currentEnemy.type === "MiniBoss"
     const timerDuration = getTimerDuration(selectedModifiers, isBossEncounter)
@@ -107,6 +117,7 @@ export default function PlayPage() {
     const [result, setResult] = useState<"correct" | "incorrect" | null>(null)
     const [timeLeft, setTimeLeft] = useState(timerDuration)
     const [gameOver, setGameOver] = useState(false)
+    const [runComplete, setRunComplete] = useState(false)
     const [highScore, setHighScore] = useState<number | null>(null)
     const [isNewHighScore, setIsNewHighScore] = useState(false)
     const [currentDirection, setCurrentDirection] = useState<ResolvedDirection>(() => resolveDirection(selectedDirection))
@@ -145,21 +156,21 @@ export default function PlayPage() {
     }, [])
 
     useEffect(() => {
-        startGame(Number(id), selectedModifiers).then(s => {
+        startGame(Number(id), selectedModifiers, selectedRoundLimit).then(s => {
             setSession(s)
             setHighScore(s.finalScore)
             setCurrentDirection(resolveDirection(selectedDirection))
         })
-    }, [id, selectedDirection, selectedModifierKey])
+    }, [id, selectedDirection, selectedModifierKey, selectedRoundLimitKey])
 
     useEffect(() => {
-        if (!session || gameOver) return
+        if (!session || gameOver || runComplete) return
         setCurrentDirection(resolveDirection(selectedDirection))
         wordStartedAtRef.current = Date.now()
         startTimer(shouldResetTimerRef.current)
         shouldResetTimerRef.current = true
         return () => stopTimer()
-    }, [session?.currentWordId, rushActive, currentEnemy.type])
+    }, [session?.currentWordId, rushActive, currentEnemy.type, runComplete])
 
     const startTimer = (resetTimer = true) => {
         stopTimer()
@@ -193,23 +204,35 @@ export default function PlayPage() {
         }
     }
 
+    const handleRunComplete = async (finishedSession: GameSession) => {
+        stopTimer()
+        endRushHour()
+        setRunComplete(true)
+        try {
+            const result = await endGame(finishedSession.id)
+            setHighScore(result.highScore)
+            setIsNewHighScore(result.isNewHighScore)
+        } catch (error) {
+            console.error("Kunne ikke oppdatere high score", error)
+        }
+    }
+
     const isLocallyCorrect = (answer: string) => {
         if (!session) return false
 
         if (currentDirection === "translation") {
-            return normalize(answer) === normalize(session.currentWord.original)
+            return isAnswerAccepted(answer, session.currentWord.original)
         }
 
-        const acceptedAnswers = [
+        return isAnswerAccepted(
+            answer,
             session.currentWord.translation,
-            ...(session.currentWord.alternativeTranslation?.split(",") ?? [])
-        ]
-
-        return acceptedAnswers.some(acceptedAnswer => normalize(answer) === normalize(acceptedAnswer))
+            splitAcceptedAnswers(session.currentWord.alternativeTranslation)
+        )
     }
 
     const handleSubmit = async (timedOut = false) => {
-        if (result || gameOver || !session) return
+        if (result || gameOver || runComplete || !session) return
         const isRushActive = rushActiveRef.current
         const submittedTimeLeft = timedOut ? 0 : timeLeft
         const answer = timedOut ? "" : input
@@ -258,7 +281,7 @@ export default function PlayPage() {
                 const rushScore = response.session.finalScore - rushScoreStartRef.current
                 setRushAnswers(prev => prev + 1)
 
-                if (nextTimeLeft >= timerDuration) {
+                if (!response.gameComplete && nextTimeLeft >= timerDuration) {
                     const bonusScore = Math.round(rushScore * (RUSH_BONUS_MULTIPLIER - 1))
                     const bonusSession = await completeRushHour(response.session.id, bonusScore)
                     nextSession = { ...response.session, finalScore: bonusSession.finalScore }
@@ -306,18 +329,24 @@ export default function PlayPage() {
                 return
             }
 
+            if (response.gameComplete) {
+                await handleRunComplete(nextSession)
+                return
+            }
+
             setTimeout(() => inputRef.current?.focus(), 50)
         }, isRushActive ? 120 : 800)
     }
 
     const restartGame = async () => {
-        const newSession = await startGame(Number(id), selectedModifiers)
+        const newSession = await startGame(Number(id), selectedModifiers, selectedRoundLimit)
         resetEnemyRun()
         endRushHour()
         setSession(newSession)
         setResult(null)
         setInput("")
         setGameOver(false)
+        setRunComplete(false)
         setIsNewHighScore(false)
         setStats({ totalAnswers: 0, correctAnswers: 0, bestStreak: 0 })
         setFastCorrectCount(0)
@@ -353,20 +382,32 @@ export default function PlayPage() {
     const revealedAnswer = currentDirection === "original" ? session.currentWord.translation : session.currentWord.original
     const directionLabel = currentDirection === "original" ? "Translate" : "Reverse"
 
-    if (gameOver) return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-6 px-6">
+    if (gameOver || runComplete) return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gray-50 px-6">
             <FadeIn>
-                <GameOverScreen
-                    modeLabel={selectedModifiers.includes("zen") ? "Practice complete" : "Run complete"}
+                <RunResultScreen
+                    outcome={runComplete ? "complete" : "gameOver"}
+                    modeLabel={runComplete
+                        ? selectedModifiers.includes("zen") ? "Practice complete" : "Run complete"
+                        : selectedModifiers.includes("zen") ? "Practice ended" : "Run ended"}
                     rank={rank}
-                    score={session.finalScore}
-                    accuracy={accuracy}
-                    bestStreak={stats.bestStreak}
-                    enemiesKilled={enemiesKilled}
-                    highScore={highScore}
-                    isNewHighScore={isNewHighScore}
-                    onRestart={restartGame}
-                    onExit={() => navigate("/")}
+                    title={runComplete ? "Deck cleared" : rank.label}
+                    subtitle={runComplete
+                        ? session.roundLimit ? `${session.questionsAnswered} / ${session.roundLimit} questions answered` : "Run complete"
+                        : undefined}
+                    stats={[
+                        { label: "Score", value: session.finalScore },
+                        { label: "Accuracy", value: `${accuracy}%` },
+                        { label: "Best combo", value: `x${stats.bestStreak}` },
+                        { label: "Defeated", value: enemiesKilled }
+                    ]}
+                    highlight={{
+                        label: "High score",
+                        value: highScore,
+                        badge: isNewHighScore ? "New high score" : undefined
+                    }}
+                    onPrimaryAction={restartGame}
+                    onSecondaryAction={() => navigate("/")}
                 />
             </FadeIn>
         </div>
@@ -519,82 +560,6 @@ export default function PlayPage() {
                     className="w-full text-center border-b-2 border-gray-200 focus:border-orange-400 outline-none py-3 text-xl bg-transparent transition placeholder:text-gray-300"
                 />
             </div>
-        </div>
-    )
-}
-
-function GameOverScreen({
-    modeLabel,
-    rank,
-    score,
-    accuracy,
-    bestStreak,
-    enemiesKilled,
-    highScore,
-    isNewHighScore,
-    onRestart,
-    onExit
-}: {
-    modeLabel: string
-    rank: { rank: string; label: string; color: string }
-    score: number
-    accuracy: number
-    bestStreak: number
-    enemiesKilled: number
-    highScore: number | null
-    isNewHighScore: boolean
-    onRestart: () => void
-    onExit: () => void
-}) {
-    return (
-        <div className="flex flex-col items-center gap-6">
-            <div className="text-center">
-                <p className="text-gray-400 text-sm font-semibold uppercase tracking-[0.25em]">
-                    {modeLabel}
-                </p>
-                <h1 className={`text-8xl font-black ${rank.color}`}>{rank.rank}</h1>
-                <p className="text-2xl font-bold text-gray-800">{rank.label}</p>
-            </div>
-
-            <div className="grid w-full max-w-xl grid-cols-2 gap-3 sm:grid-cols-4">
-                <GameOverStat label="Score" value={score} />
-                <GameOverStat label="Accuracy" value={`${accuracy}%`} />
-                <GameOverStat label="Best combo" value={`x${bestStreak}`} />
-                <GameOverStat label="Defeated" value={enemiesKilled} />
-            </div>
-
-            <div className="text-center space-y-2">
-                <p className="text-gray-500 text-base">High score: {highScore}</p>
-                {isNewHighScore && (
-                    <p className="text-orange-400 text-sm font-semibold uppercase tracking-[0.25em]">
-                        New high score
-                    </p>
-                )}
-            </div>
-
-            <div className="flex gap-4">
-                <button
-                    onClick={onRestart}
-                    className="bg-orange-400 hover:bg-orange-500 text-white px-8 py-3 rounded-full font-semibold transition"
-                >
-                    Play again
-                </button>
-                <button
-                    onClick={onExit}
-                    className="text-gray-400 hover:text-gray-600 px-8 py-3 rounded-full transition"
-                >
-                    Exit
-                </button>
-            </div>
-        </div>
-    )
-}
-
-function GameOverStat({ label, value }: { label: string; value: number | string }) {
-    return (
-        <div className="rounded-lg bg-white p-4 text-center shadow-sm">
-            <p className="text-xs uppercase tracking-widest text-gray-400">{label}</p>
-            <p className="text-2xl font-bold text-gray-800">{value}</p>
         </div>
     )
 }
