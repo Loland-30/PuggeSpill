@@ -3,8 +3,11 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 
 import { completeRushHour, endGame, answerWord, startGame, type ActiveGameModifier, type GameDirection, type GameSession, type ResolvedDirection, type RoundLimit } from "../api/gameSession"
 import FadeIn from "../components/FadeIn"
-import LivesDisplay from "../components/LivesDisplay"
+import AnswerPanel from "../components/game/AnswerPanel"
+import EnemyStage from "../components/game/EnemyStage"
+import GameHud from "../components/game/GameHud"
 import RunResultScreen from "../components/game/RunResultScreen"
+import RushHourNotice from "../components/game/RushHourNotice"
 import { useEnemy } from "../hooks/useEnemy"
 import { isAnswerAccepted, splitAcceptedAnswers } from "../utils/answerUtils"
 import correctSoundUrl from "../assets/SFX/correct_sound.mp3"
@@ -71,15 +74,6 @@ function getMaxLives(modifiers: ActiveGameModifier[]) {
     return lives
 }
 
-function getModifierLabel(modifiers: ActiveGameModifier[]) {
-    if (modifiers.length === 0) return "Normal"
-    return modifiers.map(modifier => {
-        if (modifier === "zen") return "Zen"
-        if (modifier === "extraHeart") return "Extra heart"
-        if (modifier === "momentum") return "Momentum"
-        return "Hardcore"
-    }).join(", ")
-}
 
 function getRank(stats: RunStats, score: number) {
     const accuracy = stats.totalAnswers === 0 ? 0 : stats.correctAnswers / stats.totalAnswers
@@ -126,6 +120,7 @@ export default function PlayPage() {
     const [rushActive, setRushActive] = useState(false)
     const [rushAnswers, setRushAnswers] = useState(0)
     const [rushBonusFlash, setRushBonusFlash] = useState(false)
+    const [scoreDelta, setScoreDelta] = useState<number | null>(null)
 
     const inputRef = useRef<HTMLInputElement>(null)
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -159,6 +154,7 @@ export default function PlayPage() {
         startGame(Number(id), selectedModifiers, selectedRoundLimit).then(s => {
             setSession(s)
             setHighScore(s.finalScore)
+            setScoreDelta(null)
             setCurrentDirection(resolveDirection(selectedDirection))
         })
     }, [id, selectedDirection, selectedModifierKey, selectedRoundLimitKey])
@@ -170,7 +166,7 @@ export default function PlayPage() {
         startTimer(shouldResetTimerRef.current)
         shouldResetTimerRef.current = true
         return () => stopTimer()
-    }, [session?.currentWordId, rushActive, currentEnemy.type, runComplete])
+    }, [session?.currentWordId, session?.questionsAnswered, rushActive, currentEnemy.type, runComplete])
 
     const startTimer = (resetTimer = true) => {
         stopTimer()
@@ -240,6 +236,7 @@ export default function PlayPage() {
         const answerTimeMs = Date.now() - wordStartedAtRef.current
 
         stopTimer()
+        setScoreDelta(null)
         setResult(localCorrect ? "correct" : "incorrect")
         if (localCorrect) {
             const sounds = correctSoundRefs.current
@@ -312,6 +309,10 @@ export default function PlayPage() {
                 setFastCorrectCount(0)
             }
 
+            const nextScoreDelta = nextSession.finalScore - session.finalScore
+            setScoreDelta(nextScoreDelta > 0 ? nextScoreDelta : null)
+            if (nextScoreDelta > 0) window.setTimeout(() => setScoreDelta(null), 950)
+
             setSession(nextSession)
             setResult(null)
             setInput("")
@@ -348,6 +349,7 @@ export default function PlayPage() {
         setGameOver(false)
         setRunComplete(false)
         setIsNewHighScore(false)
+        setScoreDelta(null)
         setStats({ totalAnswers: 0, correctAnswers: 0, bestStreak: 0 })
         setFastCorrectCount(0)
         setCurrentDirection(resolveDirection(selectedDirection))
@@ -380,7 +382,8 @@ export default function PlayPage() {
     const rank = getRank(stats, session.finalScore)
     const promptWord = currentDirection === "original" ? session.currentWord.original : session.currentWord.translation
     const revealedAnswer = currentDirection === "original" ? session.currentWord.translation : session.currentWord.original
-    const directionLabel = currentDirection === "original" ? "Translate" : "Reverse"
+    const stageLabel = `${currentEnemy.type === "Common" ? "Crystal Cave" : currentEnemy.type}: ${enemiesKilled + 1}`
+    const enemyRarityLabel = currentEnemy.type === "MiniBoss" ? "Mini Boss" : currentEnemy.type
 
     if (gameOver || runComplete) return (
         <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gray-50 px-6">
@@ -414,151 +417,47 @@ export default function PlayPage() {
     )
 
     return (
-        <div className={`relative min-h-screen overflow-hidden flex flex-col items-center justify-center px-6 ${
-            rushActive ? "bg-yellow-50" : "bg-gray-50"
+        <div className={`min-h-screen overflow-hidden px-6 py-6 text-white transition-colors ${
+            rushActive ? "bg-[#2a2414]" : "bg-[#222222]"
         }`}>
-            {rushActive && (
-                <>
-                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(250,204,21,0.34),transparent_58%)]" />
-                    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_0%,transparent_42%,rgba(250,204,21,0.18)_43%,transparent_49%,transparent_100%)]" />
-                    <div className="pointer-events-none absolute inset-x-0 top-0 h-2 bg-yellow-300 shadow-[0_0_34px_rgba(250,204,21,0.95)]" />
-                    <div className="pointer-events-none absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-yellow-300/30 shadow-[0_0_80px_rgba(250,204,21,0.35)]" />
-                    <div className="pointer-events-none absolute -left-16 top-1/4 h-64 w-24 rotate-12 bg-yellow-300/40 blur-xl" />
-                    <div className="pointer-events-none absolute -right-16 bottom-1/4 h-64 w-24 rotate-12 bg-amber-300/40 blur-xl" />
-                </>
-            )}
-            {rushBonusFlash && (
-                <div className="pointer-events-none absolute inset-x-0 top-24 z-20 text-center">
-                    <p className="inline-flex rounded-full bg-orange-400 px-6 py-3 text-sm font-black uppercase tracking-[0.25em] text-white shadow-2xl">
-                        Rush cleared x2.5
-                    </p>
-                </div>
-            )}
-            <div className="absolute top-8 right-8 text-right">
-                <p className="text-gray-400 text-sm font-medium">
-                    {selectedModifiers.includes("zen") ? "Practice" : "Score"}
-                </p>
-                <p className="text-2xl font-bold text-gray-800">{session.finalScore}</p>
-                <p className="text-xs font-semibold uppercase tracking-widest text-orange-400">
-                    {getModifierLabel(selectedModifiers)}
-                </p>
-            </div>
-
-            <div className="absolute top-8 left-8">
-                <button
-                    onClick={() => navigate("/decks")}
-                    className="text-gray-400 hover:text-gray-600 text-sm transition"
-                >
-                    Exit
-                </button>
-            </div>
-
-            <div className="relative z-10 w-full max-w-md flex flex-col items-center gap-8">
-                <LivesDisplay lives={session.lives} maxLives={maxLives} />
-
-                {rushActive && (
-                    <div className="w-full rounded-lg border-2 border-yellow-300 bg-yellow-100 px-5 py-4 text-center shadow-[0_0_28px_rgba(250,204,21,0.45)]">
-                        <p className="text-xs font-black uppercase tracking-[0.35em] text-yellow-600">Rush Hour</p>
-                        <p className="mt-1 text-sm font-semibold text-gray-500">
-                            Fill the timer for x2.5 on this rush
-                        </p>
-                        <p className="mt-2 text-xs font-bold uppercase tracking-widest text-gray-400">
-                            Rush hits: {rushAnswers}
-                        </p>
-                    </div>
-                )}
-
-                <div className="flex w-full items-center justify-between rounded-lg bg-white px-4 py-3 shadow-sm">
-                    <div>
-                        <p className="text-xs uppercase tracking-widest text-gray-400">Combo</p>
-                        <p className="text-xl font-bold text-orange-400">x{streak}</p>
-                    </div>
-                    <div className="text-right">
-                        <p className="text-xs uppercase tracking-widest text-gray-400">
-                            {rushActive ? "Fast chain" : "Accuracy"}
-                        </p>
-                        <p className="text-xl font-bold text-gray-700">
-                            {rushActive ? "LIVE" : `${accuracy}%`}
-                        </p>
-                    </div>
-                </div>
-
-                <div className="flex flex-col items-center gap-3">
-                    <p className="text-gray-400 text-xs uppercase tracking-widest">
-                        {currentEnemy.type}
-                    </p>
-                    <p className="text-2xl font-bold text-gray-700">{currentEnemy.enemyName}</p>
-                    <img
-                        key={currentEnemy.id}
-                        src={currentEnemy.imageUrl}
-                        alt={currentEnemy.enemyName}
-                        className={`max-h-52 object-contain transition duration-300 ${
-                            result === "correct" ? "scale-95 brightness-125" : ""
-                        }`}
-                    />
-                    <div className="h-3 w-64 overflow-hidden rounded-full bg-gray-200">
-                        <div
-                            className={`h-full rounded-full transition-all duration-300 ${
-                                currentEnemy.type === "Boss" ? "bg-red-400" :
-                                currentEnemy.type === "MiniBoss" ? "bg-purple-400" : "bg-orange-400"
-                            }`}
-                            style={{ width: `${hpPercent}%` }}
-                        />
-                    </div>
-                    <p className="text-gray-400 text-sm">
-                        HP {currentEnemy.hp} / {currentEnemy.maxHp} - Defeated {enemiesKilled}
-                    </p>
-                </div>
-
-                <p className="text-gray-400 text-sm font-medium uppercase tracking-widest">
-                    {directionLabel}
-                </p>
-
-                <div className="text-center">
-                    <h1 className={`text-6xl font-bold transition-all duration-300 ${
-                        result === "correct" ? "text-green-400" :
-                        result === "incorrect" ? "text-red-400" : "text-gray-800"
-                    }`}>
-                        {promptWord}
-                    </h1>
-                    {result === "correct" && (
-                        <p className="text-green-400 text-lg mt-3 font-semibold">
-                            {selectedModifiers.includes("zen") ? "spell hit" : "+ spell hit"}
-                        </p>
-                    )}
-                    {result === "incorrect" && (
-                        <p className="text-gray-400 text-lg mt-3">
-                            {revealedAnswer}
-                        </p>
-                    )}
-                </div>
-
-                <div className="w-full flex justify-center">
-                    <div
-                        className={`h-1 rounded-full transition-all ${
-                            rushActive ? "bg-yellow-300" :
-                            timeLeft <= 3 ? "bg-red-400" :
-                            timeLeft <= 6 ? "bg-orange-400" : "bg-green-400"
-                        }`}
-                        style={{
-                            width: `${timerPercent}%`,
-                            transitionDuration: rushActive ? "250ms" : "1000ms",
-                            boxShadow: rushActive ? "0 0 24px rgba(250, 204, 21, 0.95)" : undefined
-                        }}
-                    />
-                </div>
-
-                <input
-                    ref={inputRef}
-                    type="text"
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    onKeyDown={e => e.key === "Enter" && handleSubmit()}
-                    disabled={!!result}
-                    placeholder="Type translation..."
-                    autoFocus
-                    className="w-full text-center border-b-2 border-gray-200 focus:border-orange-400 outline-none py-3 text-xl bg-transparent transition placeholder:text-gray-300"
+            <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-7xl flex-col">
+                <GameHud
+                    lives={session.lives}
+                    maxLives={maxLives}
+                    stageLabel={stageLabel}
+                    score={session.finalScore}
+                    scoreDelta={scoreDelta}
+                    modifierLabel={enemyRarityLabel}
+                    accuracy={accuracy}
+                    streak={streak}
+                    rushActive={rushActive}
                 />
+
+                <RushHourNotice
+                    active={rushActive}
+                    bonusFlash={rushBonusFlash}
+                    answers={rushAnswers}
+                />
+
+                <main className="flex w-full flex-1 flex-col items-center justify-center gap-7 pb-20 pt-0 text-center">
+                    <EnemyStage
+                        enemy={currentEnemy}
+                        result={result}
+                        hpPercent={hpPercent}
+                    />
+
+                    <AnswerPanel
+                        promptWord={promptWord}
+                        revealedAnswer={revealedAnswer}
+                        result={result}
+                        input={input}
+                        inputRef={inputRef}
+                        timerPercent={timerPercent}
+                        rushActive={rushActive}
+                        onInputChange={setInput}
+                        onSubmit={() => handleSubmit()}
+                    />
+                </main>
             </div>
         </div>
     )

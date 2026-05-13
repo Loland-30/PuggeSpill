@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState, type WheelEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type WheelEvent } from "react"
 import { motion } from "framer-motion"
 import { useNavigate } from "react-router-dom"
 import { getLanguageStats, type LanguageStats } from "../api/auth"
@@ -136,7 +136,7 @@ export default function ProfileContainer() {
             <header className="flex items-center justify-between">
                 <button
                     onClick={() => navigate("/decks")}
-                    className={`text-sm font-semibold ${palette.accentText} opacity-70 transition hover:opacity-100`}
+                    className={`rounded-full border-2 ${palette.border} bg-transparent px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white cursor-pointer`}
                 >
                     Decks
                 </button>

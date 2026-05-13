@@ -1,10 +1,9 @@
-﻿import { useState } from "react"
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { LogIn, LogOut, Palette, UserRound } from "lucide-react"
 
 import { useAuth } from "../auth/AuthContext"
 import { useTheme } from "../theme/ThemeContext"
-import GradientFrame from "./GradientFrame"
 
 export default function ProfileDropdown() {
     const navigate = useNavigate()
@@ -39,11 +38,7 @@ export default function ProfileDropdown() {
             </button>
 
             {profileMenuOpen && (
-                <GradientFrame
-                    enabled={false}
-                    className="absolute right-0 top-16 z-20 w-44 rounded-lg"
-                    contentClassName="overflow-hidden rounded-[inherit] py-2"
-                >
+                <div className={`absolute right-0 top-16 z-50 w-44 overflow-hidden rounded-lg border ${palette.border} ${palette.card} ${palette.glow} py-2 backdrop-blur-xl`}>
                     <button
                         onClick={() => navigate(user ? "/profile" : "/login")}
                         className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white"
@@ -77,7 +72,7 @@ export default function ProfileDropdown() {
                             Log in
                         </button>
                     )}
-                </GradientFrame>
+                </div>
             )}
         </div>
     )

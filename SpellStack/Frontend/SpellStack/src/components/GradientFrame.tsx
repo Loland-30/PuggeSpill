@@ -40,16 +40,29 @@ export default function GradientFrame({
         return (
             <div
                 className={`
+                    relative
+                    overflow-hidden
                     ${radiusClass}
                     border
                     ${activePalette.border}
                     ${activePalette.card}
                     ${outerGlowClass}
                     ${className}
-                    ${contentClassName}
                 `}
             >
-                {children}
+                <div
+                    className={`
+                        relative
+                        z-10
+                        h-full
+                        w-full
+                        overflow-hidden
+                        ${radiusClass}
+                        ${contentClassName}
+                    `}
+                >
+                    {children}
+                </div>
             </div>
         )
     }

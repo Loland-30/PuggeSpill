@@ -3,8 +3,6 @@ import { getStoredToken } from "../api/auth"
 import { getUserTheme, saveUserTheme } from "../api/theme"
 import { defaultTheme, getBackgroundTheme, getPaletteTheme, getTextTone, type AppTheme, type BackgroundThemeId, type OverlayStrength, type PaletteThemeId, type TextTone } from "./themes"
 
-const THEME_KEY = "spellstack_theme"
-
 interface ThemeContextValue {
     theme: AppTheme
     background: ReturnType<typeof getBackgroundTheme>
@@ -19,25 +17,14 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
-function loadTheme(): AppTheme {
-    const storedTheme = localStorage.getItem(THEME_KEY)
-    if (!storedTheme) return defaultTheme
-
-    try {
-        return { ...defaultTheme, ...JSON.parse(storedTheme) }
-    } catch {
-        return defaultTheme
-    }
-}
-
 export function ThemeProvider({ children }: { children: ReactNode }) {
-    const [theme, setTheme] = useState<AppTheme>(() => loadTheme())
+    const [theme, setTheme] = useState<AppTheme>(defaultTheme)
     const [remoteThemeReady, setRemoteThemeReady] = useState(() => !getStoredToken())
 
     useEffect(() => {
         const loadRemoteTheme = async () => {
             if (!getStoredToken()) {
-                setTheme(loadTheme())
+                setTheme(defaultTheme)
                 setRemoteThemeReady(true)
                 return
             }
@@ -45,7 +32,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
             setRemoteThemeReady(false)
             try {
                 const userTheme = await getUserTheme()
-                if (userTheme) setTheme(current => ({ ...defaultTheme, ...current, ...userTheme }))
+                if (userTheme) setTheme({ ...defaultTheme, ...userTheme })
                 else {
                     setTheme(defaultTheme)
                     await saveUserTheme(defaultTheme)
@@ -63,7 +50,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }, [])
 
     useEffect(() => {
-        localStorage.setItem(THEME_KEY, JSON.stringify(theme))
         if (getStoredToken() && remoteThemeReady) {
             saveUserTheme(theme).catch(error => console.error("Kunne ikke lagre theme", error))
         }

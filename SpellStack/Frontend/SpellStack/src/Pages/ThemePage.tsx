@@ -3,7 +3,7 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import FadeIn from "../components/FadeIn"
 import { useTheme } from "../theme/ThemeContext"
-import { backgroundThemes, getOverlayOpacity, overlayStrengths, paletteThemes, textTones } from "../theme/themes"
+import { backgroundThemes, getOverlayOpacity, overlayStrengths, paletteThemes } from "../theme/themes"
 import PageContentTransition from "../components/PageContentTransition"
 
 type PaletteView = "solid" | "gradient"
@@ -14,7 +14,7 @@ const maxPaletteOptionCount = Math.max(
 
 export default function ThemePage() {
     const navigate = useNavigate()
-    const { theme, palette, setBackground, setPalette, setCustomBackgroundImage, setOverlayStrength, setTextTone } = useTheme()
+    const { theme, palette, setBackground, setPalette, setCustomBackgroundImage, setOverlayStrength } = useTheme()
     const [paletteView, setPaletteView] = useState<PaletteView>(() =>
         paletteThemes.find(option => option.id === theme.paletteId)?.kind ?? "solid"
     )
@@ -211,35 +211,6 @@ export default function ThemePage() {
 
                 <FadeIn>
                 <section className="mt-12">
-                    <h2 className="text-2xl font-black">Form text</h2>
-                    <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                        {textTones.map(option => {
-                            const selected = theme.textTone === option.id
-
-                            return (
-                                <button
-                                    key={option.id}
-                                    onClick={() => setTextTone(option.id)}
-                                    className={`rounded-lg border-2 p-4 text-left transition ${
-                                        selected ? `${palette.border} ${palette.glow}` : "border-white/10 hover:border-white/40"
-                                    }`}
-                                >
-                                    <div className={`rounded-lg border border-white/20 px-4 py-3 ${option.panelClass} ${option.inputClass}`}>
-                                        Example text
-                                    </div>
-                                    <div className="mt-4 flex items-center justify-between">
-                                        <p className="font-bold">{option.name}</p>
-                                        {selected && <Check size={18} strokeWidth={3} />}
-                                    </div>
-                                </button>
-                            )
-                        })}
-                    </div>
-                </section>
-                </FadeIn>
-
-                <FadeIn>
-                <section className="mt-12">
                     <h2 className="text-2xl font-black">Preview</h2>
                     <div className={`mt-5 rounded-[28px] border-2 ${palette.border} ${palette.card} ${palette.glow} px-8 py-6`}>
                         <div className="flex items-center justify-between gap-4">
@@ -252,6 +223,17 @@ export default function ThemePage() {
                             </button>
                         </div>
                     </div>
+                </section>
+                </FadeIn>
+                <FadeIn>
+                <section className="mt-12 flex justify-end pb-8">
+                    <button
+                        type="button"
+                        onClick={() => navigate("/decks")}
+                        className={`rounded-full px-10 py-3 text-base font-black text-white shadow-xl transition hover:-translate-y-0.5 ${palette.primaryButton}`}
+                    >
+                        Save theme
+                    </button>
                 </section>
                 </FadeIn>
             </div>
