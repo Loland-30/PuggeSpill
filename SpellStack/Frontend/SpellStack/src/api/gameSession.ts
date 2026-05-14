@@ -21,6 +21,12 @@ export interface GameSession {
     isActive: boolean
     roundLimit: RoundLimit
     questionsAnswered: number
+    correctAnswers: number
+    wrongAnswers: number
+    bestStreak: number
+    totalResponseTimeSeconds: number | null
+    resultSaved: boolean
+    modifiersJson: string
 }
 
 export interface AnswerResponse {
@@ -28,6 +34,26 @@ export interface AnswerResponse {
     session: GameSession
     gameOver: boolean
     gameComplete: boolean
+}
+
+export interface GameRunHistory {
+    id: number
+    deckId: number
+    deckName: string
+    gameSessionId: number | null
+    languageCode: string
+    finalScore: number
+    correctAnswers: number
+    wrongAnswers: number
+    totalAnswers: number
+    accuracyPercent: number
+    bestStreak: number
+    highestCombo: number
+    averageResponseTimeSeconds: number | null
+    roundLimit: RoundLimit
+    completedAt: string
+    endReason: string
+    modifiersJson: string
 }
 
 export async function startGame(
@@ -73,6 +99,21 @@ export async function completeRushHour(id: number, bonusScore: number): Promise<
     })
 
     if (!response.ok) throw new Error("Failed to complete rush hour")
+
+    return response.json()
+}
+
+export async function getGameHistory(language?: string, limit = 10): Promise<GameRunHistory[]> {
+    const params = new URLSearchParams()
+
+    if (language) params.set("language", language)
+    params.set("limit", limit.toString())
+
+    const response = await fetch(`http://localhost:5084/api/game/history?${params.toString()}`, {
+        headers: authHeaders()
+    })
+
+    if (!response.ok) throw new Error("Failed to fetch game history")
 
     return response.json()
 }

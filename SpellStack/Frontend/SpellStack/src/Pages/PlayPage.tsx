@@ -15,6 +15,7 @@ import correctSoundTwoUrl from "../assets/SFX/correct_2.mp3"
 import gameOverMusicUrl from "../assets/SFX/game_over_music.mp3"
 import incorrectSoundOneUrl from "../assets/SFX/incorrect_1.mp3"
 import incorrectSoundTwoUrl from "../assets/SFX/incorrect_2.mp3"
+import enchantingForestStageUrl from "../assets/stages/Enchanting_Forest_bg.jpg"
 
 const TIMER_DURATION = 10
 const BOSS_TIMER_DURATION = 20
@@ -417,9 +418,14 @@ export default function PlayPage() {
     )
 
     return (
-        <div className={`min-h-screen overflow-hidden px-6 py-6 text-white transition-colors ${
-            rushActive ? "bg-[#2a2414]" : "bg-[#222222]"
-        }`}>
+        <div
+            className="min-h-screen overflow-hidden bg-[#222222] bg-cover bg-center bg-no-repeat px-6 py-6 text-white transition-colors"
+            style={{
+                backgroundImage: `${rushActive
+                    ? "linear-gradient(rgba(24, 20, 10, 0.68), rgba(24, 20, 10, 0.82))"
+                    : "linear-gradient(rgba(0, 0, 0, 0.48), rgba(0, 0, 0, 0.68))"}, url(${enchantingForestStageUrl})`
+            }}
+        >
             <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-7xl flex-col">
                 <GameHud
                     lives={session.lives}

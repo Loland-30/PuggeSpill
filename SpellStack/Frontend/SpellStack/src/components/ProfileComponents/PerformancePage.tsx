@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { getGameHistory, type GameRunHistory } from "../../api/gameSession"
 import { useTheme } from "../../theme/ThemeContext"
 import type { PaletteThemeId } from "../../theme/themes"
 import type { ProfileComponentProps } from "./types"
@@ -25,8 +26,9 @@ interface PerformanceSnapshot {
     averageAccuracy: number
     rank: RankLabel
     responseTime: string
-    highestMultiplier: number
-    recentRuns: number[]
+    highestCombo: number
+    recentAccuracyRuns: number[]
+    recentScoreRuns: number[]
     rushHoursTriggered: number
     longestRushHourDuration: number
     trialsAttempted: number
@@ -45,10 +47,38 @@ export default function PerformancePage({
     const [activeTab, setActiveTab] = useState<PerformanceTab>("General")
     const [chartMode, setChartMode] = useState<ChartMode>("accuracy")
     const [languageMenuOpen, setLanguageMenuOpen] = useState(false)
+    const [gameHistory, setGameHistory] = useState<GameRunHistory[]>([])
+    const [historyLoading, setHistoryLoading] = useState(false)
+    const [historyError, setHistoryError] = useState<string | null>(null)
+
+    useEffect(() => {
+        let cancelled = false
+
+        setHistoryLoading(true)
+        setHistoryError(null)
+
+        getGameHistory(currentLanguage.code, 10)
+            .then(runs => {
+                if (!cancelled) setGameHistory(runs)
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setGameHistory([])
+                    setHistoryError("Could not load run history")
+                }
+            })
+            .finally(() => {
+                if (!cancelled) setHistoryLoading(false)
+            })
+
+        return () => {
+            cancelled = true
+        }
+    }, [currentLanguage.code])
 
     const performance = useMemo(() => {
-        return getPerformanceSnapshot(currentLanguage.stats)
-    }, [currentLanguage.stats])
+        return getPerformanceSnapshot(gameHistory)
+    }, [gameHistory])
 
     const otherLanguages = profileLanguages.filter(language => {
         return language.code !== currentLanguage.code
@@ -77,6 +107,8 @@ export default function PerformancePage({
                     <GeneralPanel
                         performance={performance}
                         chartMode={chartMode}
+                        historyLoading={historyLoading}
+                        historyError={historyError}
                         onChartModeChange={setChartMode}
                     />
                 )}
@@ -202,10 +234,14 @@ function LanguageDropdown({
 function GeneralPanel({
     performance,
     chartMode,
+    historyLoading,
+    historyError,
     onChartModeChange
 }: {
     performance: PerformanceSnapshot
     chartMode: ChartMode
+    historyLoading: boolean
+    historyError: string | null
     onChartModeChange: (mode: ChartMode) => void
 }) {
     return (
@@ -217,14 +253,22 @@ function GeneralPanel({
                 />
 
                 <PerformanceStat
-                    label="Highest score multiplier"
-                    value={performance.highestMultiplier.toString()}
+                    label="Highest combo"
+                    value={`x${performance.highestCombo}`}
                 />
             </div>
 
+            {historyError && (
+                <p className="mt-6 text-sm font-semibold text-red-200/80">
+                    {historyError}
+                </p>
+            )}
+
             <RecentRunsChart
-                values={performance.recentRuns}
+                accuracyValues={performance.recentAccuracyRuns}
+                scoreValues={performance.recentScoreRuns}
                 chartMode={chartMode}
+                loading={historyLoading}
                 onChartModeChange={onChartModeChange}
             />
         </>
@@ -285,16 +329,22 @@ function PerformanceStat({ label, value }: { label: string; value: string }) {
 }
 
 function RecentRunsChart({
-    values,
+    accuracyValues,
+    scoreValues,
     chartMode,
+    loading,
     onChartModeChange
 }: {
-    values: number[]
+    accuracyValues: number[]
+    scoreValues: number[]
     chartMode: ChartMode
+    loading: boolean
     onChartModeChange: (mode: ChartMode) => void
 }) {
     const { palette } = useTheme()
     const chartLabel = chartMode === "accuracy" ? "Accuracy" : "Score"
+    const sourceValues = chartMode === "accuracy" ? accuracyValues : scoreValues
+    const values = getChartValues(sourceValues, chartMode)
 
     return (
         <div className="mt-16">
@@ -310,16 +360,30 @@ function RecentRunsChart({
                         Runs
                     </span>
 
-                    <div className="flex h-full items-end gap-7">
-                        {values.map((value, index) => (
-                            <div
-                                key={`${chartMode}-${value}-${index}`}
-                                title={`${chartLabel}: ${Math.round(value)}${chartMode === "accuracy" ? "%" : ""}`}
-                                className={`w-7 rounded-t-sm transition ${palette.preview}`}
-                                style={{ height: `${value}%` }}
-                            />
-                        ))}
-                    </div>
+                    {loading && (
+                        <div className="grid h-full place-items-center text-sm font-semibold text-white/60">
+                            Loading runs...
+                        </div>
+                    )}
+
+                    {!loading && values.length === 0 && (
+                        <div className="grid h-full place-items-center text-sm font-semibold text-white/60">
+                            No runs yet
+                        </div>
+                    )}
+
+                    {!loading && values.length > 0 && (
+                        <div className="flex h-full items-end gap-7">
+                            {values.map((value, index) => (
+                                <div
+                                    key={`${chartMode}-${sourceValues[index]}-${index}`}
+                                    title={`${chartLabel}: ${Math.round(sourceValues[index])}${chartMode === "accuracy" ? "%" : ""}`}
+                                    className={`w-7 rounded-t-sm transition ${palette.preview}`}
+                                    style={{ height: `${value}%` }}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 <div className="mt-9 flex justify-center gap-16 text-lg text-white/80">
@@ -557,115 +621,45 @@ function getRingPalette(paletteId: PaletteThemeId) {
     return ringPalettes[paletteId]
 }
 
-function getPerformanceSnapshot(stats: {
-    runsPlayed: number
-    longestStreak: number
-    wordsLearned: number
-}): PerformanceSnapshot {
-    const averageAccuracy = getMockAverageAccuracy(stats)
+function getPerformanceSnapshot(runs: GameRunHistory[]): PerformanceSnapshot {
+    const totalAnswers = runs.reduce((sum, run) => sum + run.totalAnswers, 0)
+    const totalCorrectAnswers = runs.reduce((sum, run) => sum + run.correctAnswers, 0)
+    const averageAccuracy = totalAnswers === 0
+        ? 0
+        : Math.round(clamp(totalCorrectAnswers * 100 / totalAnswers, 0, 100))
+
+    const completedRuns = [...runs].reverse()
+    const responseTimes = runs
+        .map(run => run.averageResponseTimeSeconds)
+        .filter((value): value is number => typeof value === "number")
+
+    const averageResponseTime = responseTimes.length === 0
+        ? "0.0"
+        : (responseTimes.reduce((sum, value) => sum + value, 0) / responseTimes.length).toFixed(1)
 
     return {
         averageAccuracy,
         rank: getRankFromAccuracy(averageAccuracy),
-        responseTime: getMockResponseTime(stats),
-        highestMultiplier: getMockHighestMultiplier(stats),
-        recentRuns: getMockRecentRuns(stats, averageAccuracy),
-        rushHoursTriggered: getMockRushHoursTriggered(stats),
-        longestRushHourDuration: getMockLongestRushHourDuration(stats),
-        trialsAttempted: getMockTrialsAttempted(stats),
-        averageTrialWinRate: getMockAverageTrialWinRate(stats),
-        recentTrialScore: getMockRecentTrialScore(stats),
-        bestTrialScore: getMockBestTrialScore(stats)
+        responseTime: averageResponseTime,
+        highestCombo: Math.max(0, ...runs.map(run => run.highestCombo)),
+        recentAccuracyRuns: completedRuns.map(run => Math.round(clamp(run.accuracyPercent, 0, 100))),
+        recentScoreRuns: completedRuns.map(run => run.finalScore),
+        rushHoursTriggered: 0,
+        longestRushHourDuration: 0,
+        trialsAttempted: 0,
+        averageTrialWinRate: 0,
+        recentTrialScore: 0,
+        bestTrialScore: 0
     }
 }
 
-function getMockAverageAccuracy(stats: {
-    runsPlayed: number
-    longestStreak: number
-    wordsLearned: number
-}) {
-    if (stats.runsPlayed === 0) return 0
+function getChartValues(values: number[], chartMode: ChartMode) {
+    if (chartMode === "accuracy") return values.map(value => clamp(value, 0, 100))
 
-    return Math.round(
-        clamp(
-            62 + stats.longestStreak * 3 + Math.min(stats.wordsLearned, 20),
-            0,
-            98
-        )
-    )
-}
+    const maxValue = Math.max(...values, 0)
+    if (maxValue === 0) return values.map(() => 0)
 
-function getMockResponseTime(stats: {
-    runsPlayed: number
-    longestStreak: number
-}) {
-    if (stats.runsPlayed === 0) return "0.0"
-
-    return Math.max(0.8, 2.4 - stats.longestStreak * 0.08).toFixed(1)
-}
-
-function getMockHighestMultiplier(stats: { longestStreak: number }) {
-    return Math.max(1, Math.round(stats.longestStreak * 3.25))
-}
-
-function getMockRecentRuns(
-    stats: {
-        runsPlayed: number
-        longestStreak: number
-        wordsLearned: number
-    },
-    averageAccuracy: number
-) {
-    const seed = Math.max(1, stats.wordsLearned + stats.longestStreak + stats.runsPlayed)
-
-    return Array.from({ length: 10 }, (_, index) => {
-        const wave = Math.sin((seed + index) * 1.7) * 18
-        const value = averageAccuracy + wave - 8 + index * 1.5
-
-        return Math.round(clamp(value, 28, 96))
-    })
-}
-
-function getMockRushHoursTriggered(stats: {
-    runsPlayed: number
-    longestStreak: number
-}) {
-    return Math.max(0, Math.round(stats.runsPlayed * 0.35 + stats.longestStreak * 0.4))
-}
-
-function getMockLongestRushHourDuration(stats: {
-    longestStreak: number
-}) {
-    return Math.max(0, Math.round(4 + stats.longestStreak * 0.75))
-}
-
-function getMockTrialsAttempted(stats: {
-    runsPlayed: number
-}) {
-    return Math.max(0, Math.round(stats.runsPlayed * 0.25))
-}
-
-function getMockAverageTrialWinRate(stats: {
-    runsPlayed: number
-    longestStreak: number
-}) {
-    if (stats.runsPlayed === 0) return 0
-
-    return Math.round(clamp(35 + stats.longestStreak * 2.2, 0, 95))
-}
-
-function getMockRecentTrialScore(stats: {
-    longestStreak: number
-    wordsLearned: number
-}) {
-    return Math.round(clamp(50 + stats.longestStreak * 1.5 + stats.wordsLearned * 0.15, 0, 98))
-}
-
-function getMockBestTrialScore(stats: {
-    longestStreak: number
-    wordsLearned: number
-}) {
-    return Math.round(clamp(65 + stats.longestStreak * 2 + stats.wordsLearned * 0.2, 0, 99))
+    return values.map(value => clamp((value / maxValue) * 100, 4, 100))
 }
 
 function clamp(value: number, min: number, max: number) {

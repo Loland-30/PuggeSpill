@@ -23,7 +23,7 @@ export default function DeckPage() {
     const { user, loading: authLoading } = useAuth()
     const { palette } = useTheme()
     const [decks, setDecks] = useState<Deck[]>([])
-    const [loading, setLoading] = useState(true)
+    const [, setLoading] = useState(true)
     const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null)
 
     useEffect(() => {

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LexiGo.Api.Data;
@@ -43,7 +44,12 @@ namespace LexiGo.Api.Controllers {
                 Lives = GetStartingLives(modifiers),
                 IsActive = true,
                 RoundLimit = roundLimit,
-                QuestionsAnswered = 0
+                QuestionsAnswered = 0,
+                CorrectAnswers = 0,
+                WrongAnswers = 0,
+                BestStreak = 0,
+                ResultSaved = false,
+                ModifiersJson = JsonSerializer.Serialize(modifiers)
             };
 
             _context.GameSessions.Add(session);
@@ -81,6 +87,8 @@ namespace LexiGo.Api.Controllers {
 
                 session.FinalScore += score;
                 session.StreakCount = nextStreak;
+                session.CorrectAnswers++;
+                session.BestStreak = Math.Max(session.BestStreak, nextStreak);
             } else {
                 var shouldLoseLife = !modifiers.Contains("zen") &&
                     !request.ProtectLife &&
@@ -89,24 +97,25 @@ namespace LexiGo.Api.Controllers {
                 if (shouldLoseLife) session.Lives--;
 
                 session.StreakCount = 0;
-
-                if (session.Lives <= 0) {
-                    session.IsActive = false;
-                    await _context.SaveChangesAsync();
-
-                    return Ok(new {
-                        correct,
-                        session,
-                        gameOver = true,
-                        gameComplete = false
-                    });
-                }
+                session.WrongAnswers++;
             }
 
             session.QuestionsAnswered++;
 
+            if (session.Lives <= 0) {
+                await FinishSession(session, "gameOver");
+                await _context.SaveChangesAsync();
+
+                return Ok(new {
+                    correct,
+                    session,
+                    gameOver = true,
+                    gameComplete = false
+                });
+            }
+
             if (session.RoundLimit.HasValue && session.QuestionsAnswered >= session.RoundLimit.Value) {
-                session.IsActive = false;
+                await FinishSession(session, "completed");
                 await _context.SaveChangesAsync();
 
                 return Ok(new {
@@ -168,19 +177,57 @@ namespace LexiGo.Api.Controllers {
 
             if (session == null) return NotFound();
 
-            session.IsActive = false;
-
-            var isNewHighScore = session.FinalScore > session.Deck.HighScore;
-            if (isNewHighScore) {
-                session.Deck.HighScore = session.FinalScore;
-            }
-
+            var result = await FinishSession(session, "endedByUser");
             await _context.SaveChangesAsync();
 
             return Ok(new {
-                highScore = session.Deck.HighScore,
-                isNewHighScore
+                highScore = result.HighScore,
+                isNewHighScore = result.IsNewHighScore
             });
+        }
+
+        [HttpGet("history")]
+        public async Task<IActionResult> GetHistory([FromQuery] string? language, [FromQuery] int? limit) {
+            var user = await GetCurrentUser();
+            if (user == null) return Unauthorized();
+
+            var take = Math.Clamp(limit ?? 10, 1, 100);
+            var normalizedLanguage = language?.Trim().ToLowerInvariant();
+
+            var query = _context.GameRunResults
+                .AsNoTracking()
+                .Include(run => run.Deck)
+                .Where(run => run.UserId == user.Id);
+
+            if (!string.IsNullOrWhiteSpace(normalizedLanguage)) {
+                query = query.Where(run => run.LanguageCode.ToLower() == normalizedLanguage);
+            }
+
+            var runs = await query
+                .OrderByDescending(run => run.CompletedAt)
+                .Take(take)
+                .Select(run => new {
+                    run.Id,
+                    run.DeckId,
+                    deckName = run.Deck.Name,
+                    run.GameSessionId,
+                    run.LanguageCode,
+                    run.FinalScore,
+                    run.CorrectAnswers,
+                    run.WrongAnswers,
+                    run.TotalAnswers,
+                    run.AccuracyPercent,
+                    run.BestStreak,
+                    run.HighestCombo,
+                    run.AverageResponseTimeSeconds,
+                    run.RoundLimit,
+                    run.CompletedAt,
+                    run.EndReason,
+                    run.ModifiersJson
+                })
+                .ToListAsync();
+
+            return Ok(runs);
         }
 
         [HttpPost("rush-hour/{id}/complete")]
@@ -200,6 +247,60 @@ namespace LexiGo.Api.Controllers {
             await _context.SaveChangesAsync();
 
             return Ok(session);
+        }
+
+        private async Task<FinishSessionResult> FinishSession(GameSession session, string endReason) {
+            session.IsActive = false;
+
+            if (session.Deck == null) {
+                await _context.Entry(session).Reference(s => s.Deck).LoadAsync();
+            }
+
+            var deck = session.Deck ?? throw new InvalidOperationException("Game session is missing its deck.");
+
+            var isNewHighScore = session.FinalScore > deck.HighScore;
+            if (isNewHighScore) {
+                deck.HighScore = session.FinalScore;
+            }
+
+            var resultAlreadySaved = session.ResultSaved ||
+                await _context.GameRunResults.AnyAsync(result => result.GameSessionId == session.Id);
+
+            if (!resultAlreadySaved) {
+                var totalAnswers = Math.Max(session.QuestionsAnswered, session.CorrectAnswers + session.WrongAnswers);
+                var accuracyPercent = totalAnswers == 0
+                    ? 0
+                    : Math.Round(session.CorrectAnswers * 100.0 / totalAnswers, 2);
+
+                _context.GameRunResults.Add(new GameRunResult {
+                    UserId = session.UserId,
+                    DeckId = session.DeckId,
+                    GameSessionId = session.Id,
+                    LanguageCode = GetRunLanguageCode(deck),
+                    FinalScore = session.FinalScore,
+                    CorrectAnswers = session.CorrectAnswers,
+                    WrongAnswers = session.WrongAnswers,
+                    TotalAnswers = totalAnswers,
+                    AccuracyPercent = accuracyPercent,
+                    BestStreak = session.BestStreak,
+                    HighestCombo = session.BestStreak,
+                    AverageResponseTimeSeconds = null,
+                    RoundLimit = session.RoundLimit,
+                    CompletedAt = DateTime.UtcNow,
+                    EndReason = endReason,
+                    ModifiersJson = session.ModifiersJson
+                });
+
+                session.ResultSaved = true;
+            }
+
+            return new FinishSessionResult(deck.HighScore, isNewHighScore);
+        }
+
+        private static string GetRunLanguageCode(Deck deck) {
+            if (!string.IsNullOrWhiteSpace(deck.LearningLanguage)) return deck.LearningLanguage;
+            if (!string.IsNullOrWhiteSpace(deck.TranslationLanguage)) return deck.TranslationLanguage;
+            return deck.Language;
         }
 
         private static bool IsAnswerCorrect(Word word, string answer, string direction) {
@@ -316,4 +417,5 @@ namespace LexiGo.Api.Controllers {
     );
 
     public record RushHourCompleteRequest(int BonusScore);
+    public record FinishSessionResult(int HighScore, bool IsNewHighScore);
 }
