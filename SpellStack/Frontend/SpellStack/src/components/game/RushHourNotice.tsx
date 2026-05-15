@@ -1,10 +1,11 @@
+import { memo } from "react"
 interface RushHourNoticeProps {
     active: boolean
     bonusFlash: boolean
     answers: number
 }
 
-export default function RushHourNotice({ active, bonusFlash, answers }: RushHourNoticeProps) {
+function RushHourNotice({ active, bonusFlash, answers }: RushHourNoticeProps) {
     if (!active && !bonusFlash) return null
 
     return (
@@ -18,3 +19,5 @@ export default function RushHourNotice({ active, bonusFlash, answers }: RushHour
         </div>
     )
 }
+
+export default memo(RushHourNotice)

@@ -1,3 +1,4 @@
+import { memo } from "react"
 import LivesDisplay from "../LivesDisplay"
 
 interface GameHudProps {
@@ -6,13 +7,13 @@ interface GameHudProps {
     stageLabel: string
     score: number
     scoreDelta: number | null
-    modifierLabel: string
+    modifierLabel?: string
     accuracy: number
     streak: number
     rushActive: boolean
 }
 
-export default function GameHud({
+function GameHud({
     lives,
     maxLives,
     stageLabel,
@@ -34,9 +35,11 @@ export default function GameHud({
                 <p className="truncate text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                     {stageLabel}
                 </p>
-                <p className="mt-2 text-xs font-bold uppercase tracking-[0.28em] text-white/45">
-                    {modifierLabel}
-                </p>
+                {modifierLabel && (
+                    <p className="mt-2 text-xs font-bold uppercase tracking-[0.28em] text-white/45">
+                        {modifierLabel}
+                    </p>
+                )}
             </div>
 
             <div className="flex flex-col items-end text-right">
@@ -57,3 +60,5 @@ export default function GameHud({
         </header>
     )
 }
+
+export default memo(GameHud)

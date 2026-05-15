@@ -6,16 +6,17 @@ import FadeIn from "../components/FadeIn"
 import AnswerPanel from "../components/game/AnswerPanel"
 import EnemyStage from "../components/game/EnemyStage"
 import GameHud from "../components/game/GameHud"
+import PlayLoadingScreen from "../components/game/PlayLoadingScreen"
 import RunResultScreen from "../components/game/RunResultScreen"
 import RushHourNotice from "../components/game/RushHourNotice"
-import { useEnemy } from "../hooks/useEnemy"
+import { useZoneRun } from "../hooks/useZoneRun"
+import { cacheGameImages } from "../utils/gameImageCache"
 import { isAnswerAccepted, splitAcceptedAnswers } from "../utils/answerUtils"
 import correctSoundUrl from "../assets/SFX/correct_sound.mp3"
 import correctSoundTwoUrl from "../assets/SFX/correct_2.mp3"
 import gameOverMusicUrl from "../assets/SFX/game_over_music.mp3"
 import incorrectSoundOneUrl from "../assets/SFX/incorrect_1.mp3"
 import incorrectSoundTwoUrl from "../assets/SFX/incorrect_2.mp3"
-import enchantingForestStageUrl from "../assets/stages/Enchanting_Forest_bg.jpg"
 
 const TIMER_DURATION = 10
 const BOSS_TIMER_DURATION = 20
@@ -27,6 +28,7 @@ const RUSH_START_SECONDS = 4
 const RUSH_REFILL_SECONDS = 4
 const RUSH_TICK_MS = 500
 const RUSH_BONUS_MULTIPLIER = 2.5
+
 
 interface RunStats {
     totalAnswers: number
@@ -93,6 +95,7 @@ function playSound(audio: HTMLAudioElement, volume = 1) {
     audio.play().catch(() => undefined)
 }
 
+
 export default function PlayPage() {
     const { id } = useParams()
     const navigate = useNavigate()
@@ -102,15 +105,22 @@ export default function PlayPage() {
     const selectedModifierKey = selectedModifiers.join(",")
     const selectedRoundLimit = resolveRoundLimit(searchParams.get("roundLimit"))
     const selectedRoundLimitKey = selectedRoundLimit ?? "endless"
-    const { currentEnemy, streak, enemiesKilled, onCorrectAnswer, onWrongAnswer, resetEnemyRun } = useEnemy()
-    const isBossEncounter = currentEnemy.type === "Boss" || currentEnemy.type === "MiniBoss"
+    const {
+        currentZone,
+        currentEncounterIndex,
+        currentEnemy,
+        isBossEncounter,
+        streak,
+        enemiesKilled,
+        onCorrectAnswer,
+        onWrongAnswer,
+        resetZoneRun
+    } = useZoneRun()
     const timerDuration = getTimerDuration(selectedModifiers, isBossEncounter)
     const maxLives = getMaxLives(selectedModifiers)
 
     const [session, setSession] = useState<GameSession | null>(null)
-    const [input, setInput] = useState("")
     const [result, setResult] = useState<"correct" | "incorrect" | null>(null)
-    const [timeLeft, setTimeLeft] = useState(timerDuration)
     const [gameOver, setGameOver] = useState(false)
     const [runComplete, setRunComplete] = useState(false)
     const [highScore, setHighScore] = useState<number | null>(null)
@@ -122,22 +132,36 @@ export default function PlayPage() {
     const [rushAnswers, setRushAnswers] = useState(0)
     const [rushBonusFlash, setRushBonusFlash] = useState(false)
     const [scoreDelta, setScoreDelta] = useState<number | null>(null)
+    const [stageAssetsReady, setStageAssetsReady] = useState(false)
+    const [startCountdown, setStartCountdown] = useState<number | null>(3)
 
     const inputRef = useRef<HTMLInputElement>(null)
-    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
     const shouldResetTimerRef = useRef(true)
+    const timeLeftRef = useRef(timerDuration)
     const wordStartedAtRef = useRef(Date.now())
     const rushActiveRef = useRef(false)
     const rushScoreStartRef = useRef(0)
-    const correctSoundRefs = useRef([
-        new Audio(correctSoundUrl),
-        new Audio(correctSoundTwoUrl)
-    ])
-    const incorrectSoundRefs = useRef([
-        new Audio(incorrectSoundOneUrl),
-        new Audio(incorrectSoundTwoUrl)
-    ])
-    const gameOverMusicRef = useRef(new Audio(gameOverMusicUrl))
+    const correctSoundRefs = useRef<HTMLAudioElement[] | null>(null)
+    const incorrectSoundRefs = useRef<HTMLAudioElement[] | null>(null)
+    const gameOverMusicRef = useRef<HTMLAudioElement | null>(null)
+
+    if (correctSoundRefs.current === null) {
+        correctSoundRefs.current = [
+            new Audio(correctSoundUrl),
+            new Audio(correctSoundTwoUrl)
+        ]
+    }
+
+    if (incorrectSoundRefs.current === null) {
+        incorrectSoundRefs.current = [
+            new Audio(incorrectSoundOneUrl),
+            new Audio(incorrectSoundTwoUrl)
+        ]
+    }
+
+    if (gameOverMusicRef.current === null) {
+        gameOverMusicRef.current = new Audio(gameOverMusicUrl)
+    }
 
     useEffect(() => {
         const gameOverMusic = gameOverMusicRef.current
@@ -145,53 +169,66 @@ export default function PlayPage() {
         const incorrectSounds = incorrectSoundRefs.current
 
         return () => {
-            gameOverMusic.pause()
-            correctSounds.forEach(sound => sound.pause())
-            incorrectSounds.forEach(sound => sound.pause())
+            gameOverMusic?.pause()
+            correctSounds?.forEach(sound => sound.pause())
+            incorrectSounds?.forEach(sound => sound.pause())
         }
     }, [])
 
+    useEffect(() => {
+        let cancelled = false
+
+        setStageAssetsReady(false)
+
+        cacheGameImages().then(() => {
+            if (!cancelled) setStageAssetsReady(true)
+        })
+
+        return () => {
+            cancelled = true
+        }
+    }, [])
     useEffect(() => {
         startGame(Number(id), selectedModifiers, selectedRoundLimit).then(s => {
             setSession(s)
             setHighScore(s.finalScore)
             setScoreDelta(null)
+            setStartCountdown(3)
             setCurrentDirection(resolveDirection(selectedDirection))
         })
     }, [id, selectedDirection, selectedModifierKey, selectedRoundLimitKey])
 
+
     useEffect(() => {
-        if (!session || gameOver || runComplete) return
+        if (!session || !stageAssetsReady || gameOver || runComplete || startCountdown === null) return
+
+        const timeout = window.setTimeout(() => {
+            setStartCountdown(current => {
+                if (current === null) return null
+                return current <= 1 ? null : current - 1
+            })
+        }, 1000)
+
+        return () => window.clearTimeout(timeout)
+    }, [session, stageAssetsReady, gameOver, runComplete, startCountdown])
+    useEffect(() => {
+        if (!session || !stageAssetsReady || startCountdown !== null || gameOver || runComplete) return
         setCurrentDirection(resolveDirection(selectedDirection))
         wordStartedAtRef.current = Date.now()
-        startTimer(shouldResetTimerRef.current)
+
+        if (shouldResetTimerRef.current) {
+            timeLeftRef.current = timerDuration
+        }
+
         shouldResetTimerRef.current = true
-        return () => stopTimer()
-    }, [session?.currentWordId, session?.questionsAnswered, rushActive, currentEnemy.type, runComplete])
+    }, [session?.currentWordId, session?.questionsAnswered, stageAssetsReady, startCountdown, rushActive, currentEnemy.enemyType, runComplete, selectedDirection, timerDuration])
 
-    const startTimer = (resetTimer = true) => {
-        stopTimer()
-        if (resetTimer) setTimeLeft(timerDuration)
-        timerRef.current = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    stopTimer()
-                    handleSubmit(true)
-                    return 0
-                }
-                return prev - 1
-            })
-        }, rushActiveRef.current ? RUSH_TICK_MS : 1000)
-    }
-
-    const stopTimer = () => {
-        if (timerRef.current) clearInterval(timerRef.current)
-    }
-
+    const stopTimer = () => undefined
     const handleGameOver = async (finishedSession: GameSession) => {
         stopTimer()
         setGameOver(true)
-        playSound(gameOverMusicRef.current, 0.75)
+        const gameOverMusic = gameOverMusicRef.current
+        if (gameOverMusic) playSound(gameOverMusic, 0.75)
         try {
             const result = await endGame(finishedSession.id)
             setHighScore(result.highScore)
@@ -228,11 +265,11 @@ export default function PlayPage() {
         )
     }
 
-    const handleSubmit = async (timedOut = false) => {
+    const handleSubmit = async (submittedAnswer: string, timedOut = false) => {
         if (result || gameOver || runComplete || !session) return
         const isRushActive = rushActiveRef.current
-        const submittedTimeLeft = timedOut ? 0 : timeLeft
-        const answer = timedOut ? "" : input
+        const submittedTimeLeft = timedOut ? 0 : timeLeftRef.current
+        const answer = timedOut ? "" : submittedAnswer
         const localCorrect = !timedOut && isLocallyCorrect(answer)
         const answerTimeMs = Date.now() - wordStartedAtRef.current
 
@@ -241,12 +278,16 @@ export default function PlayPage() {
         setResult(localCorrect ? "correct" : "incorrect")
         if (localCorrect) {
             const sounds = correctSoundRefs.current
-            const sound = sounds[Math.floor(Math.random() * sounds.length)]
-            playSound(sound, rushActiveRef.current ? 0.9 : 0.7)
+            if (sounds && sounds.length > 0) {
+                const sound = sounds[Math.floor(Math.random() * sounds.length)]
+                playSound(sound, rushActiveRef.current ? 0.9 : 0.7)
+            }
         } else {
             const sounds = incorrectSoundRefs.current
-            const sound = sounds[Math.floor(Math.random() * sounds.length)]
-            playSound(sound, 0.65)
+            if (sounds && sounds.length > 0) {
+                const sound = sounds[Math.floor(Math.random() * sounds.length)]
+                playSound(sound, 0.65)
+            }
         }
 
         setTimeout(async () => {
@@ -255,24 +296,27 @@ export default function PlayPage() {
             const nextStreak = wasCorrect ? streak + 1 : 0
             const hasMomentum = selectedModifiers.includes("momentum")
             const rushTimedOut = isRushActive && timedOut
-            const wasBossEncounter = currentEnemy.type === "Boss" || currentEnemy.type === "MiniBoss"
+            const wasBossEncounter = isBossEncounter
             const bossEncounterDefeated = wasBossEncounter && wasCorrect && currentEnemy.hp <= 1
 
             let nextSession = response.session
             let nextTimeLeft = timerDuration
 
             shouldResetTimerRef.current = !hasMomentum && !isRushActive && (!wasBossEncounter || bossEncounterDefeated)
+            if (shouldResetTimerRef.current) {
+                timeLeftRef.current = timerDuration
+            }
+
             if (isRushActive) {
                 nextTimeLeft = wasCorrect
                     ? Math.min(timerDuration, submittedTimeLeft + RUSH_REFILL_SECONDS)
                     : submittedTimeLeft
 
-                setTimeLeft(nextTimeLeft)
+                timeLeftRef.current = nextTimeLeft
             } else if (hasMomentum && !wasBossEncounter) {
-                setTimeLeft(wasCorrect
+                timeLeftRef.current = wasCorrect
                     ? Math.min(timerDuration, submittedTimeLeft + MOMENTUM_REFILL_SECONDS)
                     : submittedTimeLeft
-                )
             }
 
             if (isRushActive && wasCorrect) {
@@ -301,7 +345,7 @@ export default function PlayPage() {
                 if (nextFastCorrectCount >= RUSH_TRIGGER_COUNT) {
                     startRushHour(response.session.finalScore)
                     shouldResetTimerRef.current = false
-                    setTimeLeft(Math.min(timerDuration, RUSH_START_SECONDS))
+                    timeLeftRef.current = Math.min(timerDuration, RUSH_START_SECONDS)
                     setFastCorrectCount(0)
                 } else {
                     setFastCorrectCount(nextFastCorrectCount)
@@ -316,7 +360,6 @@ export default function PlayPage() {
 
             setSession(nextSession)
             setResult(null)
-            setInput("")
             setStats(prev => ({
                 totalAnswers: prev.totalAnswers + 1,
                 correctAnswers: prev.correctAnswers + (wasCorrect ? 1 : 0),
@@ -342,22 +385,25 @@ export default function PlayPage() {
 
     const restartGame = async () => {
         const newSession = await startGame(Number(id), selectedModifiers, selectedRoundLimit)
-        resetEnemyRun()
+        resetZoneRun()
         endRushHour()
         setSession(newSession)
         setResult(null)
-        setInput("")
         setGameOver(false)
         setRunComplete(false)
         setIsNewHighScore(false)
         setScoreDelta(null)
+        setStartCountdown(3)
         setStats({ totalAnswers: 0, correctAnswers: 0, bestStreak: 0 })
         setFastCorrectCount(0)
         setCurrentDirection(resolveDirection(selectedDirection))
         shouldResetTimerRef.current = true
-        setTimeLeft(timerDuration)
-        gameOverMusicRef.current.pause()
-        gameOverMusicRef.current.currentTime = 0
+        timeLeftRef.current = timerDuration
+        const gameOverMusic = gameOverMusicRef.current
+        if (gameOverMusic) {
+            gameOverMusic.pause()
+            gameOverMusic.currentTime = 0
+        }
         setTimeout(() => inputRef.current?.focus(), 50)
     }
 
@@ -375,16 +421,16 @@ export default function PlayPage() {
         setRushAnswers(0)
     }
 
-    if (!session) return <p className="text-center mt-20 text-gray-400">Loading...</p>
+    if (!session || !stageAssetsReady) return <PlayLoadingScreen backgroundImageUrl={currentZone.backgroundUrl} />
 
-    const timerPercent = (timeLeft / timerDuration) * 100
     const hpPercent = (currentEnemy.hp / currentEnemy.maxHp) * 100
     const accuracy = stats.totalAnswers === 0 ? 0 : Math.round((stats.correctAnswers / stats.totalAnswers) * 100)
     const rank = getRank(stats, session.finalScore)
     const promptWord = currentDirection === "original" ? session.currentWord.original : session.currentWord.translation
     const revealedAnswer = currentDirection === "original" ? session.currentWord.translation : session.currentWord.original
-    const stageLabel = `${currentEnemy.type === "Common" ? "Crystal Cave" : currentEnemy.type}: ${enemiesKilled + 1}`
-    const enemyRarityLabel = currentEnemy.type === "MiniBoss" ? "Mini Boss" : currentEnemy.type
+    const stageLabel = isBossEncounter
+        ? `${currentZone.name} - Final Boss`
+        : `${currentZone.name} - ${currentEncounterIndex} / ${currentZone.encountersBeforeBoss}`
 
     if (gameOver || runComplete) return (
         <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gray-50 px-6">
@@ -418,22 +464,36 @@ export default function PlayPage() {
     )
 
     return (
-        <div
-            className="min-h-screen overflow-hidden bg-[#222222] bg-cover bg-center bg-no-repeat px-6 py-6 text-white transition-colors"
-            style={{
-                backgroundImage: `${rushActive
-                    ? "linear-gradient(rgba(24, 20, 10, 0.68), rgba(24, 20, 10, 0.82))"
-                    : "linear-gradient(rgba(0, 0, 0, 0.48), rgba(0, 0, 0, 0.68))"}, url(${enchantingForestStageUrl})`
-            }}
-        >
-            <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-7xl flex-col">
+        <div className="relative min-h-screen overflow-hidden bg-[#222222] px-6 py-6 text-white">
+            <img
+                src={currentZone.backgroundUrl}
+                alt=""
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+            />
+            <div
+                className={`pointer-events-none absolute inset-0 ${rushActive
+                    ? "bg-[linear-gradient(rgba(24,20,10,0.68),rgba(24,20,10,0.82))]"
+                    : "bg-[linear-gradient(rgba(0,0,0,0.48),rgba(0,0,0,0.68))]"
+                }`}
+            />
+            {startCountdown !== null && (
+                <div className="pointer-events-none fixed inset-0 z-50 grid place-items-center bg-black/25 text-white backdrop-blur-[2px]">
+                    <div className="text-center">
+                        <p className="text-sm font-black uppercase tracking-[0.4em] text-white/60">Get ready</p>
+                        <p className="mt-3 text-9xl font-black drop-shadow-[0_0_34px_rgba(255,255,255,0.22)]">
+                            {startCountdown}
+                        </p>
+                    </div>
+                </div>
+            )}
+            <div className="relative z-10 mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-7xl flex-col">
                 <GameHud
                     lives={session.lives}
                     maxLives={maxLives}
                     stageLabel={stageLabel}
                     score={session.finalScore}
                     scoreDelta={scoreDelta}
-                    modifierLabel={enemyRarityLabel}
                     accuracy={accuracy}
                     streak={streak}
                     rushActive={rushActive}
@@ -456,12 +516,19 @@ export default function PlayPage() {
                         promptWord={promptWord}
                         revealedAnswer={revealedAnswer}
                         result={result}
-                        input={input}
+                        resetKey={`${session.currentWordId}-${session.questionsAnswered}`}
                         inputRef={inputRef}
-                        timerPercent={timerPercent}
+                        timerDuration={timerDuration}
+                        timerInitialTimeLeft={timeLeftRef.current}
+                        timerResetKey={`${session.currentWordId}-${session.questionsAnswered}-${timerDuration}-${rushActive}`}
+                        timerTickMs={rushActiveRef.current ? RUSH_TICK_MS : 1000}
+                        timerRunning={!result && !gameOver && !runComplete && startCountdown === null}
                         rushActive={rushActive}
-                        onInputChange={setInput}
-                        onSubmit={() => handleSubmit()}
+                        onTimerTick={timeLeft => {
+                            timeLeftRef.current = timeLeft
+                        }}
+                        onTimeout={() => handleSubmit("", true)}
+                        onSubmitAnswer={answer => handleSubmit(answer)}
                     />
                 </main>
             </div>
