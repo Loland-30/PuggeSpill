@@ -7,6 +7,7 @@ import { addWord, deleteWord, updateWord } from "../api/words"
 import FadeIn from "../components/FadeIn"
 import LanguageSelect from "../components/LanguageSelect"
 import PageContentTransition from "../components/PageContentTransition"
+import { spanishDeckPresets, type SpanishDeckPreset } from "../data/spanishDeckPresets"
 import { useTheme } from "../theme/ThemeContext"
 
 interface WordPair {
@@ -61,6 +62,7 @@ export default function CreateDeckPage() {
     const [description, setDescription] = useState("")
     const [words, setWords] = useState<WordPair[]>(() => [createEmptyWordPair()])
     const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
+    const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
 
     useEffect(() => {
         if (!isEditing) return
@@ -83,10 +85,12 @@ export default function CreateDeckPage() {
     }, [id, isEditing])
 
     const addWordRow = () => {
+        setSelectedPresetId(null)
         setWords(currentWords => [...currentWords, createEmptyWordPair()])
     }
 
     const updateWordRow = (clientId: string, field: WordEditableField, value: string) => {
+        setSelectedPresetId(null)
         setWords(currentWords =>
             currentWords.map(word =>
                 word.clientId === clientId
@@ -116,6 +120,7 @@ export default function CreateDeckPage() {
     }
 
     const updateAcceptedAnswer = (clientId: string, answerIndex: number, value: string) => {
+        setSelectedPresetId(null)
         setWords(currentWords =>
             currentWords.map(word =>
                 word.clientId === clientId
@@ -134,6 +139,8 @@ export default function CreateDeckPage() {
         const word = words.find(word => word.clientId === clientId)
         if (!word) return
 
+        setSelectedPresetId(null)
+
         if (word.id) {
             await deleteWord(word.id)
         }
@@ -144,6 +151,43 @@ export default function CreateDeckPage() {
             const { [clientId]: _removedRow, ...remainingRows } = currentRows
             return remainingRows
         })
+    }
+
+    const updateDeckName = (value: string) => {
+        setSelectedPresetId(null)
+        setDeckName(value)
+    }
+
+    const updateDescription = (value: string) => {
+        setSelectedPresetId(null)
+        setDescription(value)
+    }
+
+    const updateLanguage = (value: string) => {
+        setSelectedPresetId(null)
+        setLanguage(value)
+    }
+
+    const updateTranslationLanguage = (value: string) => {
+        setSelectedPresetId(null)
+        setTranslationLanguage(value)
+    }
+
+    const applyPreset = (preset: SpanishDeckPreset) => {
+        setSelectedPresetId(preset.id)
+        setDeckName(preset.name)
+        setDescription(preset.description)
+        setLanguage("es")
+        setTranslationLanguage("no")
+        setLearningLanguageSide("source")
+        setExpandedRows({})
+        setWords(preset.words.map(word => ({
+            clientId: createClientId(),
+            original: word.original,
+            translation: word.translation,
+            acceptedAnswers: [],
+            hint: ""
+        })))
     }
 
     const handleSubmit = async () => {
@@ -215,6 +259,40 @@ export default function CreateDeckPage() {
                         </h1>
                     </FadeIn>
 
+                    {!isEditing && (
+                        <FadeIn className={cardClass}>
+                            <div className="mb-4">
+                                <p className="text-sm font-bold uppercase tracking-[0.16em] text-white/50">Presets</p>
+                                <h2 className="mt-1 text-xl font-black text-white">Start with a Spanish deck</h2>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                {spanishDeckPresets.map(preset => {
+                                    const isSelected = selectedPresetId === preset.id
+
+                                    return (
+                                        <button
+                                            key={preset.id}
+                                            type="button"
+                                            onClick={() => applyPreset(preset)}
+                                            className={`rounded-lg border p-4 text-left transition hover:-translate-y-0.5 ${
+                                                isSelected
+                                                    ? `${palette.primaryButton} border-transparent text-white shadow-lg`
+                                                    : `${palette.border} bg-black/20 text-white/75 hover:bg-white/10 hover:text-white`
+                                            }`}
+                                        >
+                                            <span className="block text-base font-black">{preset.name}</span>
+                                            <span className="mt-2 block text-sm leading-5 opacity-80">{preset.description}</span>
+                                            <span className="mt-3 block text-xs font-bold uppercase tracking-[0.14em] opacity-70">
+                                                {preset.words.length} words
+                                            </span>
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        </FadeIn>
+                    )}
+
                     <FadeIn className={cardClass}>
                         <div className="flex flex-col gap-4">
                             <div>
@@ -223,7 +301,7 @@ export default function CreateDeckPage() {
                                     type="text"
                                     placeholder="E.g. Spanish basics"
                                     value={deckName}
-                                    onChange={event => setDeckName(event.target.value)}
+                                    onChange={event => updateDeckName(event.target.value)}
                                     className={inputClass}
                                 />
                             </div>
@@ -234,7 +312,7 @@ export default function CreateDeckPage() {
                                     type="text"
                                     placeholder="E.g. Common words for beginners"
                                     value={description}
-                                    onChange={event => setDescription(event.target.value)}
+                                    onChange={event => updateDescription(event.target.value)}
                                     className={inputClass}
                                 />
                             </div>
@@ -245,11 +323,14 @@ export default function CreateDeckPage() {
                         <div className="space-y-2">
                             <LearningLanguageToggle
                                 active={learningLanguageSide === "source"}
-                                onClick={() => setLearningLanguageSide("source")}
+                                onClick={() => {
+                                    setSelectedPresetId(null)
+                                    setLearningLanguageSide("source")
+                                }}
                             />
                             <LanguageSelect
                                 value={language}
-                                onChange={setLanguage}
+                                onChange={updateLanguage}
                                 inputClassName={textTone.inputClass}
                                 panelClassName={isRedPurple ? "border-transparent shadow-[0_0_14px_rgba(217,70,239,0.14)] backdrop-blur-xl" : textTone.panelClass}
                             />
@@ -258,11 +339,14 @@ export default function CreateDeckPage() {
                         <div className="space-y-2">
                             <LearningLanguageToggle
                                 active={learningLanguageSide === "target"}
-                                onClick={() => setLearningLanguageSide("target")}
+                                onClick={() => {
+                                    setSelectedPresetId(null)
+                                    setLearningLanguageSide("target")
+                                }}
                             />
                             <LanguageSelect
                                 value={translationLanguage}
-                                onChange={setTranslationLanguage}
+                                onChange={updateTranslationLanguage}
                                 inputClassName={textTone.inputClass}
                                 panelClassName={isRedPurple ? "border-transparent shadow-[0_0_14px_rgba(217,70,239,0.14)] backdrop-blur-xl" : textTone.panelClass}
                             />
@@ -383,9 +467,6 @@ function LearningLanguageToggle({ active, onClick }: { active: boolean; onClick:
         </button>
     )
 }
-
-
-
 
 
 
