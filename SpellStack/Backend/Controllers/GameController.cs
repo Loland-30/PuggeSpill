@@ -307,7 +307,16 @@ namespace LexiGo.Api.Controllers {
             var normalizedAnswer = Normalize(answer);
 
             if (direction == "translation") {
-                return normalizedAnswer == Normalize(word.Original);
+                if (normalizedAnswer == Normalize(word.Original)) return true;
+
+                if (!string.IsNullOrWhiteSpace(word.AlternativeOriginal)) {
+                    var alternatives = word.AlternativeOriginal
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+                    return alternatives.Any(alternative => normalizedAnswer == Normalize(alternative));
+                }
+
+                return false;
             }
 
             if (normalizedAnswer == Normalize(word.Translation)) return true;

@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { Check, ChevronDown, X } from "lucide-react"
+import { Check, ChevronDown, Library, RotateCcw, X } from "lucide-react"
 
 import { createDeck, getDeck, updateDeck } from "../api/decks"
 import { addWord, deleteWord, updateWord } from "../api/words"
@@ -16,6 +16,7 @@ interface WordPair {
     id?: number
     original: string
     translation: string
+    acceptedOriginals: string[]
     acceptedAnswers: string[]
     hint: string
 }
@@ -36,6 +37,7 @@ function createEmptyWordPair(): WordPair {
         clientId: createClientId(),
         original: "",
         translation: "",
+        acceptedOriginals: [],
         acceptedAnswers: [],
         hint: ""
     }
@@ -48,6 +50,10 @@ function splitAcceptedAnswers(value: string | null | undefined) {
 function serializeAcceptedAnswers(answers: string[]) {
     const cleanedAnswers = answers.map(answer => answer.trim()).filter(Boolean)
     return cleanedAnswers.length > 0 ? cleanedAnswers.join(",") : null
+}
+
+function getAcceptedAnswersForSide(word: WordPair, side: LearningLanguageSide) {
+    return side === "source" ? word.acceptedOriginals : word.acceptedAnswers
 }
 
 export default function CreateDeckPage() {
@@ -64,6 +70,7 @@ export default function CreateDeckPage() {
     const [words, setWords] = useState<WordPair[]>(() => [createEmptyWordPair()])
     const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
     const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
+    const [showPresets, setShowPresets] = useState(false)
 
     useEffect(() => {
         if (!isEditing) return
@@ -79,6 +86,7 @@ export default function CreateDeckPage() {
                 id: word.id,
                 original: word.original,
                 translation: word.translation,
+                acceptedOriginals: splitAcceptedAnswers(word.alternativeOriginal),
                 acceptedAnswers: splitAcceptedAnswers(word.alternativeTranslation),
                 hint: word.hint ?? ""
             })))
@@ -106,11 +114,14 @@ export default function CreateDeckPage() {
 
         if (!isCurrentlyExpanded) {
             setWords(currentWords =>
-                currentWords.map(word =>
-                    word.clientId === clientId && word.acceptedAnswers.length === 0
-                        ? { ...word, acceptedAnswers: [""] }
-                        : word
-                )
+                currentWords.map(word => {
+                    if (word.clientId !== clientId) return word
+                    if (getAcceptedAnswersForSide(word, learningLanguageSide).length > 0) return word
+
+                    return learningLanguageSide === "source"
+                        ? { ...word, acceptedOriginals: [""] }
+                        : { ...word, acceptedAnswers: [""] }
+                })
             )
         }
 
@@ -123,16 +134,25 @@ export default function CreateDeckPage() {
     const updateAcceptedAnswer = (clientId: string, answerIndex: number, value: string) => {
         setSelectedPresetId(null)
         setWords(currentWords =>
-            currentWords.map(word =>
-                word.clientId === clientId
-                    ? {
+            currentWords.map(word => {
+                if (word.clientId !== clientId) return word
+
+                if (learningLanguageSide === "source") {
+                    return {
                         ...word,
-                        acceptedAnswers: word.acceptedAnswers.map((answer, index) =>
+                        acceptedOriginals: word.acceptedOriginals.map((answer, index) =>
                             index === answerIndex ? value : answer
                         )
                     }
-                    : word
-            )
+                }
+
+                return {
+                    ...word,
+                    acceptedAnswers: word.acceptedAnswers.map((answer, index) =>
+                        index === answerIndex ? value : answer
+                    )
+                }
+            })
         )
     }
 
@@ -186,9 +206,21 @@ export default function CreateDeckPage() {
             clientId: createClientId(),
             original: word.original,
             translation: word.translation,
+            acceptedOriginals: word.acceptedOriginals ?? [],
             acceptedAnswers: [],
             hint: ""
         })))
+    }
+
+    const resetDeckDraft = () => {
+        setSelectedPresetId(null)
+        setDeckName("")
+        setDescription("")
+        setLanguage("")
+        setTranslationLanguage("no")
+        setLearningLanguageSide("target")
+        setExpandedRows({})
+        setWords([createEmptyWordPair()])
     }
 
     const handleSubmit = async () => {
@@ -203,12 +235,13 @@ export default function CreateDeckPage() {
                 if (!word.original || !word.translation) return
 
                 const alternativeTranslation = serializeAcceptedAnswers(word.acceptedAnswers)
+                const alternativeOriginal = serializeAcceptedAnswers(word.acceptedOriginals)
 
                 if (word.id) {
-                    return updateWord(word.id, word.original, word.translation, word.hint || null, Number(id), alternativeTranslation)
+                    return updateWord(word.id, word.original, word.translation, word.hint || null, Number(id), alternativeTranslation, alternativeOriginal)
                 }
 
-                return addWord(word.original, word.translation, word.hint || null, Number(id), alternativeTranslation)
+                return addWord(word.original, word.translation, word.hint || null, Number(id), alternativeTranslation, alternativeOriginal)
             }))
         }
         else {
@@ -216,7 +249,14 @@ export default function CreateDeckPage() {
             const validWords = words.filter(word => word.original && word.translation)
 
             await Promise.all(validWords.map(word =>
-                addWord(word.original, word.translation, word.hint || null, deck.id, serializeAcceptedAnswers(word.acceptedAnswers))
+                addWord(
+                    word.original,
+                    word.translation,
+                    word.hint || null,
+                    deck.id,
+                    serializeAcceptedAnswers(word.acceptedAnswers),
+                    serializeAcceptedAnswers(word.acceptedOriginals)
+                )
             ))
         }
 
@@ -228,6 +268,7 @@ export default function CreateDeckPage() {
     const rowButtonClass = `grid h-11 w-11 shrink-0 place-items-center rounded-lg border-2 ${palette.border} bg-black/25 ${palette.glow} text-white/80 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white`
     const deleteButtonClass = "grid h-11 w-11 shrink-0 place-items-center rounded-lg border-2 border-red-300/40 bg-black/25 text-red-300 backdrop-blur transition hover:-translate-y-0.5 hover:bg-red-500/20 hover:text-red-100"
     const addWordClass = `mb-6 w-full rounded-2xl border-2 border-dashed ${palette.border} py-3 text-sm text-white/70 transition hover:text-white`
+    const presetCardClass = `rounded-lg border p-4 text-left transition hover:-translate-y-0.5`
 
     return (
         <PageContentTransition>
@@ -248,28 +289,101 @@ export default function CreateDeckPage() {
                         </h1>
                     </FadeIn>
 
-                    <FadeIn className="mb-6 flex flex-col gap-4">
-                            <div>
-                                <label className="mb-1 block text-sm text-white/70">Deck name</label>
-                                <input
-                                    type="text"
-                                    placeholder="E.g. Spanish basics"
-                                    value={deckName}
-                                    onChange={event => updateDeckName(event.target.value)}
-                                    className={inputClass}
-                                />
+                    {!isEditing && (
+                        <FadeIn className="mb-6">
+                            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPresets(current => !current)}
+                                    className={`flex min-w-0 items-center justify-between rounded-2xl border-2 ${palette.border} bg-black/25 px-5 py-4 text-left text-white/85 ${palette.glow} backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white`}
+                                >
+                                    <span className="flex min-w-0 items-center gap-3">
+                                        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${palette.primaryButton}`}>
+                                            <Library size={19} strokeWidth={2.3} />
+                                        </span>
+                                        <span className="min-w-0">
+                                            <span className="block text-base font-black">Preset decks</span>
+                                            <span className="block truncate text-sm text-white/60">
+                                                {selectedPresetId
+                                                    ? spanishDeckPresets.find(preset => preset.id === selectedPresetId)?.name
+                                                    : "Optional Spanish starter decks"}
+                                            </span>
+                                        </span>
+                                    </span>
+                                    <ChevronDown
+                                        size={22}
+                                        className={`shrink-0 transition ${showPresets ? "rotate-180" : ""}`}
+                                    />
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={resetDeckDraft}
+                                    className={`flex items-center justify-center gap-2 rounded-2xl border-2 ${palette.border} bg-black/20 px-5 py-4 text-sm font-semibold text-white/70 transition hover:bg-white/10 hover:text-white sm:min-w-40`}
+                                >
+                                    <RotateCcw size={17} strokeWidth={2.4} />
+                                    Reset deck
+                                </button>
                             </div>
 
-                            <div>
-                                <label className="mb-1 block text-sm text-white/70">Description (optional)</label>
-                                <input
-                                    type="text"
-                                    placeholder="E.g. Common words for beginners"
-                                    value={description}
-                                    onChange={event => updateDescription(event.target.value)}
-                                    className={inputClass}
-                                />
-                            </div>
+                            {showPresets && (
+                                <GradientFrame
+                                    glow
+                                    radius={16}
+                                    radiusClass="mt-3 rounded-2xl"
+                                    contentClassName="rounded-[inherit] p-5"
+                                >
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        {spanishDeckPresets.map(preset => {
+                                            const isSelected = selectedPresetId === preset.id
+
+                                            return (
+                                                <button
+                                                    key={preset.id}
+                                                    type="button"
+                                                    onClick={() => applyPreset(preset)}
+                                                    className={`${presetCardClass} ${
+                                                        isSelected
+                                                            ? `${palette.primaryButton} border-transparent text-white shadow-lg`
+                                                            : `${palette.border} bg-black/20 text-white/75 hover:bg-white/10 hover:text-white`
+                                                    }`}
+                                                >
+                                                    <span className="block text-base font-black">{preset.name}</span>
+                                                    <span className="mt-2 block text-sm leading-5 opacity-80">{preset.description}</span>
+                                                    <span className="mt-3 block text-xs font-bold uppercase tracking-[0.14em] opacity-70">
+                                                        {preset.words.length} words
+                                                    </span>
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                </GradientFrame>
+                            )}
+                        </FadeIn>
+                    )}
+
+                    <FadeIn className="mb-6 flex flex-col gap-4">
+                        <div>
+                            <label className="mb-1 block text-sm text-white/70">Deck name</label>
+                            <input
+                                type="text"
+                                placeholder="E.g. Spanish basics"
+                                value={deckName}
+                                onChange={event => updateDeckName(event.target.value)}
+                                className={inputClass}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="mb-1 block text-sm text-white/70">Description (optional)</label>
+                            <input
+                                type="text"
+                                placeholder="E.g. Common words for beginners"
+                                value={description}
+                                onChange={event => updateDescription(event.target.value)}
+                                className={inputClass}
+                            />
+                        </div>
                     </FadeIn>
 
                     <FadeIn className="relative z-[100] mb-4 grid grid-cols-2 gap-4 px-1">
@@ -310,7 +424,7 @@ export default function CreateDeckPage() {
                 <div className="relative z-0 mb-6 flex flex-col gap-3">
                     {words.map(word => {
                         const isExpanded = !!expandedRows[word.clientId]
-                        const acceptedAnswer = word.acceptedAnswers[0] ?? ""
+                        const acceptedAnswer = getAcceptedAnswersForSide(word, learningLanguageSide)[0] ?? ""
 
                         return (
                             <FadeIn key={word.clientId} className="w-full">
@@ -426,4 +540,3 @@ function LearningLanguageToggle({ active, onClick }: { active: boolean; onClick:
         </button>
     )
 }
-

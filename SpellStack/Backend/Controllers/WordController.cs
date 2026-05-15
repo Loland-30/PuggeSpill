@@ -28,6 +28,7 @@ namespace LexiGo.Api.Controllers {
             var word = new Word {
                 Original = request.Original,
                 Translation = request.Translation,
+                AlternativeOriginal = request.AlternativeOriginal,
                 AlternativeTranslation = request.AlternativeTranslation,
                 Hint = request.Hint,
                 DeckId = request.DeckId
@@ -44,6 +45,7 @@ namespace LexiGo.Api.Controllers {
 
             word.Original = request.Original;
             word.Translation = request.Translation;
+            word.AlternativeOriginal = request.AlternativeOriginal;
             word.AlternativeTranslation = request.AlternativeTranslation;
             word.Hint = request.Hint;
 
@@ -61,5 +63,5 @@ namespace LexiGo.Api.Controllers {
         }
     }
 
-    public record AddWordRequest(string Original, string Translation, string? AlternativeTranslation, string? Hint, int DeckId);
+    public record AddWordRequest(string Original, string Translation, string? AlternativeOriginal, string? AlternativeTranslation, string? Hint, int DeckId);
 }

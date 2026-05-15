@@ -316,6 +316,9 @@ namespace LexiGo.Api.Migrations
                     b.Property<string>("AlternativeTranslation")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("AlternativeOriginal")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("DeckId")
                         .HasColumnType("INTEGER");
 

@@ -218,7 +218,11 @@ export default function PlayPage() {
         if (!session) return false
 
         if (currentDirection === "translation") {
-            return isAnswerAccepted(answer, session.currentWord.original)
+            return isAnswerAccepted(
+                answer,
+                session.currentWord.original,
+                splitAcceptedAnswers(session.currentWord.alternativeOriginal)
+            )
         }
 
         return isAnswerAccepted(

@@ -16,6 +16,7 @@ export interface Word {
     id: number
     original: string
     translation: string
+    alternativeOriginal: string | null
     alternativeTranslation: string | null
     hint: string | null
     deckId: number

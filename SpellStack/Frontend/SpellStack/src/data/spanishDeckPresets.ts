@@ -1,6 +1,7 @@
 export interface SpanishDeckPresetWord {
     original: string
     translation: string
+    acceptedOriginals?: string[]
 }
 
 export interface SpanishDeckPreset {
@@ -46,13 +47,13 @@ export const spanishDeckPresets: SpanishDeckPreset[] = [
             { original: "tarde", translation: "ettermiddag" },
             { original: "hoy", translation: "i dag" },
             { original: "ayer", translation: "i går" },
-            { original: "amigo", translation: "venn" },
+            { original: "amigo", translation: "venn", acceptedOriginals: ["amiga"] },
             { original: "familia", translation: "familie" },
             { original: "madre", translation: "mor" },
             { original: "padre", translation: "far" },
             { original: "hermano", translation: "bror" },
             { original: "hermana", translation: "søster" },
-            { original: "niño", translation: "barn" },
+            { original: "niño", translation: "barn", acceptedOriginals: ["niña"] },
             { original: "mujer", translation: "kvinne" },
             { original: "hombre", translation: "mann" },
             { original: "persona", translation: "person" },
@@ -62,10 +63,10 @@ export const spanishDeckPresets: SpanishDeckPreset[] = [
             { original: "luna", translation: "måne" },
             { original: "mar", translation: "hav" },
             { original: "montaña", translation: "fjell" },
-            { original: "bueno", translation: "god" },
-            { original: "malo", translation: "dårlig" },
+            { original: "bueno", translation: "god", acceptedOriginals: ["buena"] },
+            { original: "malo", translation: "dårlig", acceptedOriginals: ["mala"] },
             { original: "grande", translation: "stor" },
-            { original: "pequeño", translation: "liten" }
+            { original: "pequeño", translation: "liten", acceptedOriginals: ["pequeña"] }
         ]
     },
     {

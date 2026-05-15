@@ -76,6 +76,7 @@ Migrations/
  20260506224141_AddQuestionsAnsweredToGameSessions.Designer.cs
  20260513224624_AddGameRunResults.cs
  20260513224624_AddGameRunResults.Designer.cs
+ 20260515102000_AddAlternativeOriginal.cs
  AppDbContextModelSnapshot.cs
 Models/
  Deck.cs
