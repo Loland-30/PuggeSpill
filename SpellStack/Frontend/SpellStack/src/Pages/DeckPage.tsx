@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Pencil, Plus, Search, Trash2 } from "lucide-react"
+import { Pencil, Plus, SlidersHorizontal, Trash2 } from "lucide-react"
 
 import { getDecks, deleteDeck, type Deck } from "../api/decks"
 import type { ActiveGameModifier, GameDirection, RoundLimit } from "../api/gameSession"
@@ -13,6 +13,7 @@ import PageContentTransition from "../components/PageContentTransition"
 import GradientFrame from "../components/GradientFrame"
 import ProfileDropdown from "../components/ProfileDropdown"
 import LibraryViewPicker, { type LibraryView } from "../components/LibraryViewPicker"
+import DeckFilterBar, { type DeckLengthFilter, type DeckSortOption } from "../components/decks/DeckFilterBar"
 
 function getLanguageFlag(code: string) {
     return languages.find(language => language.code === code)?.flagUrl
@@ -25,6 +26,10 @@ export default function DeckPage() {
     const [decks, setDecks] = useState<Deck[]>([])
     const [, setLoading] = useState(true)
     const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null)
+    const [isFilterOpen, setIsFilterOpen] = useState(false)
+    const [selectedLanguage, setSelectedLanguage] = useState("all")
+    const [selectedLength, setSelectedLength] = useState<DeckLengthFilter>("any")
+    const [selectedSort, setSelectedSort] = useState<DeckSortOption>("newest")
 
     useEffect(() => {
         if (authLoading) return
@@ -47,6 +52,48 @@ export default function DeckPage() {
 
     const handlePlay = (deck: Deck) => {
         setSelectedDeck(deck)
+    }
+
+    const activeFilterCount = [
+        selectedLanguage !== "all",
+        selectedLength !== "any",
+        selectedSort !== "newest"
+    ].filter(Boolean).length
+
+    const filteredDecks = useMemo(() => {
+        const matchesLength = (deck: Deck) => {
+            const wordCount = deck.words.length
+
+            if (selectedLength === "short") return wordCount >= 1 && wordCount <= 20
+            if (selectedLength === "medium") return wordCount >= 21 && wordCount <= 50
+            if (selectedLength === "long") return wordCount >= 51
+            return true
+        }
+
+        const nextDecks = decks.filter(deck =>
+            (selectedLanguage === "all" || deck.learningLanguage === selectedLanguage) &&
+            matchesLength(deck)
+        )
+
+        if (selectedSort === "name-asc") {
+            return [...nextDecks].sort((a, b) => a.name.localeCompare(b.name))
+        }
+
+        if (selectedSort === "most-words") {
+            return [...nextDecks].sort((a, b) => b.words.length - a.words.length)
+        }
+
+        if (selectedSort === "fewest-words") {
+            return [...nextDecks].sort((a, b) => a.words.length - b.words.length)
+        }
+
+        return nextDecks
+    }, [decks, selectedLanguage, selectedLength, selectedSort])
+
+    const resetFilters = () => {
+        setSelectedLanguage("all")
+        setSelectedLength("any")
+        setSelectedSort("newest")
     }
 
     const handleLibraryViewChange = (view: LibraryView) => {
@@ -97,23 +144,42 @@ export default function DeckPage() {
                             </button>
 
                             <button
-                                className={`flex h-12 items-center gap-2 rounded-full px-5 text-sm font-semibold shadow-lg transition ${palette.primaryButton}`}
+                                onClick={() => setIsFilterOpen(isOpen => !isOpen)}
+                                className={`group relative flex h-12 items-center justify-center overflow-hidden rounded-full px-0 text-xs font-bold shadow-lg transition-[width,box-shadow] duration-300 ease-out ${palette.primaryButton} ${isFilterOpen ? `${activeFilterCount > 0 ? "w-28" : "w-24"} ${palette.glow}` : `${activeFilterCount > 0 ? "hover:w-28" : "hover:w-24"} w-12`}`}
+                                aria-expanded={isFilterOpen}
+                                aria-label="Toggle filters"
                             >
-                                <Search size={20} strokeWidth={2.6} />
-                                Filter
+                                <SlidersHorizontal size={20} strokeWidth={2.6} className="shrink-0" />
+                                <span className={`whitespace-nowrap transition-all duration-300 ease-out ${isFilterOpen ? `${activeFilterCount > 0 ? "max-w-24" : "max-w-16"} ml-2 opacity-100` : `ml-0 max-w-0 opacity-0 group-hover:ml-2 ${activeFilterCount > 0 ? "group-hover:max-w-24" : "group-hover:max-w-16"} group-hover:opacity-100`}`}>
+                                    Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+                                </span>
                             </button>
                         </div>
                     </div>
 
+                    {isFilterOpen && (
+                        <DeckFilterBar
+                            selectedLanguage={selectedLanguage}
+                            onLanguageChange={setSelectedLanguage}
+                            selectedLength={selectedLength}
+                            onLengthChange={setSelectedLength}
+                            selectedSort={selectedSort}
+                            onSortChange={setSelectedSort}
+                            onReset={resetFilters}
+                            canReset={activeFilterCount > 0}
+                            palette={palette}
+                        />
+                    )}
+
                     <PageContentTransition>
-                        {decks.length === 0 ? (
+                        {filteredDecks.length === 0 ? (
                         <FadeIn>
                             <GradientFrame
                                 glow
                                 contentClassName="p-10 text-center"
                             >
-                                <p className="text-2xl font-black">No decks yet</p>
-                                <p className="mt-2 text-white/70">Create your first deck to get started</p>
+                                <p className="text-2xl font-black">{decks.length === 0 ? "No decks yet" : "No decks match filters"}</p>
+                                <p className="mt-2 text-white/70">{decks.length === 0 ? "Create your first deck to get started" : "Try resetting or changing your filters"}</p>
 
                                 <button
                                     onClick={() => navigate("/decks/create")}
@@ -125,7 +191,7 @@ export default function DeckPage() {
                         </FadeIn>
                     ) : (
                         <div className="flex flex-col gap-5">
-                            {decks.map(deck => (
+                            {filteredDecks.map(deck => (
                                 <FadeIn key={deck.id}>
                                     <DeckRow
                                         deck={deck}
@@ -140,7 +206,7 @@ export default function DeckPage() {
                     )}
 
                         <FadeIn className="mt-auto pb-16 pt-10 text-center text-lg text-white/80">
-                            Deck count: {decks.length}
+                            Deck count: {filteredDecks.length}
                         </FadeIn>
                     </PageContentTransition>
                 </main>
