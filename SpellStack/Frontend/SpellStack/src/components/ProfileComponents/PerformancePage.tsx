@@ -615,6 +615,7 @@ function getRingPalette(paletteId: PaletteThemeId) {
         green: { from: "#34d399", to: "#10b981" },
         red: { from: "#f87171", to: "#ef4444" },
         yellow: { from: "#fcb103", to: "#f5c542" },
+        white: { from: "#ffffff", to: "#d1d5db" },
         purpleGradient: { from: "#f43f5e", to: "#7c3aed" },
         mangoPop: { from: "#ff0f7b", to: "#f89b29" },
         frostByte: { from: "#0061ff", to: "#60efff" }

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { Check, ChevronDown, Library, RotateCcw, X } from "lucide-react"
 
@@ -298,7 +298,7 @@ export default function CreateDeckPage() {
                                     className={`flex min-w-0 items-center justify-between rounded-2xl border-2 ${palette.border} bg-black/25 px-5 py-4 text-left text-white/85 ${palette.glow} backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white`}
                                 >
                                     <span className="flex min-w-0 items-center gap-3">
-                                        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${palette.primaryButton}`}>
+                                        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${palette.primaryButton} ${palette.primaryButtonText}`}>
                                             <Library size={19} strokeWidth={2.3} />
                                         </span>
                                         <span className="min-w-0">
@@ -344,7 +344,7 @@ export default function CreateDeckPage() {
                                                     onClick={() => applyPreset(preset)}
                                                     className={`${presetCardClass} ${
                                                         isSelected
-                                                            ? `${palette.primaryButton} border-transparent text-white shadow-lg`
+                                                            ? `${palette.primaryButton} ${palette.primaryButtonText} border-transparent shadow-lg`
                                                             : `${palette.border} bg-black/20 text-white/75 hover:bg-white/10 hover:text-white`
                                                     }`}
                                                 >
@@ -508,7 +508,7 @@ export default function CreateDeckPage() {
                     <button
                         onClick={handleSubmit}
                         disabled={!deckName || !language}
-                        className={`w-full rounded-full py-3 font-semibold text-white transition disabled:opacity-50 ${palette.primaryButton}`}
+                        className={`w-full rounded-full py-3 font-semibold ${palette.primaryButtonText} transition disabled:opacity-50 ${palette.primaryButton}`}
                     >
                         {isEditing ? "Save changes" : "Create deck"}
                     </button>
@@ -527,7 +527,7 @@ function LearningLanguageToggle({ active, onClick }: { active: boolean; onClick:
             onClick={onClick}
             className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold transition ${
                 active
-                    ? `${palette.primaryButton} border-transparent text-white shadow-lg`
+                    ? `${palette.primaryButton} ${palette.primaryButtonText} border-transparent shadow-lg`
                     : `${palette.border} bg-black/20 text-white/70 hover:text-white`
             }`}
         >

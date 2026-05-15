@@ -4,6 +4,7 @@ export type PaletteThemeId =
     | "green"
     | "red"
     | "yellow"
+    | "white"
     | "purpleGradient"
     | "mangoPop"
     | "frostByte"
@@ -17,6 +18,7 @@ export interface PaletteTheme {
     glow: string
     card: string
     primaryButton: string
+    primaryButtonText: string
     accentText: string
     frameGradient?: string
     frameFrom?: string

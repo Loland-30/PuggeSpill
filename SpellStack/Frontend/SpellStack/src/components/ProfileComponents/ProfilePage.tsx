@@ -113,7 +113,7 @@ function AvatarLetter({ username }: { username: string }) {
     const { palette } = useTheme()
 
     return (
-        <span className={`grid h-full w-full place-items-center ${palette.primaryButton}`}>
+        <span className={`grid h-full w-full place-items-center ${palette.primaryButton} ${palette.primaryButtonText}`}>
             {username.slice(0, 1).toUpperCase()}
         </span>
     )

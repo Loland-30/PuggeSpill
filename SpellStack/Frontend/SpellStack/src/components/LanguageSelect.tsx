@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ChevronDown } from "lucide-react"
 
 import { languages } from "../data/languages"
@@ -61,7 +61,7 @@ export default function LanguageSelect({ value, onChange, placeholder = "Select 
                                     onChange(language.code)
                                     setOpen(false)
                                 }}
-                                className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-base font-semibold transition ${isSelected ? `${palette.primaryButton} text-white` : "text-white hover:bg-white/10"}`}
+                                className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-base font-semibold transition ${isSelected ? `${palette.primaryButton} ${palette.primaryButtonText}` : "text-white hover:bg-white/10"}`}
                             >
                                 <img src={language.flagUrl} className="h-5 w-7 rounded-sm object-cover" />
                                 <span>{language.label}</span>

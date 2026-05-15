@@ -169,7 +169,7 @@ function FilterDropdown<T extends string>({
                                 onChange(option.value)
                                 setOpen(false)
                             }}
-                            className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-base font-semibold transition ${isSelected ? `${palette.primaryButton} text-white` : "text-white hover:bg-white/[0.06]"}`}
+                            className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-base font-semibold transition ${isSelected ? `${palette.primaryButton} ${palette.primaryButtonText}` : "text-white hover:bg-white/[0.06]"}`}
                         >
                             {option.flagUrl ? (
                                 <img src={option.flagUrl} alt="" className="h-5 w-7 rounded-sm object-cover" />

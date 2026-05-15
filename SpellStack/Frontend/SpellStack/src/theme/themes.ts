@@ -1,6 +1,6 @@
 // @ts-nocheck
 export type BackgroundThemeId = "night" | "aurora" | "sunset" | "forest" | "rose"
-export type PaletteThemeId = "blue" | "pink" | "green" | "red" | "yellow" | "purpleGradient" | "mangoPop" | "frostByte"
+export type PaletteThemeId = "blue" | "pink" | "green" | "red" | "yellow" | "white" | "purpleGradient" | "mangoPop" | "frostByte"
 export type OverlayStrength = "low" | "medium" | "high"
 export type TextTone = "light" | "dark"
 
@@ -18,6 +18,7 @@ export interface PaletteTheme {
     kind: "solid" | "gradient"
     accentText: string
     primaryButton: string
+    primaryButtonText: string
     border: string
     card: string
     glow: string
@@ -82,6 +83,7 @@ export const paletteThemes: PaletteTheme[] = [
         kind: "solid",
         accentText: "text-sky-300",
         primaryButton: "bg-sky-500 hover:bg-sky-400",
+        primaryButtonText: "text-white",
         border: "border-sky-400",
         card: "bg-sky-950/70",
         glow: "shadow-[0_0_28px_rgba(56,189,248,0.28)]",
@@ -93,6 +95,7 @@ export const paletteThemes: PaletteTheme[] = [
         kind: "solid",
         accentText: "text-pink-300",
         primaryButton: "bg-pink-500 hover:bg-pink-400",
+        primaryButtonText: "text-white",
         border: "border-pink-400",
         card: "bg-pink-950/75",
         glow: "shadow-[0_0_28px_rgba(244,114,182,0.28)]",
@@ -104,6 +107,7 @@ export const paletteThemes: PaletteTheme[] = [
         kind: "solid",
         accentText: "text-emerald-300",
         primaryButton: "bg-emerald-500 hover:bg-emerald-400",
+        primaryButtonText: "text-white",
         border: "border-emerald-400",
         card: "bg-emerald-950/65",
         glow: "shadow-[0_0_28px_rgba(52,211,153,0.28)]",
@@ -115,6 +119,7 @@ export const paletteThemes: PaletteTheme[] = [
         kind: "solid",
         accentText: "text-red-300",
         primaryButton: "bg-red-500 hover:bg-red-400",
+        primaryButtonText: "text-white",
         border: "border-red-400",
         card: "bg-red-950/75",
         glow: "shadow-[0_0_28px_rgba(248,113,113,0.28)]",
@@ -126,10 +131,23 @@ export const paletteThemes: PaletteTheme[] = [
         kind: "solid",
         accentText: "text-[#fcb103]",
         primaryButton: "bg-[#fcb103] hover:bg-[#f5c542]",
+        primaryButtonText: "text-white",
         border: "border-[#fcb103]",
-        card: "bg-yellow-950/60",
+        card: "bg-yellow-950/85",
         glow: "shadow-[0_0_28px_rgba(252,177,3,0.3)]",
         preview: "bg-[#fcb103]"
+    },
+    {
+        id: "white",
+        name: "White",
+        kind: "solid",
+        accentText: "text-white",
+        primaryButton: "bg-white hover:bg-gray-100",
+        primaryButtonText: "text-gray-950",
+        border: "border-white",
+        card: "bg-white/20",
+        glow: "shadow-[0_0_28px_rgba(255,255,255,0.28)]",
+        preview: "bg-white"
     },
 
     // --- Gradients --- //
@@ -140,6 +158,7 @@ export const paletteThemes: PaletteTheme[] = [
         kind: "gradient",
         accentText: "text-fuchsia-300",
         primaryButton: "bg-gradient-to-r from-rose-500 to-violet-600 hover:from-rose-400 hover:to-violet-500",
+        primaryButtonText: "text-white",
         border: "border-fuchsia-500",
         card: "bg-slate-800/75",
         glow: "shadow-[0_0_34px_rgba(217,70,239,0.35)]",
@@ -156,6 +175,7 @@ export const paletteThemes: PaletteTheme[] = [
         kind: "gradient",
         accentText: "text-[#ff7a1a]",
         primaryButton: "bg-gradient-to-r from-[#ff0f7b] to-[#f89b29] hover:from-[#ff3f95] hover:to-[#ffb24d]",
+        primaryButtonText: "text-white",
         border: "border-[#ff7a1a]",
         card: "bg-rose-950/65",
         glow: "shadow-[0_0_34px_rgba(248,155,41,0.35)]",
@@ -172,6 +192,7 @@ export const paletteThemes: PaletteTheme[] = [
         kind: "gradient",
         accentText: "text-[#60efff]",
         primaryButton: "bg-gradient-to-r from-[#0061ff] to-[#60efff] hover:from-[#2c7dff] hover:to-[#8ff5ff]",
+        primaryButtonText: "text-white",
         border: "border-[#60efff]",
         card: "bg-blue-950/65",
         glow: "shadow-[0_0_34px_rgba(96,239,255,0.35)]",

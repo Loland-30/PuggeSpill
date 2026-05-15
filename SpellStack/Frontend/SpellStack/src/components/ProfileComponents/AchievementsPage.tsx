@@ -113,7 +113,7 @@ export default function AchievementsPage() {
                         onClick={() => setActiveFilter(filter)}
                         className={`rounded-full border px-5 py-2 text-sm font-black transition ${
                             activeFilter === filter
-                                ? `${palette.border} ${palette.primaryButton} text-white ${palette.glow}`
+                                ? `${palette.border} ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`
                                 : "border-white/10 bg-black/20 text-white/60 hover:border-white/35 hover:text-white"
                         }`}
                     >
@@ -175,7 +175,7 @@ function AchievementCard({
                 <div className="flex items-center justify-between gap-3">
                     <p className="truncate text-xl font-black text-white">{achievement.name}</p>
                     <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${
-                        achievement.unlocked ? `${palette.primaryButton} text-white` : "bg-white/10 text-white/45"
+                        achievement.unlocked ? `${palette.primaryButton} ${palette.primaryButtonText}` : "bg-white/10 text-white/45"
                     }`}>
                         {achievement.unlocked ? (
                             <Check size={16} strokeWidth={3} />

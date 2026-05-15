@@ -105,7 +105,7 @@ function TrialsShowcase({ trial, onStart }: {
 
                 <button
                     onClick={onStart}
-                    className={`mt-14 flex min-w-56 items-center justify-center gap-3 rounded-3xl px-10 py-4 text-3xl font-black text-white shadow-2xl transition hover:-translate-y-1 ${palette.primaryButton}`}
+                    className={`mt-14 flex min-w-56 items-center justify-center gap-3 rounded-3xl px-10 py-4 text-3xl font-black ${palette.primaryButtonText} shadow-2xl transition hover:-translate-y-1 ${palette.primaryButton}`}
                 >
                     <Play size={26} fill="currentColor" strokeWidth={2.6} />
                     Play

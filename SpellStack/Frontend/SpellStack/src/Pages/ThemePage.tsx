@@ -68,7 +68,7 @@ export default function ThemePage() {
                                     <div className={`h-28 rounded-md bg-gradient-to-br ${background.preview}`} />
                                     <p className="mt-3 text-sm font-bold">{background.name}</p>
                                     {selected && (
-                                        <span className={`absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full ${palette.primaryButton} text-white`}>
+                                        <span className={`absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full ${palette.primaryButton} ${palette.primaryButtonText}`}>
                                             <Check size={18} strokeWidth={3} />
                                         </span>
                                     )}
@@ -107,7 +107,7 @@ export default function ThemePage() {
                             </div>
 
                             <div className="mt-4 flex flex-wrap gap-3">
-                                <label className={`inline-flex cursor-pointer items-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white ${palette.primaryButton}`}>
+                                <label className={`inline-flex cursor-pointer items-center gap-2 rounded-full px-5 py-3 text-sm font-bold ${palette.primaryButtonText} ${palette.primaryButton}`}>
                                     <ImagePlus size={18} strokeWidth={2.5} />
                                     Upload image
                                     <input
@@ -218,7 +218,7 @@ export default function ThemePage() {
                                 <p className="text-3xl font-black">Irregular verbs</p>
                                 <p className="mt-1 text-sm text-white/70">Word count: 42</p>
                             </div>
-                            <button className={`rounded-full px-5 py-2 text-sm font-black text-white ${palette.primaryButton}`}>
+                            <button className={`rounded-full px-5 py-2 text-sm font-black ${palette.primaryButtonText} ${palette.primaryButton}`}>
                                 Play
                             </button>
                         </div>
@@ -230,7 +230,7 @@ export default function ThemePage() {
                     <button
                         type="button"
                         onClick={() => navigate("/decks")}
-                        className={`rounded-full px-10 py-3 text-base font-black text-white shadow-xl transition hover:-translate-y-0.5 ${palette.primaryButton}`}
+                        className={`rounded-full px-10 py-3 text-base font-black ${palette.primaryButtonText} shadow-xl transition hover:-translate-y-0.5 ${palette.primaryButton}`}
                     >
                         Save theme
                     </button>
@@ -249,7 +249,7 @@ function PaletteViewButton({ label, active, onClick }: { label: string; active: 
             type="button"
             onClick={onClick}
             className={`rounded-full border px-5 py-2 text-sm font-black uppercase tracking-[0.18em] transition ${
-                active ? `${palette.border} ${palette.primaryButton} text-white ${palette.glow}` : "border-white/10 bg-black/20 text-white/55 hover:border-white/40 hover:text-white"
+                active ? `${palette.border} ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}` : "border-white/10 bg-black/20 text-white/55 hover:border-white/40 hover:text-white"
             }`}
         >
             {label}

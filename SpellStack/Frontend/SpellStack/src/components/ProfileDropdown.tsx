@@ -21,7 +21,7 @@ export default function ProfileDropdown() {
         <div className="relative">
             <button
                 onClick={() => setProfileMenuOpen(open => !open)}
-                className={`grid h-14 w-14 place-items-center overflow-hidden rounded-full border-2 ${palette.border} ${profileImage ? "bg-slate-900" : palette.primaryButton} text-xl font-black ${palette.glow} transition hover:scale-105`}
+                className={`grid h-14 w-14 place-items-center overflow-hidden rounded-full border-2 ${palette.border} ${profileImage ? "bg-slate-900 text-white" : `${palette.primaryButton} ${palette.primaryButtonText}`} text-xl font-black ${palette.glow} transition hover:scale-105`}
                 aria-label="Open profile menu"
             >
                 {profileImage ? (

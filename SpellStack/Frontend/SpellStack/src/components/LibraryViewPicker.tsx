@@ -46,7 +46,7 @@ function LibraryToggleButton({ active, icon, label, tooltip, onClick }: {
                 onClick={onClick}
                 className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-black transition ${
                     active
-                        ? `${palette.primaryButton} text-white shadow-lg`
+                        ? `${palette.primaryButton} ${palette.primaryButtonText} shadow-lg`
                         : "text-white/60 hover:bg-white/10 hover:text-white"
                 }`}
             >

@@ -11,6 +11,8 @@ interface GradientFrameProps {
     radiusClass?: string
     className?: string
     contentClassName?: string
+    fillClassName?: string
+    hoverFillClassName?: string
 }
 
 export default function GradientFrame({
@@ -20,7 +22,9 @@ export default function GradientFrame({
     radius = 8,
     radiusClass = "rounded-lg",
     className = "",
-    contentClassName = ""
+    contentClassName = "",
+    fillClassName = "",
+    hoverFillClassName = ""
 }: GradientFrameProps) {
     const rawGradientId = useId()
     const gradientId = `gradient-frame-${rawGradientId.replaceAll(":", "")}`
@@ -35,11 +39,22 @@ export default function GradientFrame({
     const frameGlass = activePalette.frameGlass ?? "bg-black/[0.12]"
     const frameGlow = activePalette.frameGlow ?? "shadow-[inset_0_0_32px_rgba(255,255,255,0.035)]"
     const outerGlowClass = glow ? activePalette.glow : ""
+    const fillLayerClass = `
+        pointer-events-none
+        absolute
+        inset-0
+        ${radiusClass}
+        transition-colors
+        duration-200
+        ${fillClassName}
+        ${hoverFillClassName}
+    `
 
     if (!enabled || !isGradientPalette) {
         return (
             <div
                 className={`
+                    group/gradient-frame
                     relative
                     overflow-hidden
                     ${radiusClass}
@@ -50,6 +65,8 @@ export default function GradientFrame({
                     ${className}
                 `}
             >
+                <div aria-hidden="true" className={fillLayerClass} />
+
                 <div
                     className={`
                         relative
@@ -71,6 +88,7 @@ export default function GradientFrame({
         // --- Outer frame: owns shape and optional outer glow --- //
         <div
             className={`
+                group/gradient-frame
                 relative
                 overflow-hidden
                 ${radiusClass}
@@ -82,6 +100,7 @@ export default function GradientFrame({
             <div
                 aria-hidden="true"
                 className={`
+                    pointer-events-none
                     absolute
                     inset-0
                     ${radiusClass}
@@ -90,6 +109,8 @@ export default function GradientFrame({
                     backdrop-blur-[1.5px]
                 `}
             />
+
+            <div aria-hidden="true" className={fillLayerClass} />
 
             {/* --- SVG border: gradient outline only, no filled center --- */}
             <svg
