@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using LexiGo.Api.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+var databasePath = Path.Combine(builder.Environment.ContentRootPath, "lexigo.db");
 
 builder.Services.AddControllers()
     .AddJsonOptions(options => {
@@ -10,7 +11,7 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite("Data Source=lexigo.db"));
+    options.UseSqlite($"Data Source={databasePath}"));
 
 builder.Services.AddCors(options => {
     options.AddPolicy("AllowFrontend", policy => {
@@ -26,6 +27,11 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope()) {
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
 
 if (app.Environment.IsDevelopment()) {
     app.UseSwagger();
