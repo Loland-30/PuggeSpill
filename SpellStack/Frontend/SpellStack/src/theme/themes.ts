@@ -1,9 +1,7 @@
 // @ts-nocheck
 export type BackgroundThemeId = "night" | "aurora" | "sunset" | "forest" | "rose"
-export type PaletteThemeId = "blue" | "pink" | "green" | "red" | "yellow" | "purpleGradient" | "mangoPop" | "frostByte"
 export type OverlayStrength = "low" | "medium" | "high"
 export type TextTone = "light" | "dark"
-import type { PaletteTheme, PaletteThemeId } from "../types/PaletteTheme"
 
 export interface BackgroundTheme {
     id: BackgroundThemeId
@@ -11,18 +9,6 @@ export interface BackgroundTheme {
     preview: string
     pageClass: string
     backdropClass: string
-}
-
-export interface PaletteTheme {
-    id: PaletteThemeId
-    name: string
-    kind: "solid" | "gradient"
-    accentText: string
-    primaryButton: string
-    border: string
-    card: string
-    glow: string
-    preview: string
 }
 
 export interface AppTheme {

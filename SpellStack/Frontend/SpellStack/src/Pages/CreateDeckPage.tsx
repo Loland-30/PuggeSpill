@@ -8,6 +8,7 @@ import FadeIn from "../components/FadeIn"
 import GradientFrame from "../components/GradientFrame"
 import LanguageSelect from "../components/LanguageSelect"
 import PageContentTransition from "../components/PageContentTransition"
+import { spanishDeckPresets, type SpanishDeckPreset } from "../data/spanishDeckPresets"
 import { useTheme } from "../theme/ThemeContext"
 
 interface WordPair {
@@ -62,6 +63,7 @@ export default function CreateDeckPage() {
     const [description, setDescription] = useState("")
     const [words, setWords] = useState<WordPair[]>(() => [createEmptyWordPair()])
     const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
+    const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
 
     useEffect(() => {
         if (!isEditing) return
@@ -84,10 +86,12 @@ export default function CreateDeckPage() {
     }, [id, isEditing])
 
     const addWordRow = () => {
+        setSelectedPresetId(null)
         setWords(currentWords => [...currentWords, createEmptyWordPair()])
     }
 
     const updateWordRow = (clientId: string, field: WordEditableField, value: string) => {
+        setSelectedPresetId(null)
         setWords(currentWords =>
             currentWords.map(word =>
                 word.clientId === clientId
@@ -117,6 +121,7 @@ export default function CreateDeckPage() {
     }
 
     const updateAcceptedAnswer = (clientId: string, answerIndex: number, value: string) => {
+        setSelectedPresetId(null)
         setWords(currentWords =>
             currentWords.map(word =>
                 word.clientId === clientId
@@ -135,6 +140,8 @@ export default function CreateDeckPage() {
         const word = words.find(word => word.clientId === clientId)
         if (!word) return
 
+        setSelectedPresetId(null)
+
         if (word.id) {
             await deleteWord(word.id)
         }
@@ -145,6 +152,43 @@ export default function CreateDeckPage() {
             const { [clientId]: _removedRow, ...remainingRows } = currentRows
             return remainingRows
         })
+    }
+
+    const updateDeckName = (value: string) => {
+        setSelectedPresetId(null)
+        setDeckName(value)
+    }
+
+    const updateDescription = (value: string) => {
+        setSelectedPresetId(null)
+        setDescription(value)
+    }
+
+    const updateLanguage = (value: string) => {
+        setSelectedPresetId(null)
+        setLanguage(value)
+    }
+
+    const updateTranslationLanguage = (value: string) => {
+        setSelectedPresetId(null)
+        setTranslationLanguage(value)
+    }
+
+    const applyPreset = (preset: SpanishDeckPreset) => {
+        setSelectedPresetId(preset.id)
+        setDeckName(preset.name)
+        setDescription(preset.description)
+        setLanguage("es")
+        setTranslationLanguage("no")
+        setLearningLanguageSide("source")
+        setExpandedRows({})
+        setWords(preset.words.map(word => ({
+            clientId: createClientId(),
+            original: word.original,
+            translation: word.translation,
+            acceptedAnswers: [],
+            hint: ""
+        })))
     }
 
     const handleSubmit = async () => {
@@ -211,7 +255,7 @@ export default function CreateDeckPage() {
                                     type="text"
                                     placeholder="E.g. Spanish basics"
                                     value={deckName}
-                                    onChange={event => setDeckName(event.target.value)}
+                                    onChange={event => updateDeckName(event.target.value)}
                                     className={inputClass}
                                 />
                             </div>
@@ -222,7 +266,7 @@ export default function CreateDeckPage() {
                                     type="text"
                                     placeholder="E.g. Common words for beginners"
                                     value={description}
-                                    onChange={event => setDescription(event.target.value)}
+                                    onChange={event => updateDescription(event.target.value)}
                                     className={inputClass}
                                 />
                             </div>
@@ -232,11 +276,14 @@ export default function CreateDeckPage() {
                         <div className="space-y-2">
                             <LearningLanguageToggle
                                 active={learningLanguageSide === "source"}
-                                onClick={() => setLearningLanguageSide("source")}
+                                onClick={() => {
+                                    setSelectedPresetId(null)
+                                    setLearningLanguageSide("source")
+                                }}
                             />
                             <LanguageSelect
                                 value={language}
-                                onChange={setLanguage}
+                                onChange={updateLanguage}
                                 inputClassName={textTone.inputClass}
                                 panelClassName={textTone.panelClass}
                             />
@@ -245,11 +292,14 @@ export default function CreateDeckPage() {
                         <div className="space-y-2">
                             <LearningLanguageToggle
                                 active={learningLanguageSide === "target"}
-                                onClick={() => setLearningLanguageSide("target")}
+                                onClick={() => {
+                                    setSelectedPresetId(null)
+                                    setLearningLanguageSide("target")
+                                }}
                             />
                             <LanguageSelect
                                 value={translationLanguage}
-                                onChange={setTranslationLanguage}
+                                onChange={updateTranslationLanguage}
                                 inputClassName={textTone.inputClass}
                                 panelClassName={textTone.panelClass}
                             />

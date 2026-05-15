@@ -10,20 +10,11 @@ namespace LexiGo.Api.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<int>(
-                name: "HighScore",
-                table: "Decks",
-                type: "INTEGER",
-                nullable: false,
-                defaultValue: 0);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "HighScore",
-                table: "Decks");
         }
     }
 }
