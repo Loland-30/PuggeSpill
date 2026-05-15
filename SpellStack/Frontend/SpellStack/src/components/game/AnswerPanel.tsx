@@ -1,29 +1,93 @@
-import type { RefObject } from "react"
+import { useEffect, useRef, useState, type RefObject } from "react"
 
 interface AnswerPanelProps {
     promptWord: string
     revealedAnswer: string
     result: "correct" | "incorrect" | null
-    input: string
+    resetKey: string | number
     inputRef: RefObject<HTMLInputElement | null>
-    timerPercent: number
+    timerDuration: number
+    timerInitialTimeLeft: number
+    timerResetKey: string | number
+    timerTickMs: number
+    timerRunning: boolean
     rushActive: boolean
-    onInputChange: (value: string) => void
-    onSubmit: () => void
+    onTimerTick: (timeLeft: number) => void
+    onTimeout: () => void
+    onSubmitAnswer: (answer: string) => void
 }
 
 export default function AnswerPanel({
     promptWord,
     revealedAnswer,
     result,
-    input,
+    resetKey,
     inputRef,
-    timerPercent,
+    timerDuration,
+    timerInitialTimeLeft,
+    timerResetKey,
+    timerTickMs,
+    timerRunning,
     rushActive,
-    onInputChange,
-    onSubmit
+    onTimerTick,
+    onTimeout,
+    onSubmitAnswer
 }: AnswerPanelProps) {
+
+    const [input, setInput] = useState("")
+    const [timeLeft, setTimeLeft] = useState(timerInitialTimeLeft)
+    const onTimerTickRef = useRef(onTimerTick)
+    const onTimeoutRef = useRef(onTimeout)
+    const timedOutRef = useRef(false)
     const feedbackWord = result === "correct" ? revealedAnswer : result === "incorrect" ? revealedAnswer : null
+    const timerScale = Math.max(0, Math.min(1, timeLeft / timerDuration))
+
+    useEffect(() => {
+        onTimerTickRef.current = onTimerTick
+    }, [onTimerTick])
+
+    useEffect(() => {
+        onTimeoutRef.current = onTimeout
+    }, [onTimeout])
+
+    useEffect(() => {
+        setInput("")
+    }, [resetKey])
+
+    useEffect(() => {
+        const nextTimeLeft = timerInitialTimeLeft
+
+        timedOutRef.current = false
+        setTimeLeft(nextTimeLeft)
+        onTimerTickRef.current(nextTimeLeft)
+    }, [timerInitialTimeLeft, timerResetKey])
+
+    useEffect(() => {
+        if (!timerRunning) return
+
+        const interval = window.setInterval(() => {
+            setTimeLeft(prev => {
+                const nextTimeLeft = Math.max(0, prev - 1)
+                onTimerTickRef.current(nextTimeLeft)
+
+                if (nextTimeLeft <= 0 && !timedOutRef.current) {
+                    timedOutRef.current = true
+                    window.setTimeout(() => onTimeoutRef.current(), 0)
+                }
+
+                return nextTimeLeft
+            })
+        }, timerTickMs)
+
+        return () => window.clearInterval(interval)
+    }, [timerRunning, timerTickMs])
+
+    const submitAnswer = () => {
+        if (result) return
+
+        onSubmitAnswer(input)
+        setInput("")
+    }
 
     return (
         <section className="mx-auto flex w-full max-w-3xl flex-col items-center gap-5 text-center">
@@ -36,13 +100,13 @@ export default function AnswerPanel({
 
             <div className="flex h-1.5 w-full max-w-xl justify-center rounded-full bg-white/20">
                 <div
-                    className={`h-full rounded-full transition-all ${
+                    className={`h-full w-full origin-center rounded-full transition-transform ${
                         rushActive ? "bg-yellow-300" :
-                        timerPercent <= 30 ? "bg-red-400" :
-                        timerPercent <= 60 ? "bg-orange-400" : "bg-white"
+                        timerScale <= 0.3 ? "bg-red-400" :
+                        timerScale <= 0.6 ? "bg-orange-400" : "bg-white"
                     }`}
                     style={{
-                        width: `${timerPercent}%`,
+                        transform: `scaleX(${timerScale})`,
                         transitionDuration: rushActive ? "250ms" : "1000ms",
                         boxShadow: rushActive ? "0 0 24px rgba(250, 204, 21, 0.95)" : undefined
                     }}
@@ -53,8 +117,8 @@ export default function AnswerPanel({
                 ref={inputRef}
                 type="text"
                 value={input}
-                onChange={event => onInputChange(event.target.value)}
-                onKeyDown={event => event.key === "Enter" && onSubmit()}
+                onChange={event => setInput(event.target.value)}
+                onKeyDown={event => event.key === "Enter" && submitAnswer()}
                 disabled={!!result}
                 placeholder="Type translation..."
                 autoFocus
