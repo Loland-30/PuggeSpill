@@ -13,8 +13,9 @@ export default function ProfilePage({
     onProfileImageUpload
 }: ProfileComponentProps) {
     return (
-        <div className="mx-auto w-full max-w-7xl px-6">
-            <section className="mt-24 flex flex-col gap-6 md:mt-32 md:flex-row md:items-center">
+        <div className="mx-auto flex min-h-[calc(100vh-12rem)] w-full max-w-[102rem] items-center justify-center px-6">
+            <div className="w-full max-w-7xl">
+            <section className="flex flex-col justify-start gap-6 md:flex-row md:items-center">
                 <label className="group relative grid h-32 w-32 cursor-pointer place-items-center overflow-hidden rounded-full text-5xl font-black shadow-2xl transition hover:scale-105">
                     {profileImage ? (
                         <img
@@ -103,6 +104,7 @@ export default function ProfilePage({
                     <ProfileStat label="Words learned" value={currentLanguage.stats.wordsLearned} />
                 </div>
             </section>
+            </div>
         </div>
     )
 }

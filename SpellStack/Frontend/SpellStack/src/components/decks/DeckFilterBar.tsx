@@ -60,7 +60,7 @@ export default function DeckFilterBar({
     ]
 
     return (
-        <div className={`relative z-30 mx-auto mb-8 flex w-full max-w-3xl flex-wrap items-center justify-center rounded-full border text-white shadow-lg backdrop-blur-md ${palette.border} ${palette.card} ${palette.glow}`}>
+        <div className={`relative z-[1000] mx-auto mb-8 flex w-full max-w-3xl flex-wrap items-center justify-center rounded-full border text-white shadow-lg backdrop-blur-md ${palette.border} ${palette.card} ${palette.glow}`}>
             <FilterDropdown
                 value={selectedLanguage}
                 options={languageOptions}
@@ -155,7 +155,7 @@ function FilterDropdown<T extends string>({
 
             <div
                 aria-hidden={!open}
-                className={`absolute left-0 top-full z-50 mt-2 w-64 origin-top overflow-hidden rounded-xl border bg-slate-950/95 p-1 shadow-2xl backdrop-blur-xl transition-all duration-200 ease-out ${palette.border} ${open ? "translate-y-0 scale-y-100 opacity-100" : "pointer-events-none -translate-y-3 scale-y-95 opacity-0"}`}
+                className={`absolute left-0 top-full z-[1001] mt-2 w-64 origin-top overflow-hidden rounded-xl border bg-slate-950/95 p-1 shadow-2xl backdrop-blur-xl transition-all duration-200 ease-out ${palette.border} ${open ? "translate-y-0 scale-y-100 opacity-100" : "pointer-events-none -translate-y-3 scale-y-95 opacity-0"}`}
             >
                 {options.map(option => {
                     const isSelected = option.value === value

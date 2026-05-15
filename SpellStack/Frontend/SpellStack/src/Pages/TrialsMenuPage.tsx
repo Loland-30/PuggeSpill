@@ -5,7 +5,6 @@ import { ChevronDown, Play } from "lucide-react"
 import FadeIn from "../components/FadeIn"
 import LibraryViewPicker, { type LibraryView } from "../components/LibraryViewPicker"
 import PageContentTransition from "../components/PageContentTransition"
-import ProfileDropdown from "../components/ProfileDropdown"
 import ThemedPage from "../components/ThemedPage"
 import { useAuth } from "../auth/AuthContext"
 import { languages } from "../data/languages"
@@ -54,10 +53,6 @@ export default function TrialsMenuPage() {
 
     return (
         <div className="relative z-10 mx-auto flex min-h-[calc(100vh-14rem)] w-full max-w-[102rem] flex-col">
-                <div className="flex justify-end">
-                    <ProfileDropdown />
-                </div>
-
                 <main className="mx-auto mt-14 flex w-full flex-1 flex-col">
                     <div className="mx-auto mb-8 flex w-full max-w-3xl flex-wrap items-center justify-between gap-4">
                         <LibraryViewPicker

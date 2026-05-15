@@ -6,10 +6,8 @@ import { useAuth } from "../auth/AuthContext"
 import AchievementsPage from "../components/ProfileComponents/AchievementsPage"
 import PerformancePage from "../components/ProfileComponents/PerformancePage"
 import ProfilePage from "../components/ProfileComponents/ProfilePage"
-import ProfileDropdown from "../components/ProfileDropdown"
 import type { ProfileLanguage } from "../components/ProfileComponents/types"
 import { languages } from "../data/languages"
-import { useTheme } from "../theme/ThemeContext"
 
 const profilePages = ["Profile", "Performance", "Achievements"] as const
 
@@ -33,7 +31,6 @@ function getLanguageFromCode(code: string) {
 export default function ProfileContainer() {
     const navigate = useNavigate()
     const { user, loading, profileImage, setProfileImage } = useAuth()
-    const { palette } = useTheme()
     const [languageStats, setLanguageStats] = useState<LanguageStats[]>([])
     const [selectedLanguageCode, setSelectedLanguageCode] = useState<string | null>(null)
     const [pageIndex, setPageIndex] = useState(0)
@@ -133,14 +130,7 @@ export default function ProfileContainer() {
             onWheel={handleWheel}
             className="relative z-10 mx-auto flex h-[calc(100vh-4rem)] w-full max-w-[102rem] flex-col overflow-hidden"
         >
-            <header className="flex items-center justify-between">
-                <button
-                    onClick={() => navigate("/decks")}
-                    className={`rounded-full border-2 ${palette.border} bg-transparent px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white cursor-pointer`}
-                >
-                    Decks
-                </button>
-
+            <header className="flex items-center justify-center">
                 <nav className="hidden gap-10 text-lg text-white/80 md:flex">
                     {profilePages.map((page, index) => (
                         <button
@@ -154,7 +144,6 @@ export default function ProfileContainer() {
                     ))}
                     <span>Multiplayer</span>
                 </nav>
-                <ProfileDropdown />
             </header>
 
             <main className="relative flex-1">

@@ -11,7 +11,6 @@ import { useAuth } from "../auth/AuthContext"
 import { useTheme } from "../theme/ThemeContext"
 import PageContentTransition from "../components/PageContentTransition"
 import GradientFrame from "../components/GradientFrame"
-import ProfileDropdown from "../components/ProfileDropdown"
 import LibraryViewPicker, { type LibraryView } from "../components/LibraryViewPicker"
 import DeckFilterBar, { type DeckLengthFilter, type DeckSortOption } from "../components/decks/DeckFilterBar"
 
@@ -123,10 +122,6 @@ export default function DeckPage() {
             />
 
             <div className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[102rem] flex-col">
-                <div className="flex justify-end">
-                    <ProfileDropdown />
-                </div>
-
                 <main className="mx-auto mt-14 flex w-full max-w-3xl flex-1 flex-col">
                     <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
                         <LibraryViewPicker
@@ -158,7 +153,7 @@ export default function DeckPage() {
                     </div>
 
                     <div
-                        className={`transition-[max-height,opacity,transform] duration-300 ease-out ${isFilterOpen ? "max-h-40 translate-y-0 overflow-visible opacity-100" : "pointer-events-none max-h-0 -translate-y-3 overflow-hidden opacity-0"}`}
+                        className={`relative z-[1000] transition-[max-height,opacity,transform] duration-300 ease-out ${isFilterOpen ? "max-h-40 translate-y-0 overflow-visible opacity-100" : "pointer-events-none max-h-0 -translate-y-3 overflow-hidden opacity-0"}`}
                         aria-hidden={!isFilterOpen}
                     >
                         <DeckFilterBar
@@ -174,7 +169,7 @@ export default function DeckPage() {
                         />
                     </div>
 
-                    <PageContentTransition>
+                    <PageContentTransition className="relative z-0">
                         {filteredDecks.length === 0 ? (
                         <FadeIn>
                             <GradientFrame

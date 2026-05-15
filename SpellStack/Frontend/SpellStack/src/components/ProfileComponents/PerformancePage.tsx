@@ -85,7 +85,8 @@ export default function PerformancePage({
     })
 
     return (
-        <div className="mx-auto grid min-h-[calc(100vh-12rem)] w-full max-w-[102rem] items-start gap-10 pt-20 lg:grid-cols-[minmax(0,52rem)_minmax(26rem,34rem)] xl:gap-16">
+        <div className="mx-auto flex min-h-[calc(100vh-12rem)] w-full max-w-[102rem] items-center justify-center pt-20">
+            <div className="grid w-full max-w-[84rem] items-center justify-center gap-10 lg:grid-cols-[minmax(0,52rem)_minmax(26rem,34rem)] xl:gap-16">
             <div className="self-start">
                 <PerformanceTabs
                     activeTab={activeTab}
@@ -137,6 +138,7 @@ export default function PerformancePage({
                     </p>
                 </div>
             </div>
+        </div>
         </div>
     )
 }
