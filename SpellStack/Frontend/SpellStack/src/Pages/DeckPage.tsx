@@ -157,7 +157,10 @@ export default function DeckPage() {
                         </div>
                     </div>
 
-                    {isFilterOpen && (
+                    <div
+                        className={`transition-[max-height,opacity,transform] duration-300 ease-out ${isFilterOpen ? "max-h-40 translate-y-0 overflow-visible opacity-100" : "pointer-events-none max-h-0 -translate-y-3 overflow-hidden opacity-0"}`}
+                        aria-hidden={!isFilterOpen}
+                    >
                         <DeckFilterBar
                             selectedLanguage={selectedLanguage}
                             onLanguageChange={setSelectedLanguage}
@@ -169,7 +172,7 @@ export default function DeckPage() {
                             canReset={activeFilterCount > 0}
                             palette={palette}
                         />
-                    )}
+                    </div>
 
                     <PageContentTransition>
                         {filteredDecks.length === 0 ? (
@@ -223,45 +226,47 @@ function DeckRow({ deck, onPlay, onEdit, onDelete, palette }: {
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
     return (
-        <div className="mx-auto w-full max-w-[42rem] overflow-visible">
+        <div className="mx-auto w-full max-w-2xl overflow-visible lg:w-[52rem] lg:max-w-none">
             <GradientFrame
                 glow
                 radius={28}
                 radiusClass="rounded-[28px]"
-                className="group w-full max-w-xl rounded-[28px] transition-all duration-300 hover:max-w-[42rem]"
-                contentClassName="grid min-h-24 grid-cols-[minmax(0,1fr)_auto_auto_0rem] items-center gap-4 overflow-hidden rounded-[inherit] px-8 py-5 transition-all duration-300 group-hover:grid-cols-[minmax(0,1fr)_auto_auto_10rem]"
+                className="group w-full max-w-2xl rounded-[28px] transition-all duration-300 lg:hover:max-w-[52rem]"
+                contentClassName="relative min-h-24 overflow-hidden rounded-[inherit] px-8 py-5"
             >
-                <div className="min-w-0">
-                    <h2 className="truncate text-3xl font-black">{deck.name}</h2>
-                    <p className="mt-1 text-sm font-semibold text-white/80">
-                        Word count: {deck.words.length}
-                    </p>
-                    <p className="text-xs text-white/50">
-                        Highscore: {deck.highScore}
-                    </p>
+                <div className="grid w-full max-w-[38rem] grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4">
+                    <div className="min-w-0">
+                        <h2 className="truncate text-3xl font-black">{deck.name}</h2>
+                        <p className="mt-1 text-sm font-semibold text-white/80">
+                            Word count: {deck.words.length}
+                        </p>
+                        <p className="text-xs text-white/50">
+                            Highscore: {deck.highScore}
+                        </p>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-4">
+                        <img
+                            src={getLanguageFlag(deck.language)}
+                            alt={`${deck.language} flag`}
+                            className="h-11 w-16 rounded-lg object-cover"
+                        />
+                        <img
+                            src={getLanguageFlag(deck.translationLanguage)}
+                            alt={`${deck.translationLanguage} flag`}
+                            className="h-11 w-16 rounded-lg object-cover"
+                        />
+                    </div>
+
+                    <button
+                        onClick={onPlay}
+                        className={`rounded-full px-5 py-2 text-sm font-black text-white opacity-100 shadow-lg transition ${palette.primaryButton}`}
+                    >
+                        Play
+                    </button>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-4">
-                    <img
-                        src={getLanguageFlag(deck.language)}
-                        alt={`${deck.language} flag`}
-                        className="h-11 w-16 rounded-lg object-cover"
-                    />
-                    <img
-                        src={getLanguageFlag(deck.translationLanguage)}
-                        alt={`${deck.translationLanguage} flag`}
-                        className="h-11 w-16 rounded-lg object-cover"
-                    />
-                </div>
-
-                <button
-                    onClick={onPlay}
-                    className={`rounded-full px-5 py-2 text-sm font-black text-white opacity-100 shadow-lg transition ${palette.primaryButton}`}
-                >
-                    Play
-                </button>
-
-                <div className="flex w-40 items-center gap-3 overflow-hidden opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                <div className="pointer-events-none absolute right-5 top-1/2 flex w-40 -translate-y-1/2 items-center gap-3 opacity-0 transition-opacity duration-300 group-hover:pointer-events-auto group-hover:opacity-100">
                     <button
                         onClick={onEdit}
                         className="flex h-14 w-16 flex-col items-center justify-center rounded-lg text-white transition hover:bg-white/10"
