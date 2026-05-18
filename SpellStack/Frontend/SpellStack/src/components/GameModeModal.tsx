@@ -3,6 +3,7 @@ import { ChevronDown, X } from "lucide-react"
 import type { Deck } from "../api/decks"
 import type { ActiveGameModifier, GameDirection, RoundLimit } from "../api/gameSession"
 import { languages } from "../data/languages"
+import { useI18n } from "../i18n/I18nContext"
 import GradientFrame from "./GradientFrame"
 import ModifierPicker from "./mods/ModifierPicker"
 import { getModifierNames } from "./mods/modifierUtils"
@@ -29,14 +30,6 @@ interface RoundLimitOption {
     label: string
     value: RoundLimit
 }
-
-const roundLimitOptions: RoundLimitOption[] = [
-    { label: "10 questions", value: 10 },
-    { label: "25 questions", value: 25 },
-    { label: "50 questions", value: 50 },
-    { label: "100 questions", value: 100 },
-    { label: "Endless", value: null }
-]
 
 function ModeCard({ title, description, onClick, children }: ModeCardProps) {
     return (
@@ -76,6 +69,14 @@ interface RoundLimitPickerProps {
 
 function RoundLimitPicker({ value, onChange }: RoundLimitPickerProps) {
     const [isOpen, setIsOpen] = useState(false)
+    const { t } = useI18n()
+    const roundLimitOptions: RoundLimitOption[] = [
+        { label: `10 ${t.gameMode.questions}`, value: 10 },
+        { label: `25 ${t.gameMode.questions}`, value: 25 },
+        { label: `50 ${t.gameMode.questions}`, value: 50 },
+        { label: `100 ${t.gameMode.questions}`, value: 100 },
+        { label: t.gameMode.endless, value: null }
+    ]
 
     const selectedOption =
         roundLimitOptions.find(option => option.value === value) ?? roundLimitOptions[1]
@@ -87,7 +88,7 @@ function RoundLimitPicker({ value, onChange }: RoundLimitPickerProps) {
                 onClick={() => setIsOpen(open => !open)}
                 className="flex items-center gap-3 rounded-full bg-white/90 px-5 py-2 text-sm font-bold text-gray-800 shadow-xl transition hover:bg-white"
             >
-                <span className="text-gray-500">Length</span>
+                <span className="text-gray-500">{t.gameMode.length}</span>
 
                 <span className="font-black">
                     {selectedOption.label}
@@ -113,14 +114,7 @@ function RoundLimitPicker({ value, onChange }: RoundLimitPickerProps) {
                                     onChange(option.value)
                                     setIsOpen(false)
                                 }}
-                                className={`
-                                    flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-bold transition
-                                    ${
-                                        isSelected
-                                            ? "bg-orange-400 text-white"
-                                            : "text-white/70 hover:bg-white/10 hover:text-white"
-                                    }
-                                `}
+                                className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-bold transition ${isSelected ? "bg-orange-400 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
                             >
                                 <span>{option.label}</span>
 
@@ -142,6 +136,7 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
     const [modifiers, setModifiers] = useState<ActiveGameModifier[]>([])
     const [showModifierPicker, setShowModifierPicker] = useState(false)
     const [roundLimit, setRoundLimit] = useState<RoundLimit>(25)
+    const { t } = useI18n()
 
     if (!isOpen || !deck) return null
 
@@ -150,6 +145,7 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
 
     const lang1Label = lang1?.label ?? deck.language
     const lang2Label = lang2?.label ?? deck.translationLanguage
+    const modifierLabel = modifiers.length === 0 ? t.gameMode.modsNone : getModifierNames(modifiers)
 
     return (
         <div
@@ -174,7 +170,7 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
                                 </p>
 
                                 <h2 className="text-3xl font-black tracking-tight text-white">
-                                    Choose game mode
+                                    {t.gameMode.chooseGameMode}
                                 </h2>
                             </div>
 
@@ -187,27 +183,20 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
                                 <button
                                     type="button"
                                     onClick={() => setShowModifierPicker(open => !open)}
-                                    className={`
-                                        flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold shadow-xl transition
-                                        ${
-                                            modifiers.length === 0
-                                                ? "bg-white/90 text-gray-800 hover:bg-white"
-                                                : "bg-orange-400 text-white hover:bg-orange-500"
-                                        }
-                                    `}
+                                    className={`flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold shadow-xl transition ${modifiers.length === 0 ? "bg-white/90 text-gray-800 hover:bg-white" : "bg-orange-400 text-white hover:bg-orange-500"}`}
                                 >
                                     <span className="grid h-6 w-6 place-items-center rounded-full bg-black/10 text-xs">
                                         +
                                     </span>
 
-                                    Mods: {getModifierNames(modifiers)}
+                                    {t.gameMode.mods}: {modifierLabel}
                                 </button>
 
                                 <button
                                     type="button"
                                     onClick={onClose}
                                     className="grid h-11 w-11 place-items-center rounded-full bg-white/90 text-gray-800 shadow-xl transition hover:bg-orange-400 hover:text-white"
-                                    aria-label="Close game mode modal"
+                                    aria-label={t.gameMode.closeLabel}
                                 >
                                     <X size={22} strokeWidth={2.7} />
                                 </button>
@@ -224,79 +213,35 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                                 <ModeCard
                                     title={`${lang1Label} → ${lang2Label}`}
-                                    description={`Translate from ${lang1Label}`}
+                                    description={t.gameMode.translateFrom.replace("{language}", lang1Label)}
                                     onClick={() => onSelect("original", modifiers, roundLimit)}
                                 >
                                     <div className="flex items-center justify-center gap-5">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <img
-                                                src={lang1?.flagUrl}
-                                                alt={lang1Label}
-                                                className="h-14 w-14 rounded-full object-cover shadow-lg"
-                                            />
-
-                                            <p className="text-sm font-bold text-white/80">
-                                                {lang1Label}
-                                            </p>
-                                        </div>
-
+                                        <LanguageDot flagUrl={lang1?.flagUrl} label={lang1Label} />
                                         <span className="text-xs font-black uppercase tracking-[0.25em] text-white/40">
-                                            to
+                                            {t.gameMode.to}
                                         </span>
-
-                                        <div className="flex flex-col items-center gap-2">
-                                            <img
-                                                src={lang2?.flagUrl}
-                                                alt={lang2Label}
-                                                className="h-14 w-14 rounded-full object-cover shadow-lg"
-                                            />
-
-                                            <p className="text-sm font-bold text-white/80">
-                                                {lang2Label}
-                                            </p>
-                                        </div>
+                                        <LanguageDot flagUrl={lang2?.flagUrl} label={lang2Label} />
                                     </div>
                                 </ModeCard>
 
                                 <ModeCard
                                     title={`${lang2Label} → ${lang1Label}`}
-                                    description={`Translate from ${lang2Label}`}
+                                    description={t.gameMode.translateFrom.replace("{language}", lang2Label)}
                                     onClick={() => onSelect("translation", modifiers, roundLimit)}
                                 >
                                     <div className="flex items-center justify-center gap-5">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <img
-                                                src={lang2?.flagUrl}
-                                                alt={lang2Label}
-                                                className="h-14 w-14 rounded-full object-cover shadow-lg"
-                                            />
-
-                                            <p className="text-sm font-bold text-white/80">
-                                                {lang2Label}
-                                            </p>
-                                        </div>
-
+                                        <LanguageDot flagUrl={lang2?.flagUrl} label={lang2Label} />
                                         <span className="text-xs font-black uppercase tracking-[0.25em] text-white/40">
-                                            to
+                                            {t.gameMode.to}
                                         </span>
-
-                                        <div className="flex flex-col items-center gap-2">
-                                            <img
-                                                src={lang1?.flagUrl}
-                                                alt={lang1Label}
-                                                className="h-14 w-14 rounded-full object-cover shadow-lg"
-                                            />
-
-                                            <p className="text-sm font-bold text-white/80">
-                                                {lang1Label}
-                                            </p>
-                                        </div>
+                                        <LanguageDot flagUrl={lang1?.flagUrl} label={lang1Label} />
                                     </div>
                                 </ModeCard>
 
                                 <ModeCard
-                                    title="Mixed"
-                                    description="Random direction each word"
+                                    title={t.gameMode.mixed}
+                                    description={t.gameMode.randomDirectionEachWord}
                                     onClick={() => onSelect("mixed", modifiers, roundLimit)}
                                 >
                                     <div className="flex flex-col items-center gap-3">
@@ -305,7 +250,7 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
                                         </div>
 
                                         <p className="text-center text-sm font-bold text-white/65">
-                                            Both directions
+                                            {t.gameMode.bothDirections}
                                         </p>
                                     </div>
                                 </ModeCard>
@@ -314,6 +259,22 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
                     </div>
                 </GradientFrame>
             </div>
+        </div>
+    )
+}
+
+function LanguageDot({ flagUrl, label }: { flagUrl?: string; label: string }) {
+    return (
+        <div className="flex flex-col items-center gap-2">
+            <img
+                src={flagUrl}
+                alt={label}
+                className="h-14 w-14 rounded-full object-cover shadow-lg"
+            />
+
+            <p className="text-sm font-bold text-white/80">
+                {label}
+            </p>
         </div>
     )
 }

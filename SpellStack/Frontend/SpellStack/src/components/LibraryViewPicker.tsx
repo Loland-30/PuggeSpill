@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { BookOpen, Trophy } from "lucide-react"
+import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
 
 export type LibraryView = "decks" | "trials"
@@ -10,20 +11,22 @@ interface LibraryViewPickerProps {
 }
 
 export default function LibraryViewPicker({ activeView, onChange }: LibraryViewPickerProps) {
+    const { t } = useI18n()
+
     return (
         <div className="flex rounded-full border border-white/15 bg-black/20 p-1 backdrop-blur">
             <LibraryToggleButton
                 active={activeView === "decks"}
                 icon={<BookOpen size={17} strokeWidth={2.8} />}
-                label="Decks"
-                tooltip="Your decks"
+                label={t.common.decks}
+                tooltip={t.common.decks}
                 onClick={() => onChange("decks")}
             />
             <LibraryToggleButton
                 active={activeView === "trials"}
                 icon={<Trophy size={17} strokeWidth={2.8} />}
-                label="Trials"
-                tooltip="Trials"
+                label={t.common.trials}
+                tooltip={t.common.trials}
                 onClick={() => onChange("trials")}
             />
         </div>

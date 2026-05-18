@@ -3,6 +3,7 @@ import { Pencil, Trash2, Trophy } from "lucide-react"
 
 import type { Deck } from "../../api/decks"
 import { languages } from "../../data/languages"
+import { useI18n } from "../../i18n/I18nContext"
 import type { PaletteTheme } from "../../theme/themes"
 import GradientFrame from "../GradientFrame"
 
@@ -23,6 +24,7 @@ function formatScore(score: number) {
 }
 
 export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }: DeckGridCardProps) {
+    const { t } = useI18n()
     const sourceLanguage = getLanguage(deck.language)
     const translationLanguage = getLanguage(deck.translationLanguage)
     const sourceIsLearning = deck.language === deck.learningLanguage
@@ -55,7 +57,7 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
                 onClick={onPlay}
                 onKeyDown={handleKeyDown}
                 className="relative flex h-full min-h-40 cursor-pointer flex-col overflow-hidden outline-none"
-                aria-label={`Play ${deck.name}`}
+                aria-label={`${t.common.play} ${deck.name}`}
             >
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex min-w-0 flex-wrap items-start gap-4">
@@ -63,11 +65,13 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
                             name={sourceLanguage?.label ?? deck.language}
                             flagUrl={sourceLanguage?.flagUrl}
                             learning={sourceIsLearning}
+                            learningLabel={t.deckPage.learning}
                         />
                         <FlagBlock
                             name={translationLanguage?.label ?? deck.translationLanguage}
                             flagUrl={translationLanguage?.flagUrl}
                             learning={translationIsLearning}
+                            learningLabel={t.deckPage.learning}
                         />
                     </div>
 
@@ -76,20 +80,20 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
                             type="button"
                             onClick={event => handleActionClick(event, onEdit)}
                             className="flex h-12 w-10 flex-col items-center justify-center rounded-lg text-white/80 transition hover:bg-white/10 hover:text-white"
-                            aria-label={`Edit ${deck.name}`}
+                            aria-label={`${t.common.edit} ${deck.name}`}
                         >
                             <Pencil size={20} strokeWidth={2.5} />
-                            <span className="mt-1 text-[11px] font-semibold">Edit</span>
+                            <span className="mt-1 text-[11px] font-semibold">{t.common.edit}</span>
                         </button>
 
                         <button
                             type="button"
                             onClick={event => handleActionClick(event, onDelete)}
                             className="flex h-12 w-12 flex-col items-center justify-center rounded-lg text-white/80 transition hover:bg-red-500/25 hover:text-white"
-                            aria-label={`Delete ${deck.name}`}
+                            aria-label={`${t.common.delete} ${deck.name}`}
                         >
                             <Trash2 size={20} strokeWidth={2.5} />
-                            <span className="mt-1 text-[11px] font-semibold">Delete</span>
+                            <span className="mt-1 text-[11px] font-semibold">{t.common.delete}</span>
                         </button>
                     </div>
                 </div>
@@ -105,7 +109,7 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
 
                     <div className="text-right leading-none">
                         <p className="text-5xl font-black text-white drop-shadow-sm">{deck.words.length}</p>
-                        <p className="mt-1 text-sm font-semibold text-white/70">Words</p>
+                        <p className="mt-1 text-sm font-semibold text-white/70">{t.deckPage.words}</p>
                     </div>
                 </div>
             </div>
@@ -113,7 +117,7 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
     )
 }
 
-function FlagBlock({ name, flagUrl, learning }: { name: string; flagUrl?: string; learning: boolean }) {
+function FlagBlock({ name, flagUrl, learning, learningLabel }: { name: string; flagUrl?: string; learning: boolean; learningLabel: string }) {
     return (
         <div className="min-w-0">
             {flagUrl ? (
@@ -127,7 +131,7 @@ function FlagBlock({ name, flagUrl, learning }: { name: string; flagUrl?: string
             )}
 
             <p className={`mt-1.5 text-center text-xs font-bold ${learning ? "text-white" : "text-transparent"}`}>
-                Learning
+                {learningLabel}
             </p>
         </div>
     )

@@ -8,6 +8,7 @@ import AuthPage from "./Pages/AuthPage"
 import ProfileContainer from "./Pages/ProfileContainer"
 import ResetPasswordPage from "./Pages/ResetPasswordPage"
 import ThemePage from "./Pages/ThemePage"
+import SettingsPage from "./Pages/SettingsPage"
 import TrialPage from "./Pages/TrialPage"
 import TrialsMenuPage from "./Pages/TrialsMenuPage"
 import ThemedPage from "./components/ThemedPage"
@@ -37,6 +38,7 @@ function App() {
                     <Route path="/reset-password" element={<ResetPasswordPage />} />
                     <Route path="/profile" element={<ProfileContainer />} />
                     <Route path="/theme" element={<ThemePage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/trials" element={<TrialsMenuPage />} />
                     <Route path="/decks" element={<DeckPage />} />
                     <Route path="/decks/create" element={<CreateDeckPage />} />

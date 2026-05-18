@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { ChevronDown, RotateCcw } from "lucide-react"
 
 import { languages } from "../../data/languages"
+import { useI18n } from "../../i18n/I18nContext"
 import type { PaletteTheme } from "../../theme/themes"
 
 export type DeckLengthFilter = "any" | "short" | "medium" | "long"
@@ -25,20 +26,6 @@ interface FilterOption<T extends string> {
     flagUrl?: string
 }
 
-const lengthOptions: FilterOption<DeckLengthFilter>[] = [
-    { value: "any", label: "Any length" },
-    { value: "short", label: "Short: 1-20" },
-    { value: "medium", label: "Medium: 21-50" },
-    { value: "long", label: "Long: 51+" }
-]
-
-const sortOptions: FilterOption<DeckSortOption>[] = [
-    { value: "newest", label: "Newest" },
-    { value: "name-asc", label: "Name A-Z" },
-    { value: "most-words", label: "Most words" },
-    { value: "fewest-words", label: "Fewest words" }
-]
-
 export default function DeckFilterBar({
     selectedLanguage,
     onLanguageChange,
@@ -50,13 +37,27 @@ export default function DeckFilterBar({
     canReset,
     palette
 }: DeckFilterBarProps) {
+    const { t } = useI18n()
+    const copy = t.deckPage
     const languageOptions: FilterOption<string>[] = [
-        { value: "all", label: "All Languages" },
+        { value: "all", label: copy.filter.allLanguages },
         ...languages.map(language => ({
             value: language.code,
             label: language.label,
             flagUrl: language.flagUrl
         }))
+    ]
+    const lengthOptions: FilterOption<DeckLengthFilter>[] = [
+        { value: "any", label: copy.filter.anyLength },
+        { value: "short", label: copy.filter.short },
+        { value: "medium", label: copy.filter.medium },
+        { value: "long", label: copy.filter.long }
+    ]
+    const sortOptions: FilterOption<DeckSortOption>[] = [
+        { value: "newest", label: copy.filter.newest },
+        { value: "name-asc", label: copy.filter.nameAsc },
+        { value: "most-words", label: copy.filter.mostWords },
+        { value: "fewest-words", label: copy.filter.fewestWords }
     ]
 
     return (
@@ -98,7 +99,7 @@ export default function DeckFilterBar({
                 className="flex h-16 min-w-36 items-center justify-center gap-2 rounded-r-full px-6 text-lg font-bold text-white transition disabled:cursor-not-allowed disabled:text-white/35"
             >
                 <RotateCcw size={20} strokeWidth={2.6} />
-                Reset
+                {t.common.reset}
             </button>
         </div>
     )

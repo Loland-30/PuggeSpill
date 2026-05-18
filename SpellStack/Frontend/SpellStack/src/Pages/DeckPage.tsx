@@ -7,6 +7,7 @@ import type { ActiveGameModifier, GameDirection, RoundLimit } from "../api/gameS
 import FadeIn from "../components/FadeIn"
 import GameModeModal from "../components/GameModeModal"
 import { useAuth } from "../auth/AuthContext"
+import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
 import PageContentTransition from "../components/PageContentTransition"
 import GradientFrame from "../components/GradientFrame"
@@ -29,6 +30,7 @@ export default function DeckPage() {
     const navigate = useNavigate()
     const { user, loading: authLoading } = useAuth()
     const { palette } = useTheme()
+    const { t } = useI18n()
     const [decks, setDecks] = useState<Deck[]>([])
     const [, setLoading] = useState(true)
     const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null)
@@ -145,11 +147,11 @@ export default function DeckPage() {
                             <button
                                 onClick={() => navigate("/decks/create")}
                                 className={`group relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full px-0 text-xs font-bold shadow-lg transition-[width,box-shadow] duration-300 ease-out hover:w-24 ${palette.primaryButton} ${palette.primaryButtonText}`}
-                                aria-label="Create deck"
+                                aria-label={t.common.createDeck}
                             >
                                 <Plus size={24} strokeWidth={3} className={`shrink-0 ${palette.primaryButtonText}`} />
                                 <span className="ml-0 max-w-0 whitespace-nowrap opacity-0 transition-all duration-300 ease-out group-hover:ml-2 group-hover:max-w-16 group-hover:opacity-100">
-                                    Create
+                                    {t.common.create}
                                 </span>
                             </button>
 
@@ -157,11 +159,11 @@ export default function DeckPage() {
                                 onClick={() => setIsFilterOpen(isOpen => !isOpen)}
                                 className={`group relative flex h-12 items-center justify-center overflow-hidden rounded-full px-0 text-xs font-bold shadow-lg transition-[width,box-shadow] duration-300 ease-out ${palette.primaryButton} ${palette.primaryButtonText} ${isFilterOpen ? `${activeFilterCount > 0 ? "w-28" : "w-24"} ${palette.glow}` : `${activeFilterCount > 0 ? "hover:w-28" : "hover:w-24"} w-12`}`}
                                 aria-expanded={isFilterOpen}
-                                aria-label="Toggle filters"
+                                aria-label={t.deckPage.toggleFilters}
                             >
                                 <SlidersHorizontal size={20} strokeWidth={2.6} className={`shrink-0 ${palette.primaryButtonText}`} />
                                 <span className={`whitespace-nowrap transition-all duration-300 ease-out ${isFilterOpen ? `${activeFilterCount > 0 ? "max-w-24" : "max-w-16"} ml-2 opacity-100` : `ml-0 max-w-0 opacity-0 group-hover:ml-2 ${activeFilterCount > 0 ? "group-hover:max-w-24" : "group-hover:max-w-16"} group-hover:opacity-100`}`}>
-                                    Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+                                    {activeFilterCount > 0 ? t.deckPage.filterCount.replace("{count}", String(activeFilterCount)) : t.common.filter}
                                 </span>
                             </button>
 
@@ -197,14 +199,14 @@ export default function DeckPage() {
                                 glow
                                 contentClassName="p-10 text-center"
                             >
-                                <p className="text-2xl font-black">{decks.length === 0 ? "No decks yet" : "No decks match filters"}</p>
-                                <p className="mt-2 text-white/70">{decks.length === 0 ? "Create your first deck to get started" : "Try resetting or changing your filters"}</p>
+                                <p className="text-2xl font-black">{decks.length === 0 ? t.deckPage.noDecksYet : t.deckPage.noDecksMatchFilters}</p>
+                                <p className="mt-2 text-white/70">{decks.length === 0 ? t.deckPage.createFirstDeck : t.deckPage.tryChangingFilters}</p>
 
                                 <button
                                     onClick={() => navigate("/decks/create")}
                                     className={`mt-6 rounded-full px-7 py-3 font-bold ${palette.primaryButtonText} transition ${palette.primaryButton}`}
                                 >
-                                    Create deck
+                                    {t.common.createDeck}
                                 </button>
                             </GradientFrame>
                         </FadeIn>
@@ -229,7 +231,7 @@ export default function DeckPage() {
                     )}
 
                         <FadeIn className="mt-auto pb-16 pt-10 text-center text-lg text-white/80">
-                            Deck count: {filteredDecks.length}
+                            {t.deckPage.deckCount}: {filteredDecks.length}
                         </FadeIn>
                     </PageContentTransition>
                 </main>

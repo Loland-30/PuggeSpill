@@ -2,12 +2,14 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { requestPasswordReset } from "../api/auth"
 import { useAuth } from "../auth/AuthContext"
+import { useI18n } from "../i18n/I18nContext"
 import FadeIn from "../components/FadeIn"
 import { languages } from "../data/languages"
 
 export default function AuthPage() {
     const navigate = useNavigate()
     const { loginUser, registerUser } = useAuth()
+    const { t } = useI18n()
     const [mode, setMode] = useState<"login" | "register">("login")
     const [username, setUsername] = useState("")
     const [email, setEmail] = useState("")
@@ -75,13 +77,13 @@ export default function AuthPage() {
                             onClick={() => setMode("login")}
                             className={`rounded-md py-2 text-sm font-bold transition ${mode === "login" ? "bg-orange-400 text-white" : "text-gray-300"}`}
                         >
-                            Login
+                            {t.auth.login}
                         </button>
                         <button
                             onClick={() => setMode("register")}
                             className={`rounded-md py-2 text-sm font-bold transition ${mode === "register" ? "bg-orange-400 text-white" : "text-gray-300"}`}
                         >
-                            Register
+                            {t.auth.register}
                         </button>
                     </div>
 
@@ -90,21 +92,21 @@ export default function AuthPage() {
                             <input
                                 value={username}
                                 onChange={e => setUsername(e.target.value)}
-                                placeholder="Username"
+                                placeholder={t.auth.username}
                                 className="w-full rounded-lg border border-white/10 bg-white px-4 py-3 text-gray-900 outline-none focus:border-orange-400"
                             />
                         )}
                         <input
                             value={email}
                             onChange={e => setEmail(e.target.value)}
-                            placeholder="Email"
+                            placeholder={t.auth.email}
                             type="email"
                             className="w-full rounded-lg border border-white/10 bg-white px-4 py-3 text-gray-900 outline-none focus:border-orange-400"
                         />
                         <input
                             value={password}
                             onChange={e => setPassword(e.target.value)}
-                            placeholder="Password"
+                            placeholder={t.auth.password}
                             type="password"
                             className="w-full rounded-lg border border-white/10 bg-white px-4 py-3 text-gray-900 outline-none focus:border-orange-400"
                         />
@@ -131,7 +133,7 @@ export default function AuthPage() {
                         disabled={submitting || !email || !password || (mode === "register" && !username)}
                         className="mt-6 w-full rounded-full bg-orange-400 py-3 font-bold text-white transition hover:bg-orange-500 disabled:opacity-50"
                     >
-                        {submitting ? "Working..." : mode === "login" ? "Login" : "Create account"}
+                        {submitting ? t.common.loading : mode === "login" ? t.auth.login : t.auth.createAccount}
                     </button>
 
                     {mode === "login" && (
@@ -141,7 +143,7 @@ export default function AuthPage() {
                             disabled={submitting}
                             className="mt-4 w-full text-sm font-semibold text-orange-200 transition hover:text-orange-100 disabled:opacity-50"
                         >
-                            Forgot password?
+                            {t.auth.forgotPassword}
                         </button>
                     )}
                 </FadeIn>

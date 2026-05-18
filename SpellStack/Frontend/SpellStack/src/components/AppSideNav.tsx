@@ -3,6 +3,7 @@ import { FolderOpen, LogOut, Palette, Settings, UserRound } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
 
 import { useAuth } from "../auth/AuthContext"
+import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
 
 interface NavItem {
@@ -12,32 +13,33 @@ interface NavItem {
     match: (pathname: string) => boolean
 }
 
-const navItems: NavItem[] = [
-    {
-        label: "Decks",
-        path: "/decks",
-        icon: FolderOpen,
-        match: pathname => pathname === "/" || pathname.startsWith("/decks")
-    },
-    {
-        label: "Themes",
-        path: "/theme",
-        icon: Palette,
-        match: pathname => pathname.startsWith("/theme")
-    },
-    {
-        label: "Settings",
-        path: "/profile",
-        icon: Settings,
-        match: () => false
-    }
-]
-
 export default function AppSideNav() {
     const navigate = useNavigate()
     const location = useLocation()
     const { user, logoutUser, profileImage } = useAuth()
+    const { t } = useI18n()
     const { palette } = useTheme()
+
+    const navItems: NavItem[] = [
+        {
+            label: t.nav.decks,
+            path: "/decks",
+            icon: FolderOpen,
+            match: pathname => pathname === "/" || pathname.startsWith("/decks")
+        },
+        {
+            label: t.nav.themes,
+            path: "/theme",
+            icon: Palette,
+            match: pathname => pathname.startsWith("/theme")
+        },
+        {
+            label: t.nav.settings,
+            path: "/settings",
+            icon: Settings,
+            match: pathname => pathname.startsWith("/settings")
+        }
+    ]
 
     const handleLogout = async () => {
         await logoutUser()
@@ -50,14 +52,14 @@ export default function AppSideNav() {
                 type="button"
                 onClick={() => navigate(user ? "/profile" : "/login")}
                 className="group relative grid h-14 w-14 place-items-center overflow-visible rounded-full text-xl font-black transition hover:scale-105"
-                aria-label="Open profile"
+                aria-label={t.nav.openProfile}
             >
                 <span className={`absolute inset-0 rounded-full border-2 ${palette.border} ${profileImage ? "bg-slate-900" : palette.primaryButton} ${palette.glow}`} />
                 <span className="relative grid h-full w-full place-items-center overflow-hidden rounded-full">
                     {profileImage ? (
                         <img
                             src={profileImage}
-                            alt={user ? `${user.username} profile` : "Profile"}
+                            alt={user ? `${user.username} profile` : t.nav.openProfile}
                             className="h-full w-full object-cover"
                         />
                     ) : user ? (
@@ -80,7 +82,7 @@ export default function AppSideNav() {
 
                     return (
                         <button
-                            key={item.label}
+                            key={item.path}
                             type="button"
                             onClick={() => navigate(item.path)}
                             className="group flex items-center gap-3 text-left text-lg font-medium text-white transition"
@@ -109,7 +111,7 @@ export default function AppSideNav() {
                     strokeWidth={2.5}
                     className="opacity-0 transition-all duration-200 group-hover:translate-x-1 group-hover:opacity-100"
                 />
-                <span className="transition-transform duration-200 group-hover:translate-x-1">Sign out</span>
+                <span className="transition-transform duration-200 group-hover:translate-x-1">{t.nav.signOut}</span>
             </button>
         </aside>
     )
