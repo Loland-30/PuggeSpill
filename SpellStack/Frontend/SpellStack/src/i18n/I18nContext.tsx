@@ -5,7 +5,6 @@ import { en, type Dictionary } from "./dictionaries/en"
 import { es } from "./dictionaries/es"
 import { ja } from "./dictionaries/ja"
 import { no } from "./dictionaries/no"
-import { regionalDictionaries } from "./dictionaries/regional"
 import {
     APP_LANGUAGE_STORAGE_KEY,
     PROFILE_REGION_STORAGE_KEY,
@@ -16,7 +15,7 @@ import {
     type AppLanguageCode
 } from "./localeMap"
 
-const dictionaries: Record<AppLanguageCode, Dictionary> = { en, no, es, ja, ...regionalDictionaries }
+const dictionaries: Record<AppLanguageCode, Dictionary> = { en, no, es, ja }
 
 interface I18nContextValue {
     t: Dictionary
