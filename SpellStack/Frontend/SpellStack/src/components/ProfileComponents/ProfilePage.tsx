@@ -7,6 +7,7 @@ export default function ProfilePage({
     profileImage,
     createdAt,
     favoriteLanguageFlag,
+    profileRegionLabel,
     profileLanguages,
     currentLanguage,
     onSelectLanguage,
@@ -46,7 +47,7 @@ export default function ProfilePage({
                         {favoriteLanguageFlag && (
                             <img
                                 src={favoriteLanguageFlag}
-                                alt={`${user.favoriteLanguage} flag`}
+                                alt={profileRegionLabel ? `${profileRegionLabel} flag` : "Profile region flag"}
                                 className="h-10 w-14 rounded-lg object-cover shadow-lg"
                             />
                         )}

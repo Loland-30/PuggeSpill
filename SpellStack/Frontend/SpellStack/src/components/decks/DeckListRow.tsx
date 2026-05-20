@@ -2,6 +2,7 @@ import { Pencil, Trash2 } from "lucide-react"
 
 import type { Deck } from "../../api/decks"
 import { languages } from "../../data/languages"
+import { useI18n } from "../../i18n/I18nContext"
 import type { PaletteTheme } from "../../theme/themes"
 import GradientFrame from "../GradientFrame"
 
@@ -18,6 +19,8 @@ function getLanguageFlag(code: string) {
 }
 
 export default function DeckListRow({ deck, onPlay, onEdit, onDelete, palette }: DeckListRowProps) {
+    const { t } = useI18n()
+
     return (
         <div className="mx-auto w-full max-w-2xl overflow-visible lg:w-[52rem] lg:max-w-none">
             <GradientFrame
@@ -31,10 +34,10 @@ export default function DeckListRow({ deck, onPlay, onEdit, onDelete, palette }:
                     <div className="min-w-0">
                         <h2 className="truncate text-3xl font-black" title={deck.name}>{deck.name}</h2>
                         <p className="mt-1 text-sm font-semibold text-white/80">
-                            Word count: {deck.words.length}
+                            {t.deckPage.wordCount}: {deck.words.length}
                         </p>
                         <p className="text-xs text-white/50">
-                            Highscore: {deck.highScore}
+                            {t.deckPage.highscore}: {deck.highScore}
                         </p>
                     </div>
 
@@ -55,7 +58,7 @@ export default function DeckListRow({ deck, onPlay, onEdit, onDelete, palette }:
                         onClick={onPlay}
                         className={`rounded-full px-5 py-2 text-sm font-black ${palette.primaryButtonText} opacity-100 shadow-lg transition ${palette.primaryButton}`}
                     >
-                        Play
+                        {t.common.play}
                     </button>
                 </div>
 
@@ -63,19 +66,19 @@ export default function DeckListRow({ deck, onPlay, onEdit, onDelete, palette }:
                     <button
                         onClick={onEdit}
                         className="flex h-14 w-16 flex-col items-center justify-center rounded-lg text-white transition hover:bg-white/10"
-                        aria-label={`Edit ${deck.name}`}
+                        aria-label={`${t.common.edit} ${deck.name}`}
                     >
                         <Pencil size={27} strokeWidth={2.5} />
-                        <span className="mt-1 text-xs font-bold">Edit</span>
+                        <span className="mt-1 text-xs font-bold">{t.common.edit}</span>
                     </button>
 
                     <button
                         onClick={onDelete}
                         className="flex h-14 w-16 flex-col items-center justify-center rounded-lg text-white transition hover:bg-red-500/30"
-                        aria-label={`Delete ${deck.name}`}
+                        aria-label={`${t.common.delete} ${deck.name}`}
                     >
                         <Trash2 size={27} strokeWidth={2.5} />
-                        <span className="mt-1 text-xs font-bold">Delete</span>
+                        <span className="mt-1 text-xs font-bold">{t.common.delete}</span>
                     </button>
                 </div>
             </GradientFrame>

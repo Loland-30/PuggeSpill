@@ -1,4 +1,4 @@
-interface SignupStepperProps {
+﻿interface SignupStepperProps {
     step: 1 | 2 | 3
 }
 

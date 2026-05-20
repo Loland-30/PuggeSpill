@@ -7,10 +7,19 @@ import AchievementsPage from "../components/ProfileComponents/AchievementsPage"
 import PerformancePage from "../components/ProfileComponents/PerformancePage"
 import ProfilePage from "../components/ProfileComponents/ProfilePage"
 import type { ProfileLanguage } from "../components/ProfileComponents/types"
-import { languages } from "../data/languages"
+import { countries, languages } from "../data/languages"
 
 const profilePages = ["Profile", "Performance", "Achievements"] as const
+const PROFILE_REGION_STORAGE_KEY = "spellstack_profile_region"
 
+function getCountryFromValue(value: string) {
+    const normalized = value.trim().toLowerCase()
+
+    return countries.find(country =>
+        country.label.toLowerCase() === normalized ||
+        country.code.toLowerCase() === normalized
+    )
+}
 function getLanguageFromValue(value: string) {
     const normalized = value.trim().toLowerCase()
 
@@ -78,7 +87,9 @@ export default function ProfileContainer() {
 
     const currentLanguage = profileLanguages.find(language => language.code === selectedLanguageCode) ?? profileLanguages[0]
     const createdAt = new Intl.DateTimeFormat("nb-NO").format(new Date(user.createdAt))
-    const favoriteLanguageFlag = getLanguageFromValue(user.favoriteLanguage)?.flagUrl
+    const profileRegionCode = localStorage.getItem(PROFILE_REGION_STORAGE_KEY) ?? "no"
+    const profileRegion = getCountryFromValue(profileRegionCode)
+    const favoriteLanguageFlag = profileRegion?.flagUrl
 
     const handleProfileImageUpload = (file: File | undefined) => {
         if (!file) return
@@ -119,6 +130,7 @@ export default function ProfileContainer() {
         profileImage,
         createdAt,
         favoriteLanguageFlag,
+        profileRegionLabel: profileRegion?.label,
         profileLanguages,
         currentLanguage,
         onSelectLanguage: setSelectedLanguageCode,

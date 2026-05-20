@@ -1,5 +1,6 @@
 import { LayoutGrid, Rows3 } from "lucide-react"
 
+import { useI18n } from "../../i18n/I18nContext"
 import type { PaletteTheme } from "../../theme/themes"
 
 export type DeckViewMode = "list" | "grid"
@@ -11,6 +12,8 @@ interface DeckViewToggleProps {
 }
 
 export default function DeckViewToggle({ value, onChange, palette }: DeckViewToggleProps) {
+    const { t } = useI18n()
+
     return (
         <div className={`relative flex h-12 items-center rounded-full border bg-black/20 p-1 backdrop-blur-md ${palette.border}`}>
             <div
@@ -22,9 +25,9 @@ export default function DeckViewToggle({ value, onChange, palette }: DeckViewTog
                 type="button"
                 onClick={() => onChange("list")}
                 className={`relative z-10 grid h-10 w-10 place-items-center rounded-full transition ${value === "list" ? palette.primaryButtonText : "text-white/45 hover:text-white"}`}
-                aria-label="List view"
+                aria-label={t.deckPage.view.list}
                 aria-pressed={value === "list"}
-                title="List view"
+                title={t.deckPage.view.list}
             >
                 <Rows3 size={20} strokeWidth={2.6} />
             </button>
@@ -33,9 +36,9 @@ export default function DeckViewToggle({ value, onChange, palette }: DeckViewTog
                 type="button"
                 onClick={() => onChange("grid")}
                 className={`relative z-10 grid h-10 w-10 place-items-center rounded-full transition ${value === "grid" ? palette.primaryButtonText : "text-white/45 hover:text-white"}`}
-                aria-label="Grid view"
+                aria-label={t.deckPage.view.grid}
                 aria-pressed={value === "grid"}
-                title="Grid view"
+                title={t.deckPage.view.grid}
             >
                 <LayoutGrid size={20} strokeWidth={2.6} />
             </button>

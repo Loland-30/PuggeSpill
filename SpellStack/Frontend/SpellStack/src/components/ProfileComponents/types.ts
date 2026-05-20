@@ -10,6 +10,7 @@ export interface ProfileComponentProps {
     profileImage: string | null
     createdAt: string
     favoriteLanguageFlag?: string
+    profileRegionLabel?: string
     profileLanguages: ProfileLanguage[]
     currentLanguage: ProfileLanguage
     onSelectLanguage: (code: string) => void
