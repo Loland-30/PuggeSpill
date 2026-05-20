@@ -1,4 +1,5 @@
-﻿import AuthPrimaryButton from "./AuthPrimaryButton"
+﻿import AuthBackButton from "./AuthBackButton"
+import AuthPrimaryButton from "./AuthPrimaryButton"
 import type { AuthCountryOption } from "./SignupStepProfile"
 
 interface SignupStepSummaryProps {
@@ -8,10 +9,11 @@ interface SignupStepSummaryProps {
     profileImagePreview: string | null
     loading: boolean
     error: string
+    onBack: () => void
     onSubmit: () => void
 }
 
-export default function SignupStepSummary({ username, email, country, profileImagePreview, loading, error, onSubmit }: SignupStepSummaryProps) {
+export default function SignupStepSummary({ username, email, country, profileImagePreview, loading, error, onBack, onSubmit }: SignupStepSummaryProps) {
     return (
         <div className="mx-auto w-full max-w-3xl text-white">
             <div className="flex flex-col items-center justify-center gap-10 sm:flex-row sm:gap-12">
@@ -29,7 +31,8 @@ export default function SignupStepSummary({ username, email, country, profileIma
             </div>
 
             {error && <p className="mt-8 text-center text-sm font-semibold text-red-200">{error}</p>}
-            <div className="mt-20 flex justify-center">
+            <div className="mt-20 flex justify-center gap-8">
+                <AuthBackButton onClick={onBack} ariaLabel="Back to profile step" />
                 <AuthPrimaryButton text="Create Account" ariaLabel="Create account" onClick={onSubmit} loading={loading} variant="pill" />
             </div>
             <p className="mt-6 text-center text-sm leading-5 text-white/70">

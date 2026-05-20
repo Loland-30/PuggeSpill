@@ -197,6 +197,8 @@ export default function AuthPage() {
                                 onProfileImageChange={setProfileImagePreview}
                                 onNextAccount={() => validateAccountStep() && setSignupStep(2)}
                                 onNextProfile={() => validateProfileStep() && setSignupStep(3)}
+                                onBackProfile={() => setSignupStep(1)}
+                                onBackSummary={() => setSignupStep(2)}
                                 onSubmit={handleRegister}
                             />
                         )}

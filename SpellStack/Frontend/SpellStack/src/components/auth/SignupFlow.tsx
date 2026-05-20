@@ -23,6 +23,8 @@ interface SignupFlowProps {
     onProfileImageChange: (value: string | null) => void
     onNextAccount: () => void
     onNextProfile: () => void
+    onBackProfile: () => void
+    onBackSummary: () => void
     onSubmit: () => void
 }
 
@@ -69,6 +71,7 @@ export default function SignupFlow(props: SignupFlowProps) {
                                 onUsernameChange={props.onUsernameChange}
                                 onCountryChange={props.onCountryChange}
                                 onProfileImageChange={props.onProfileImageChange}
+                                onBack={props.onBackProfile}
                                 onNext={props.onNextProfile}
                             />
                         )}
@@ -80,6 +83,7 @@ export default function SignupFlow(props: SignupFlowProps) {
                                 profileImagePreview={props.profileImagePreview}
                                 loading={props.loading}
                                 error={props.error}
+                                onBack={props.onBackSummary}
                                 onSubmit={props.onSubmit}
                             />
                         )}

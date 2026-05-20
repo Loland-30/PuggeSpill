@@ -1,4 +1,5 @@
 ﻿import { Camera, User } from "lucide-react"
+import AuthBackButton from "./AuthBackButton"
 import AuthCountrySelect from "./AuthCountrySelect"
 import AuthInput from "./AuthInput"
 import AuthPrimaryButton from "./AuthPrimaryButton"
@@ -18,10 +19,11 @@ interface SignupStepProfileProps {
     onUsernameChange: (value: string) => void
     onCountryChange: (value: string) => void
     onProfileImageChange: (value: string | null) => void
+    onBack: () => void
     onNext: () => void
 }
 
-export default function SignupStepProfile({ username, countryCode, profileImagePreview, countries, error, onUsernameChange, onCountryChange, onProfileImageChange, onNext }: SignupStepProfileProps) {
+export default function SignupStepProfile({ username, countryCode, profileImagePreview, countries, error, onUsernameChange, onCountryChange, onProfileImageChange, onBack, onNext }: SignupStepProfileProps) {
     const handleFileChange = (file: File | undefined) => {
         if (!file) return
 
@@ -57,7 +59,8 @@ export default function SignupStepProfile({ username, countryCode, profileImageP
             </div>
 
             {error && <p className="text-center text-sm font-semibold text-red-200">{error}</p>}
-            <div className="flex justify-center pt-6">
+            <div className="flex justify-center gap-8 pt-6">
+                <AuthBackButton onClick={onBack} ariaLabel="Back to account step" />
                 <AuthPrimaryButton text="Next" ariaLabel="Next sign up step" onClick={onNext} />
             </div>
         </div>
