@@ -6,8 +6,8 @@ interface AuthContextValue {
     loading: boolean
     profileImage: string | null
     setProfileImage: (image: string | null) => void
-    loginUser: (email: string, password: string) => Promise<void>
-    registerUser: (username: string, email: string, password: string, favoriteLanguage: string) => Promise<void>
+    loginUser: (email: string, password: string) => Promise<AuthUser>
+    registerUser: (username: string, email: string, password: string, favoriteLanguage: string) => Promise<AuthUser>
     logoutUser: () => Promise<void>
 }
 
@@ -63,12 +63,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             storeToken(result.token)
             setUser(result.user)
             window.dispatchEvent(new Event("spellstack-auth-changed"))
+            return result.user
         },
         registerUser: async (username, email, password, favoriteLanguage) => {
             const result = await register(username, email, password, favoriteLanguage)
             storeToken(result.token)
             setUser(result.user)
             window.dispatchEvent(new Event("spellstack-auth-changed"))
+            return result.user
         },
         logoutUser: async () => {
             await logout()
