@@ -4,6 +4,8 @@ export type PaletteThemeId =
     | "green"
     | "red"
     | "yellow"
+    | "orange"
+    | "purple"
     | "white"
     | "purpleGradient"
     | "mangoPop"

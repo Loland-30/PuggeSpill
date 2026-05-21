@@ -4,6 +4,7 @@ import type { Deck } from "../api/decks"
 import type { ActiveGameModifier, GameDirection, RoundLimit } from "../api/gameSession"
 import { languages } from "../data/languages"
 import { useI18n } from "../i18n/I18nContext"
+import { useTheme } from "../theme/ThemeContext"
 import GradientFrame from "./GradientFrame"
 import ModifierPicker from "./mods/ModifierPicker"
 import { getModifierNames } from "./mods/modifierUtils"
@@ -70,6 +71,7 @@ interface RoundLimitPickerProps {
 function RoundLimitPicker({ value, onChange }: RoundLimitPickerProps) {
     const [isOpen, setIsOpen] = useState(false)
     const { t } = useI18n()
+    const { palette } = useTheme()
     const roundLimitOptions: RoundLimitOption[] = [
         { label: `10 ${t.gameMode.questions}`, value: 10 },
         { label: `25 ${t.gameMode.questions}`, value: 25 },
@@ -114,7 +116,7 @@ function RoundLimitPicker({ value, onChange }: RoundLimitPickerProps) {
                                     onChange(option.value)
                                     setIsOpen(false)
                                 }}
-                                className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-bold transition ${isSelected ? "bg-orange-400 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                                className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-bold transition ${isSelected ? `${palette.primaryButton} ${palette.primaryButtonText}` : "text-white/70 hover:bg-white/10 hover:text-white"}`}
                             >
                                 <span>{option.label}</span>
 
@@ -137,6 +139,7 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
     const [showModifierPicker, setShowModifierPicker] = useState(false)
     const [roundLimit, setRoundLimit] = useState<RoundLimit>(25)
     const { t } = useI18n()
+    const { palette } = useTheme()
 
     if (!isOpen || !deck) return null
 
@@ -146,6 +149,18 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
     const lang1Label = lang1?.label ?? deck.language
     const lang2Label = lang2?.label ?? deck.translationLanguage
     const modifierLabel = modifiers.length === 0 ? t.gameMode.modsNone : getModifierNames(modifiers)
+
+    if (showModifierPicker) {
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/85 py-8 backdrop-blur-sm">
+                <ModifierPicker
+                    selectedModifiers={modifiers}
+                    onChange={setModifiers}
+                    onClose={() => setShowModifierPicker(false)}
+                />
+            </div>
+        )
+    }
 
     return (
         <div
@@ -183,7 +198,7 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
                                 <button
                                     type="button"
                                     onClick={() => setShowModifierPicker(open => !open)}
-                                    className={`flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold shadow-xl transition ${modifiers.length === 0 ? "bg-white/90 text-gray-800 hover:bg-white" : "bg-orange-400 text-white hover:bg-orange-500"}`}
+                                    className={`flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold shadow-xl transition ${modifiers.length === 0 ? "bg-white/90 text-gray-800 hover:bg-white" : `${palette.primaryButton} ${palette.primaryButtonText}`}`}
                                 >
                                     <span className="grid h-6 w-6 place-items-center rounded-full bg-black/10 text-xs">
                                         +
@@ -195,7 +210,7 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="grid h-11 w-11 place-items-center rounded-full bg-white/90 text-gray-800 shadow-xl transition hover:bg-orange-400 hover:text-white"
+                                    className={`grid h-11 w-11 place-items-center rounded-full border ${palette.border} bg-white/90 text-gray-800 shadow-xl transition hover:bg-white/10 hover:text-white`}
                                     aria-label={t.gameMode.closeLabel}
                                 >
                                     <X size={22} strokeWidth={2.7} />
@@ -203,14 +218,7 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
                             </div>
                         </div>
 
-                        {showModifierPicker ? (
-                            <ModifierPicker
-                                selectedModifiers={modifiers}
-                                onChange={setModifiers}
-                                onClose={() => setShowModifierPicker(false)}
-                            />
-                        ) : (
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                                 <ModeCard
                                     title={`${lang1Label} → ${lang2Label}`}
                                     description={t.gameMode.translateFrom.replace("{language}", lang1Label)}
@@ -255,7 +263,6 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
                                     </div>
                                 </ModeCard>
                             </div>
-                        )}
                     </div>
                 </GradientFrame>
             </div>

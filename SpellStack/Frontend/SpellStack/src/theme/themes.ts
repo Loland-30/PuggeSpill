@@ -1,6 +1,6 @@
 // @ts-nocheck
 export type BackgroundThemeId = "night" | "aurora" | "sunset" | "forest" | "rose"
-export type PaletteThemeId = "blue" | "pink" | "green" | "red" | "yellow" | "white" | "purpleGradient" | "mangoPop" | "frostByte"
+export type PaletteThemeId = "blue" | "pink" | "green" | "red" | "yellow" | "orange" | "purple" | "white" | "purpleGradient" | "mangoPop" | "frostByte"
 export type OverlayStrength = "low" | "medium" | "high"
 export type TextTone = "light" | "dark"
 
@@ -136,6 +136,30 @@ export const paletteThemes: PaletteTheme[] = [
         card: "bg-yellow-950/85",
         glow: "shadow-[0_0_28px_rgba(252,177,3,0.3)]",
         preview: "bg-[#fcb103]"
+    },
+    {
+        id: "orange",
+        name: "Orange",
+        kind: "solid",
+        accentText: "text-[#FDA460]",
+        primaryButton: "bg-[#F87002] hover:bg-[#FDA460]",
+        primaryButtonText: "text-white",
+        border: "border-[#F87002]",
+        card: "bg-[#A04F0E]/45",
+        glow: "shadow-[0_0_28px_rgba(248,112,2,0.35)]",
+        preview: "bg-[#F87002]"
+    },
+    {
+        id: "purple",
+        name: "Purple",
+        kind: "solid",
+        accentText: "text-[#C084FC]",
+        primaryButton: "bg-[#8B5CF6] hover:bg-[#C084FC]",
+        primaryButtonText: "text-white",
+        border: "border-[#8B5CF6]",
+        card: "bg-[#5B21B6]/45",
+        glow: "shadow-[0_0_28px_rgba(139,92,246,0.35)]",
+        preview: "bg-[#8B5CF6]"
     },
     {
         id: "white",

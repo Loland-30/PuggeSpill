@@ -1,4 +1,5 @@
 import type { ActiveGameModifier } from "../../api/gameSession"
+import { useTheme } from "../../theme/ThemeContext"
 import {
     formatScoreMultiplier,
     getModifierNames,
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function ActiveModifiersSummary({ modifiers }: Props) {
+    const { palette } = useTheme()
     const scoreMultiplier = getModifierScoreMultiplier(modifiers)
 
     return (
@@ -29,12 +31,7 @@ export default function ActiveModifiersSummary({ modifiers }: Props) {
                     Score
                 </p>
 
-                <p
-                    className={`
-                        mt-1 text-2xl font-black
-                        ${scoreMultiplier === 0 ? "text-white/60" : "text-orange-300"}
-                    `}
-                >
+                <p className={`mt-1 text-2xl font-black ${scoreMultiplier === 0 ? "text-white/60" : palette.accentText}`}>
                     {formatScoreMultiplier(scoreMultiplier)}
                 </p>
             </div>
