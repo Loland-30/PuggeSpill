@@ -1,4 +1,5 @@
-﻿import { API_URL, authHeaders, type AuthUser } from "./auth"
+import { API_URL } from "./config"
+import { authHeaders, type AuthUser } from "./auth"
 
 async function parseProfileImageResponse(response: Response): Promise<AuthUser> {
     if (!response.ok) throw new Error(await response.text())

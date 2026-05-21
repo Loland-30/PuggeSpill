@@ -29,5 +29,6 @@ build-check/
 .DS_Store
 Thumbs.db
 
-# Uploaded user files
-wwwroot/uploads/
+# Uploaded profile images
+**/wwwroot/uploads/profile-images/*
+!**/wwwroot/uploads/profile-images/.gitkeep

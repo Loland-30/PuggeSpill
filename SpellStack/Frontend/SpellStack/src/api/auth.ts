@@ -1,4 +1,4 @@
-export const API_URL = "http://localhost:5084/api"
+import { API_URL } from "./config"
 const TOKEN_KEY = "spellstack_auth_token"
 
 export interface AuthUser {

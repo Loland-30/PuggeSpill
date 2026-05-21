@@ -1,6 +1,4 @@
-﻿import { API_URL } from "../api/auth"
-
-const API_ORIGIN = API_URL.replace(/\/api\/?$/, "")
+﻿import { API_ORIGIN } from "../api/config"
 
 export function resolveAssetUrl(path?: string | null): string | null {
     if (!path) return null

@@ -1,7 +1,6 @@
+import { API_URL } from "./config"
 import { authHeaders, getStoredToken } from "./auth"
 import type { AppTheme } from "../theme/themes"
-
-const API_URL = "http://localhost:5084/api"
 
 export async function getUserTheme(): Promise<AppTheme | null> {
     if (!getStoredToken()) return null

@@ -1,3 +1,4 @@
+import { API_URL } from "./config"
 import { authHeaders } from "./auth"
 
 export interface Deck {
@@ -28,7 +29,7 @@ export interface HighScoreResult {
 }
 
 export async function createDeck(name: string, language: string, translationLanguage: string, learningLanguage: string, description: string): Promise<Deck> {
-    const response = await fetch("http://localhost:5084/api/deck", {
+    const response = await fetch(`${API_URL}/deck`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ name, language, translationLanguage, learningLanguage, description })
@@ -38,7 +39,7 @@ export async function createDeck(name: string, language: string, translationLang
 }
 
 export async function getDecks(): Promise<Deck[]> {
-    const response = await fetch("http://localhost:5084/api/deck", {
+    const response = await fetch(`${API_URL}/deck`, {
         headers: authHeaders()
     })
     if (!response.ok) throw new Error("Kunne ikke hente decks")
@@ -46,7 +47,7 @@ export async function getDecks(): Promise<Deck[]> {
 }
 
 export async function getDeck(id: number): Promise<Deck> {
-    const response = await fetch(`http://localhost:5084/api/deck/${id}`, {
+    const response = await fetch(`${API_URL}/deck/${id}`, {
         headers: authHeaders()
     })
     if (!response.ok) throw new Error("Kunne ikke hente deck")
@@ -54,7 +55,7 @@ export async function getDeck(id: number): Promise<Deck> {
 }
 
 export async function updateDeck(id: number, name: string, language: string, translationLanguage: string, learningLanguage: string, description: string): Promise<Deck> {
-    const response = await fetch(`http://localhost:5084/api/deck/${id}`, {
+    const response = await fetch(`${API_URL}/deck/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ name, language, translationLanguage, learningLanguage, description })
@@ -64,7 +65,7 @@ export async function updateDeck(id: number, name: string, language: string, tra
 }
 
 export async function deleteDeck(id: number): Promise<void> {
-    const response = await fetch(`http://localhost:5084/api/deck/${id}`, {
+    const response = await fetch(`${API_URL}/deck/${id}`, {
         method: "DELETE",
         headers: authHeaders()
     })
@@ -72,7 +73,7 @@ export async function deleteDeck(id: number): Promise<void> {
 }
 
 export async function updateHighScore(id: number, score: number): Promise<HighScoreResult> {
-    const response = await fetch(`http://localhost:5084/api/deck/${id}/highscore`, {
+    const response = await fetch(`${API_URL}/deck/${id}/highscore`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ score })

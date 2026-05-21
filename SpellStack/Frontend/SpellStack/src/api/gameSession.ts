@@ -1,3 +1,4 @@
+import { API_URL } from "./config"
 import type { Word } from "./decks"
 import { authHeaders } from "./auth"
 
@@ -61,7 +62,7 @@ export async function startGame(
     modifiers: ActiveGameModifier[] = [],
     roundLimit: RoundLimit = 25
 ): Promise<GameSession> {
-    const response = await fetch(`http://localhost:5084/api/game/start/${deckId}`, {
+    const response = await fetch(`${API_URL}/game/start/${deckId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ modifiers, roundLimit })
@@ -80,7 +81,7 @@ export async function answerWord(
     modifiers: ActiveGameModifier[] = [],
     protectLife = false
 ): Promise<AnswerResponse> {
-    const response = await fetch(`http://localhost:5084/api/game/answer/${id}`, {
+    const response = await fetch(`${API_URL}/game/answer/${id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ answer, direction, timeLeft, modifiers, protectLife })
@@ -92,7 +93,7 @@ export async function answerWord(
 }
 
 export async function completeRushHour(id: number, bonusScore: number): Promise<GameSession> {
-    const response = await fetch(`http://localhost:5084/api/game/rush-hour/${id}/complete`, {
+    const response = await fetch(`${API_URL}/game/rush-hour/${id}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ bonusScore })
@@ -109,7 +110,7 @@ export async function getGameHistory(language?: string, limit = 10): Promise<Gam
     if (language) params.set("language", language)
     params.set("limit", limit.toString())
 
-    const response = await fetch(`http://localhost:5084/api/game/history?${params.toString()}`, {
+    const response = await fetch(`${API_URL}/game/history?${params.toString()}`, {
         headers: authHeaders()
     })
 
@@ -119,7 +120,7 @@ export async function getGameHistory(language?: string, limit = 10): Promise<Gam
 }
 
 export async function endGame(id: number) {
-    const response = await fetch(`http://localhost:5084/api/game/end/${id}`, {
+    const response = await fetch(`${API_URL}/game/end/${id}`, {
         method: "POST",
         headers: authHeaders()
     })

@@ -1,6 +1,5 @@
+import { API_URL } from "./config"
 import { authHeaders } from "./auth"
-
-const API_URL = `http://${window.location.hostname}:5084/api`
 
 export interface Achievement {
     id: string
