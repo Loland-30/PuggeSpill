@@ -1,4 +1,4 @@
-﻿import { AnimatePresence, motion } from "framer-motion"
+import { AnimatePresence, motion } from "framer-motion"
 import SignupStepAccount from "./SignupStepAccount"
 import SignupStepProfile, { type AuthCountryOption } from "./SignupStepProfile"
 import SignupStepSummary from "./SignupStepSummary"
@@ -20,7 +20,7 @@ interface SignupFlowProps {
     onConfirmPasswordChange: (value: string) => void
     onUsernameChange: (value: string) => void
     onCountryChange: (value: string) => void
-    onProfileImageChange: (value: string | null) => void
+    onProfileImageChange: (preview: string | null, file: File | null) => void
     onNextAccount: () => void
     onNextProfile: () => void
     onBackProfile: () => void

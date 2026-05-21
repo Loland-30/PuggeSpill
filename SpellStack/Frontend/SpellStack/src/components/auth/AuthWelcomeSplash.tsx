@@ -1,4 +1,5 @@
-﻿import { motion } from "framer-motion"
+import { motion } from "framer-motion"
+import ProfileImage from "../ProfileImage"
 
 interface AuthWelcomeSplashProps {
     variant: "login" | "register"
@@ -31,9 +32,10 @@ export default function AuthWelcomeSplash({ variant, username, avatarUrl }: Auth
                     initial={{ scale: 0.92 }}
                     animate={{ scale: [0.96, 1.03, 1] }}
                     transition={{ duration: 1.15, ease: "easeInOut" }}
-                    className="grid h-44 w-44 place-items-center overflow-hidden rounded-full bg-white text-6xl font-black text-slate-950 shadow-[0_0_54px_rgba(255,255,255,0.16)] sm:h-52 sm:w-52"
+                    className="relative grid h-44 w-44 place-items-center overflow-hidden rounded-full bg-white text-6xl font-black text-slate-950 shadow-[0_0_54px_rgba(255,255,255,0.16)] sm:h-52 sm:w-52"
                 >
-                    {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : username.slice(0, 1).toUpperCase()}
+                    {username.slice(0, 1).toUpperCase()}
+                    <ProfileImage src={avatarUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
                 </motion.div>
                 <p className="mt-10 text-3xl font-black text-white">
                     {variant === "login" ? "Welcome back" : "Welcome"}

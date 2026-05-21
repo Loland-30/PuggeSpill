@@ -1,11 +1,15 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
 import { clearStoredToken, getMe, getStoredToken, login, logout, register, storeToken, type AuthUser } from "../api/auth"
+import { deleteProfileImage as deleteProfileImageRequest, uploadProfileImage as uploadProfileImageRequest } from "../api/profileImage"
+import { resolveAssetUrl } from "../utils/assetUrl"
 
 interface AuthContextValue {
     user: AuthUser | null
     loading: boolean
     profileImage: string | null
-    setProfileImage: (image: string | null) => void
+    setProfileImage: (image: File | null) => Promise<AuthUser | null>
+    uploadProfileImage: (image: File) => Promise<AuthUser>
+    deleteProfileImage: () => Promise<AuthUser | null>
     loginUser: (email: string, password: string) => Promise<AuthUser>
     registerUser: (username: string, email: string, password: string, favoriteLanguage: string) => Promise<AuthUser>
     logoutUser: () => Promise<void>
@@ -13,14 +17,9 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-function getProfileImageKey(userId: number) {
-    return `spellstack_profile_image_${userId}`
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null)
     const [loading, setLoading] = useState(true)
-    const [profileImage, setProfileImageState] = useState<string | null>(null)
 
     useEffect(() => {
         if (!getStoredToken()) {
@@ -37,27 +36,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .finally(() => setLoading(false))
     }, [])
 
-    useEffect(() => {
-        if (!user) {
-            setProfileImageState(null)
-            return
-        }
+    const profileImage = useMemo(() => resolveAssetUrl(user?.profileImageUrl), [user?.profileImageUrl])
 
-        setProfileImageState(localStorage.getItem(getProfileImageKey(user.id)))
+    const uploadProfileImage = useCallback(async (image: File) => {
+        const updatedUser = await uploadProfileImageRequest(image)
+        setUser(updatedUser)
+        window.dispatchEvent(new Event("spellstack-auth-changed"))
+        return updatedUser
+    }, [])
+
+    const deleteProfileImage = useCallback(async () => {
+        if (!user) return null
+
+        const updatedUser = await deleteProfileImageRequest()
+        setUser(updatedUser)
+        window.dispatchEvent(new Event("spellstack-auth-changed"))
+        return updatedUser
     }, [user])
+
+    const setProfileImage = useCallback(async (image: File | null) => {
+        if (!user) return null
+        if (image) return uploadProfileImage(image)
+        return deleteProfileImage()
+    }, [deleteProfileImage, uploadProfileImage, user])
 
     const value = useMemo<AuthContextValue>(() => ({
         user,
         loading,
         profileImage,
-        setProfileImage: image => {
-            if (!user) return
-
-            if (image) localStorage.setItem(getProfileImageKey(user.id), image)
-            else localStorage.removeItem(getProfileImageKey(user.id))
-
-            setProfileImageState(image)
-        },
+        setProfileImage,
+        uploadProfileImage,
+        deleteProfileImage,
         loginUser: async (email, password) => {
             const result = await login(email, password)
             storeToken(result.token)
@@ -77,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null)
             window.dispatchEvent(new Event("spellstack-auth-changed"))
         }
-    }), [user, loading, profileImage])
+    }), [deleteProfileImage, loading, profileImage, setProfileImage, uploadProfileImage, user])
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

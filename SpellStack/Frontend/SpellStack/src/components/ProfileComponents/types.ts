@@ -15,4 +15,6 @@ export interface ProfileComponentProps {
     currentLanguage: ProfileLanguage
     onSelectLanguage: (code: string) => void
     onProfileImageUpload: (file: File | undefined) => void
+    onProfileImageRemove: () => void
+    profileImageError?: string
 }

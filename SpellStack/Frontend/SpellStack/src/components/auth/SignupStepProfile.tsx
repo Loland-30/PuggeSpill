@@ -1,4 +1,4 @@
-﻿import { Camera, User } from "lucide-react"
+import { Camera, User } from "lucide-react"
 import AuthBackButton from "./AuthBackButton"
 import AuthCountrySelect from "./AuthCountrySelect"
 import AuthInput from "./AuthInput"
@@ -18,7 +18,7 @@ interface SignupStepProfileProps {
     error: string
     onUsernameChange: (value: string) => void
     onCountryChange: (value: string) => void
-    onProfileImageChange: (value: string | null) => void
+    onProfileImageChange: (preview: string | null, file: File | null) => void
     onBack: () => void
     onNext: () => void
 }
@@ -29,7 +29,7 @@ export default function SignupStepProfile({ username, countryCode, profileImageP
 
         const reader = new FileReader()
         reader.onload = () => {
-            if (typeof reader.result === "string") onProfileImageChange(reader.result)
+            if (typeof reader.result === "string") onProfileImageChange(reader.result, file)
         }
         reader.readAsDataURL(file)
     }

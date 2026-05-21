@@ -44,6 +44,7 @@ export default function ProfileContainer() {
     const [selectedLanguageCode, setSelectedLanguageCode] = useState<string | null>(null)
     const [pageIndex, setPageIndex] = useState(0)
     const [isPageFading, setIsPageFading] = useState(false)
+    const [profileImageError, setProfileImageError] = useState("")
     const wheelLockedRef = useRef(false)
     const pageTransitionTimeoutRef = useRef<number | null>(null)
 
@@ -91,14 +92,24 @@ export default function ProfileContainer() {
     const profileRegion = getCountryFromValue(profileRegionCode)
     const favoriteLanguageFlag = profileRegion?.flagUrl
 
-    const handleProfileImageUpload = (file: File | undefined) => {
+    const handleProfileImageUpload = async (file: File | undefined) => {
         if (!file) return
 
-        const reader = new FileReader()
-        reader.onload = () => {
-            if (typeof reader.result === "string") setProfileImage(reader.result)
+        setProfileImageError("")
+        try {
+            await setProfileImage(file)
+        } catch (error) {
+            setProfileImageError(error instanceof Error ? error.message : "Could not upload profile image")
         }
-        reader.readAsDataURL(file)
+    }
+
+    const handleProfileImageRemove = async () => {
+        setProfileImageError("")
+        try {
+            await setProfileImage(null)
+        } catch (error) {
+            setProfileImageError(error instanceof Error ? error.message : "Could not remove profile image")
+        }
     }
 
     const setProfilePage = (nextIndex: number) => {
@@ -134,7 +145,9 @@ export default function ProfileContainer() {
         profileLanguages,
         currentLanguage,
         onSelectLanguage: setSelectedLanguageCode,
-        onProfileImageUpload: handleProfileImageUpload
+        onProfileImageUpload: handleProfileImageUpload,
+        onProfileImageRemove: handleProfileImageRemove,
+        profileImageError
     }
 
     return (

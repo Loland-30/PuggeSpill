@@ -4,6 +4,7 @@ import { LogIn, LogOut, Palette, UserRound } from "lucide-react"
 
 import { useAuth } from "../auth/AuthContext"
 import { useTheme } from "../theme/ThemeContext"
+import ProfileImage from "./ProfileImage"
 
 export default function ProfileDropdown() {
     const navigate = useNavigate()
@@ -21,20 +22,19 @@ export default function ProfileDropdown() {
         <div className="relative">
             <button
                 onClick={() => setProfileMenuOpen(open => !open)}
-                className={`grid h-14 w-14 place-items-center overflow-hidden rounded-full border-2 ${palette.border} ${profileImage ? "bg-slate-900 text-white" : `${palette.primaryButton} ${palette.primaryButtonText}`} text-xl font-black ${palette.glow} transition hover:scale-105`}
+                className={`relative grid h-14 w-14 place-items-center overflow-hidden rounded-full border-2 ${palette.border} ${profileImage ? "bg-slate-900 text-white" : `${palette.primaryButton} ${palette.primaryButtonText}`} text-xl font-black ${palette.glow} transition hover:scale-105`}
                 aria-label="Open profile menu"
             >
-                {profileImage ? (
-                    <img
-                        src={profileImage}
-                        alt={user ? `${user.username} profile` : "Profile"}
-                        className="h-full w-full object-cover"
-                    />
-                ) : user ? (
+                {user ? (
                     user.username.slice(0, 1).toUpperCase()
                 ) : (
                     <UserRound size={24} strokeWidth={2.5} />
                 )}
+                <ProfileImage
+                    src={profileImage}
+                    alt={user ? `${user.username} profile` : "Profile"}
+                    className="absolute inset-0 h-full w-full object-cover"
+                />
             </button>
 
             {profileMenuOpen && (
@@ -77,4 +77,3 @@ export default function ProfileDropdown() {
         </div>
     )
 }
-

@@ -225,7 +225,8 @@ namespace LexiGo.Api.Controllers {
                 user.Username,
                 user.Email,
                 user.FavoriteLanguage,
-                user.CreatedAt
+                user.CreatedAt,
+                user.ProfileImageUrl
             );
         }
     }
@@ -235,5 +236,5 @@ namespace LexiGo.Api.Controllers {
     public record ForgotPasswordRequest(string Email);
     public record ResetPasswordRequest(string Token, string NewPassword);
     public record AuthResponse(string Token, UserResponse User);
-    public record UserResponse(int Id, string Username, string Email, string FavoriteLanguage, DateTime CreatedAt);
+    public record UserResponse(int Id, string Username, string Email, string FavoriteLanguage, DateTime CreatedAt, string? ProfileImageUrl);
 }

@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5084/api"
+export const API_URL = "http://localhost:5084/api"
 const TOKEN_KEY = "spellstack_auth_token"
 
 export interface AuthUser {
@@ -7,6 +7,7 @@ export interface AuthUser {
     email: string
     favoriteLanguage: string
     createdAt: string
+    profileImageUrl?: string | null
 }
 
 export interface AuthResponse {

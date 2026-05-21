@@ -8,6 +8,7 @@ import AuthWelcomeSplash from "../components/auth/AuthWelcomeSplash"
 import LoginForm from "../components/auth/LoginForm"
 import SignupFlow from "../components/auth/SignupFlow"
 import type { AuthCountryOption } from "../components/auth/SignupStepProfile"
+import { resolveAssetUrl } from "../utils/assetUrl"
 
 const welcomeDelayMs = 1200
 const welcomeExitMs = 260
@@ -25,10 +26,6 @@ const countryOptions: AuthCountryOption[] = [
     { code: "fr", name: "France", flag: "\u{1F1EB}\u{1F1F7}" }
 ]
 
-function getProfileImageKey(userId: number) {
-    return `spellstack_profile_image_${userId}`
-}
-
 function getProfileCountryKey(userId: number) {
     return `spellstack_profile_country_${userId}`
 }
@@ -39,7 +36,7 @@ function isValidEmail(value: string) {
 
 export default function AuthPage() {
     const navigate = useNavigate()
-    const { loginUser, registerUser } = useAuth()
+    const { loginUser, registerUser, uploadProfileImage } = useAuth()
     const [mode, setMode] = useState<"login" | "signup">("login")
     const [signupStep, setSignupStep] = useState<1 | 2 | 3>(1)
     const [email, setEmail] = useState("")
@@ -48,6 +45,7 @@ export default function AuthPage() {
     const [username, setUsername] = useState("")
     const [countryCode, setCountryCode] = useState("no")
     const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null)
+    const [profileImageFile, setProfileImageFile] = useState<File | null>(null)
     const [rememberMe, setRememberMe] = useState(true)
     const [error, setError] = useState("")
     const [message, setMessage] = useState("")
@@ -95,6 +93,11 @@ export default function AuthPage() {
         return true
     }
 
+    const handleProfileImageChange = (preview: string | null, file: File | null) => {
+        setProfileImagePreview(preview)
+        setProfileImageFile(file)
+    }
+
     const handleLogin = async () => {
         setError("")
         setMessage("")
@@ -102,7 +105,7 @@ export default function AuthPage() {
 
         try {
             const user = await loginUser(email, password)
-            finishWithSplash("login", user.username, null)
+            finishWithSplash("login", user.username, resolveAssetUrl(user.profileImageUrl))
         } catch (error) {
             setError(error instanceof Error ? error.message : "Something went wrong")
         } finally {
@@ -119,11 +122,15 @@ export default function AuthPage() {
 
         try {
             const user = await registerUser(username.trim(), email, password, "Spansk")
-            if (profileImagePreview) localStorage.setItem(getProfileImageKey(user.id), profileImagePreview)
             localStorage.setItem(getProfileCountryKey(user.id), countryCode)
             localStorage.setItem(profileRegionStorageKey, countryCode)
             window.dispatchEvent(new Event("spellstack-auth-changed"))
-            finishWithSplash("register", user.username, profileImagePreview)
+
+            const userWithImage = profileImageFile
+                ? await uploadProfileImage(profileImageFile)
+                : user
+
+            finishWithSplash("register", userWithImage.username, resolveAssetUrl(userWithImage.profileImageUrl))
         } catch (error) {
             setError(error instanceof Error ? error.message : "Something went wrong")
         } finally {
@@ -194,7 +201,7 @@ export default function AuthPage() {
                                 onConfirmPasswordChange={setConfirmPassword}
                                 onUsernameChange={setUsername}
                                 onCountryChange={setCountryCode}
-                                onProfileImageChange={setProfileImagePreview}
+                                onProfileImageChange={handleProfileImageChange}
                                 onNextAccount={() => validateAccountStep() && setSignupStep(2)}
                                 onNextProfile={() => validateProfileStep() && setSignupStep(3)}
                                 onBackProfile={() => setSignupStep(1)}

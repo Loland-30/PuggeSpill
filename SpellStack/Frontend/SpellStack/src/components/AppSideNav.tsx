@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "../auth/AuthContext"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
+import ProfileImage from "./ProfileImage"
 
 interface NavItem {
     label: string
@@ -56,17 +57,16 @@ export default function AppSideNav() {
             >
                 <span className={`absolute inset-0 rounded-full border-2 ${palette.border} ${profileImage ? "bg-slate-900" : palette.primaryButton} ${palette.glow}`} />
                 <span className="relative grid h-full w-full place-items-center overflow-hidden rounded-full">
-                    {profileImage ? (
-                        <img
-                            src={profileImage}
-                            alt={user ? `${user.username} profile` : t.nav.openProfile}
-                            className="h-full w-full object-cover"
-                        />
-                    ) : user ? (
+                    {user ? (
                         user.username.slice(0, 1).toUpperCase()
                     ) : (
                         <UserRound size={24} strokeWidth={2.5} />
                     )}
+                    <ProfileImage
+                        src={profileImage}
+                        alt={user ? `${user.username} profile` : t.nav.openProfile}
+                        className="absolute inset-0 h-full w-full object-cover"
+                    />
                 </span>
                 {user && (
                     <span className="pointer-events-none absolute left-16 top-1/2 -translate-y-1/2 whitespace-nowrap text-sm font-bold text-white opacity-0 drop-shadow-lg transition group-hover:translate-x-1 group-hover:opacity-100">
