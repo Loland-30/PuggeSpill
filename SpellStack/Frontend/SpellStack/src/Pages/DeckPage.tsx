@@ -11,6 +11,7 @@ import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
 import PageContentTransition from "../components/PageContentTransition"
 import GradientFrame from "../components/GradientFrame"
+import AppPageShell from "../components/layout/AppPageShell"
 import LibraryViewPicker, { type LibraryView } from "../components/LibraryViewPicker"
 import DeckFilterBar, { type DeckLengthFilter, type DeckSortOption } from "../components/decks/DeckFilterBar"
 import DeckGridView from "../components/decks/DeckGridView"
@@ -135,8 +136,7 @@ export default function DeckPage() {
                 onClose={() => setSelectedDeck(null)}
             />
 
-            <div className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-[102rem] flex-col">
-                <main className="mx-auto mt-14 flex w-full max-w-6xl flex-1 flex-col">
+            <AppPageShell contentClassName="mt-14 flex h-[calc(100vh-8rem)] flex-col">
                     <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
                         <LibraryViewPicker
                             activeView="decks"
@@ -234,8 +234,7 @@ export default function DeckPage() {
                             {t.deckPage.deckCount}: {filteredDecks.length}
                         </FadeIn>
                     </PageContentTransition>
-                </main>
-            </div>
+            </AppPageShell>
         </>
     )
 }

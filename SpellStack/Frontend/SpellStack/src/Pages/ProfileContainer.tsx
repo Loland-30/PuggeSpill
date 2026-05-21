@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type WheelEvent } from "react"
 import { motion } from "framer-motion"
 import { useNavigate } from "react-router-dom"
 import { getLanguageStats, type LanguageStats } from "../api/auth"
+import AppPageShell from "../components/layout/AppPageShell"
 import { useAuth } from "../auth/AuthContext"
 import AchievementsPage from "../components/ProfileComponents/AchievementsPage"
 import PerformancePage from "../components/ProfileComponents/PerformancePage"
@@ -151,10 +152,11 @@ export default function ProfileContainer() {
     }
 
     return (
-        <div
-            onWheel={handleWheel}
-            className="relative z-10 mx-auto flex h-[calc(100vh-4rem)] w-full max-w-[102rem] flex-col overflow-hidden"
-        >
+        <AppPageShell contentClassName="max-w-[102rem]">
+            <div
+                onWheel={handleWheel}
+                className="flex h-[calc(100vh-4rem)] w-full flex-col overflow-hidden"
+            >
             <header className="flex items-center justify-center">
                 <nav className="hidden gap-10 text-lg text-white/80 md:flex">
                     {profilePages.map((page, index) => (
@@ -190,7 +192,8 @@ export default function ProfileContainer() {
                     )}
                 </motion.div>
             </main>
-        </div>
+            </div>
+        </AppPageShell>
     )
 }
 

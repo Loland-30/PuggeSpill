@@ -7,6 +7,7 @@ import { addWord, deleteWord, updateWord } from "../api/words"
 import FadeIn from "../components/FadeIn"
 import GradientFrame from "../components/GradientFrame"
 import LanguageSelect from "../components/LanguageSelect"
+import AppPageShell from "../components/layout/AppPageShell"
 import PageContentTransition from "../components/PageContentTransition"
 import { spanishDeckPresets, type SpanishDeckPreset } from "../data/spanishDeckPresets"
 import { useTheme } from "../theme/ThemeContext"
@@ -272,7 +273,7 @@ export default function CreateDeckPage() {
 
     return (
         <PageContentTransition>
-            <div className="relative z-10 mx-auto w-full max-w-[82rem] px-4">
+            <AppPageShell contentClassName="max-w-[82rem]">
                 <div className="mx-auto w-full max-w-2xl">
                     <FadeIn>
                         <button
@@ -513,7 +514,7 @@ export default function CreateDeckPage() {
                         {isEditing ? "Save changes" : "Create deck"}
                     </button>
                 </FadeIn>
-            </div>
+            </AppPageShell>
         </PageContentTransition>
     )
 }

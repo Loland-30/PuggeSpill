@@ -1,8 +1,9 @@
-﻿import { Check, ChevronLeft, ImagePlus, Trash2 } from "lucide-react"
+import { Check, ChevronLeft, ImagePlus, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import FadeIn from "../components/FadeIn"
 import PageContentTransition from "../components/PageContentTransition"
+import AppPageShell from "../components/layout/AppPageShell"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
 import { backgroundThemes, getOverlayOpacity, overlayStrengths, paletteThemes } from "../theme/themes"
@@ -39,7 +40,7 @@ export default function ThemePage() {
 
     return (
         <PageContentTransition>
-            <div className="relative z-10 mx-auto w-full max-w-[70rem]">
+            <AppPageShell contentClassName="max-w-[70rem] pb-8">
                 <FadeIn>
                     <button
                         onClick={() => navigate("/decks")}
@@ -244,7 +245,7 @@ export default function ThemePage() {
                         </button>
                     </section>
                 </FadeIn>
-            </div>
+            </AppPageShell>
         </PageContentTransition>
     )
 }

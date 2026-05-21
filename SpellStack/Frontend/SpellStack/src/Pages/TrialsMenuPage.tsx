@@ -4,6 +4,7 @@ import { ChevronDown, Play } from "lucide-react"
 
 import FadeIn from "../components/FadeIn"
 import LibraryViewPicker, { type LibraryView } from "../components/LibraryViewPicker"
+import AppPageShell from "../components/layout/AppPageShell"
 import PageContentTransition from "../components/PageContentTransition"
 import ThemedPage from "../components/ThemedPage"
 import { useAuth } from "../auth/AuthContext"
@@ -52,8 +53,7 @@ export default function TrialsMenuPage() {
     if (!firstTrial) return null
 
     return (
-        <div className="relative z-10 mx-auto flex min-h-[calc(100vh-14rem)] w-full max-w-[102rem] flex-col">
-                <main className="mx-auto mt-14 flex w-full flex-1 flex-col">
+        <AppPageShell contentClassName="mt-14 flex min-h-[calc(100vh-14rem)] max-w-[102rem] flex-col">
                     <div className="mx-auto mb-8 flex w-full max-w-3xl flex-wrap items-center justify-between gap-4">
                         <LibraryViewPicker
                             activeView="trials"
@@ -69,8 +69,7 @@ export default function TrialsMenuPage() {
                         />
                         </section>
                     </PageContentTransition>
-                </main>
-            </div>
+        </AppPageShell>
     )
 }
 

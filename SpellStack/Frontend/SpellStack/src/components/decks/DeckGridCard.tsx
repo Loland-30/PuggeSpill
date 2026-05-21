@@ -56,11 +56,11 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
                 tabIndex={0}
                 onClick={onPlay}
                 onKeyDown={handleKeyDown}
-                className="relative flex h-full min-h-40 cursor-pointer flex-col overflow-hidden outline-none"
+                className="relative flex h-full min-h-[13rem] cursor-pointer flex-col overflow-hidden outline-none"
                 aria-label={`${t.common.play} ${deck.name}`}
             >
                 <div className="flex items-start justify-between gap-4">
-                    <div className="flex min-w-0 flex-wrap items-start gap-4">
+                    <div className="flex min-w-0 flex-wrap items-start gap-4 pr-24">
                         <FlagBlock
                             name={sourceLanguage?.label ?? deck.language}
                             flagUrl={sourceLanguage?.flagUrl}
@@ -75,7 +75,7 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
                         />
                     </div>
 
-                    <div className="flex shrink-0 items-start gap-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+                    <div className="absolute right-0 top-0 flex items-start gap-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
                         <button
                             type="button"
                             onClick={event => handleActionClick(event, onEdit)}

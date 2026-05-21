@@ -8,6 +8,7 @@ import { useTheme } from "../theme/ThemeContext"
 import { getStoredLargerText, setGlobalLargerText } from "../utils/accessibilitySettings"
 import FadeIn from "../components/FadeIn"
 import PageContentTransition from "../components/PageContentTransition"
+import AppPageShell from "../components/layout/AppPageShell"
 import ChangePasswordModal, { type PasswordChangeRequest } from "../components/settings/ChangePasswordModal"
 import SettingRow from "../components/settings/SettingRow"
 import SettingsSection from "../components/settings/SettingsSection"
@@ -227,7 +228,7 @@ export default function SettingsPage() {
                 palette={palette}
             />
             <PageContentTransition>
-                <div className="relative z-10 mx-auto w-full max-w-5xl pb-20">
+                <AppPageShell contentClassName="max-w-5xl pb-20">
                     <FadeIn className="mb-8">
                         <p className={`text-sm font-black uppercase tracking-[0.35em] ${palette.accentText}`}>{copy.pageKicker}</p>
                         <h1 className="mt-3 text-5xl font-black text-white">{copy.title}</h1>
@@ -417,7 +418,7 @@ export default function SettingsPage() {
                             {copy.saveChanges}
                         </button>
                     </div>
-                </div>
+                </AppPageShell>
             </PageContentTransition>
         </>
     )

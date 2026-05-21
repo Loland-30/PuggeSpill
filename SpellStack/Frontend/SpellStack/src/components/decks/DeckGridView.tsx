@@ -13,7 +13,7 @@ interface DeckGridViewProps {
 
 export default function DeckGridView({ decks, onPlay, onEdit, onDelete, palette }: DeckGridViewProps) {
     return (
-        <div className="grid justify-start gap-5 [grid-template-columns:repeat(auto-fit,minmax(18rem,22rem))]">
+        <div className="grid justify-start gap-5 [grid-template-columns:repeat(auto-fill,minmax(20rem,22rem))]">
             {decks.map(deck => (
                 <FadeIn key={deck.id} className="w-full">
                     <DeckGridCard
