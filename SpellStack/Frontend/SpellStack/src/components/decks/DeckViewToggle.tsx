@@ -15,7 +15,7 @@ export default function DeckViewToggle({ value, onChange, palette }: DeckViewTog
     const { t } = useI18n()
 
     return (
-        <div className={`relative flex h-12 items-center rounded-full border bg-black/20 p-1 backdrop-blur-md ${palette.border}`}>
+        <div className={`relative flex h-[50px] items-center rounded-full border bg-black/20 p-1 backdrop-blur-md ${palette.border}`}>
             <div
                 className={`absolute left-1 top-1 h-10 w-10 rounded-full shadow-lg transition-transform duration-300 ease-out ${palette.primaryButton} ${palette.glow} ${value === "grid" ? "translate-x-10" : "translate-x-0"}`}
                 aria-hidden="true"

@@ -18,6 +18,7 @@ function App() {
     const location = useLocation()
     const isGameplay = location.pathname.includes("/play") || location.pathname.includes("/trials/")
     const showSideNav = !isGameplay && location.pathname !== "/login" && location.pathname !== "/reset-password"
+    const lockPageScroll = location.pathname === "/trials"
 
     if (isGameplay) {
         return (
@@ -29,7 +30,7 @@ function App() {
     }
 
     return (
-        <ThemedPage className="px-6 py-8 text-white">
+        <ThemedPage className={`px-6 py-8 text-white ${lockPageScroll ? "h-screen" : ""}`}>
             {showSideNav && <AppSideNav />}
             <AnimatePresence mode="wait">
                 <Routes location={location} key={location.pathname}>

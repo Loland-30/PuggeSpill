@@ -12,7 +12,7 @@ import { useTheme } from "../theme/ThemeContext"
 import PageContentTransition from "../components/PageContentTransition"
 import GradientFrame from "../components/GradientFrame"
 import AppPageShell from "../components/layout/AppPageShell"
-import LibraryViewPicker, { type LibraryView } from "../components/LibraryViewPicker"
+import LibraryPageToolbar from "../components/navigation/LibraryPageToolbar"
 import DeckFilterBar, { type DeckLengthFilter, type DeckSortOption } from "../components/decks/DeckFilterBar"
 import DeckGridView from "../components/decks/DeckGridView"
 import DeckListView from "../components/decks/DeckListView"
@@ -110,9 +110,6 @@ export default function DeckPage() {
         setSelectedSort("newest")
     }
 
-    const handleLibraryViewChange = (view: LibraryView) => {
-        if (view === "trials") navigate("/trials")
-    }
 
     const handleModeSelect = (direction: GameDirection, modifiers: ActiveGameModifier[], roundLimit: RoundLimit) => {
         const params = new URLSearchParams({ direction })
@@ -137,13 +134,9 @@ export default function DeckPage() {
             />
 
             <AppPageShell contentClassName="mt-14 flex h-[calc(100vh-8rem)] flex-col">
-                    <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-                        <LibraryViewPicker
-                            activeView="decks"
-                            onChange={handleLibraryViewChange}
-                        />
-
-                        <div className="flex items-center gap-6">
+                    <LibraryPageToolbar
+                        actions={
+                            <>
                             <button
                                 onClick={() => navigate("/decks/create")}
                                 className={`group relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full px-0 text-xs font-bold shadow-lg transition-[width,box-shadow] duration-300 ease-out hover:w-24 ${palette.primaryButton} ${palette.primaryButtonText}`}
@@ -172,8 +165,9 @@ export default function DeckPage() {
                                 onChange={setViewMode}
                                 palette={palette}
                             />
-                        </div>
-                    </div>
+                            </>
+                        }
+                    />
 
                     <div
                         className={`relative z-[1000] transition-[max-height,opacity,transform] duration-300 ease-out ${isFilterOpen ? "max-h-40 translate-y-0 overflow-visible opacity-100" : "pointer-events-none max-h-0 -translate-y-3 overflow-hidden opacity-0"}`}

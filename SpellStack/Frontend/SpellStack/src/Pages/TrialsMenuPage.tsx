@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { ChevronDown, Play } from "lucide-react"
 
 import FadeIn from "../components/FadeIn"
-import LibraryViewPicker, { type LibraryView } from "../components/LibraryViewPicker"
+import LibraryPageToolbar from "../components/navigation/LibraryPageToolbar"
 import AppPageShell from "../components/layout/AppPageShell"
 import PageContentTransition from "../components/PageContentTransition"
 import ThemedPage from "../components/ThemedPage"
@@ -36,9 +36,6 @@ export default function TrialsMenuPage() {
         if (!user) navigate("/login")
     }, [authLoading, user, navigate])
 
-    const handleLibraryViewChange = (view: LibraryView) => {
-        if (view === "decks") navigate("/decks")
-    }
 
     if (authLoading) {
         return (
@@ -53,22 +50,17 @@ export default function TrialsMenuPage() {
     if (!firstTrial) return null
 
     return (
-        <AppPageShell contentClassName="mt-14 flex min-h-[calc(100vh-14rem)] max-w-[102rem] flex-col">
-                    <div className="mx-auto mb-8 flex w-full max-w-3xl flex-wrap items-center justify-between gap-4">
-                        <LibraryViewPicker
-                            activeView="trials"
-                            onChange={handleLibraryViewChange}
-                        />
-                    </div>
+        <AppPageShell contentClassName="mt-14 flex h-[calc(100vh-8rem)] flex-col overflow-hidden">
+            <LibraryPageToolbar reserveActionsSlot />
 
-                    <PageContentTransition>
-                        <section className="flex flex-1 items-center justify-center pb-16">
-                        <TrialsShowcase
-                            trial={firstTrial}
-                            onStart={() => navigate(`/trials/${firstTrial.id}`)}
-                        />
-                        </section>
-                    </PageContentTransition>
+            <PageContentTransition className="flex flex-1">
+                <main className="flex flex-1 items-center justify-center overflow-hidden">
+                    <TrialsShowcase
+                        trial={firstTrial}
+                        onStart={() => navigate(`/trials/${firstTrial.id}`)}
+                    />
+                </main>
+            </PageContentTransition>
         </AppPageShell>
     )
 }
@@ -82,9 +74,9 @@ function TrialsShowcase({ trial, onStart }: {
     const trialRank = getTestingTrialRank(trial.id)
 
     return (
-        <FadeIn className="grid h-[50rem] w-full max-w-7xl grid-cols-1 items-center gap-16 px-4 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.82fr)] lg:gap-20 lg:px-12 xl:gap-28">
+        <FadeIn className="grid w-full max-w-7xl grid-cols-1 items-center gap-16 px-4 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.82fr)] lg:gap-20 lg:px-12 xl:gap-28">
             <section className="flex flex-col items-start justify-center text-left">
-                <div className="flex flex-wrap items-center gap-5">
+                <div className="flex items-center gap-5 whitespace-nowrap">
                     <h1 className="text-7xl font-black tracking-tight text-white sm:text-8xl">
                         Trials
                     </h1>
@@ -132,11 +124,11 @@ function TrialLanguageDropdown({ flagUrl, label }: { flagUrl: string; label: str
     const [isOpen, setIsOpen] = useState(false)
 
     return (
-        <div className="relative">
+        <div className="relative shrink-0">
             <button
                 type="button"
                 onClick={() => setIsOpen(current => !current)}
-                className="flex items-center gap-4 rounded-2xl border border-white/10 bg-black/15 px-4 py-2.5 text-white shadow-xl backdrop-blur-md transition hover:bg-black/20"
+                className="flex h-14 min-w-[6.5rem] items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/15 px-4 text-white shadow-xl backdrop-blur-md transition hover:bg-black/20"
                 aria-expanded={isOpen}
                 aria-label={`${label} trials`}
             >

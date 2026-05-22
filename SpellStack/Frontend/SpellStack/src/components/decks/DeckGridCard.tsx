@@ -48,7 +48,7 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
             radius={24}
             radiusClass="rounded-3xl"
             className="group h-full rounded-3xl transition duration-300 hover:-translate-y-1"
-            contentClassName="h-full rounded-[inherit] px-4 py-4"
+            contentClassName="h-full rounded-[inherit] px-4 py-3"
             hoverFillClassName="group-hover/gradient-frame:bg-black/30"
         >
             <div
@@ -56,7 +56,7 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
                 tabIndex={0}
                 onClick={onPlay}
                 onKeyDown={handleKeyDown}
-                className="relative flex h-full min-h-[13rem] cursor-pointer flex-col overflow-hidden outline-none"
+                className="relative flex h-full min-h-[9rem] cursor-pointer flex-col overflow-hidden outline-none"
                 aria-label={`${t.common.play} ${deck.name}`}
             >
                 <div className="flex items-start justify-between gap-4">
@@ -124,13 +124,13 @@ function FlagBlock({ name, flagUrl, learning, learningLabel }: { name: string; f
                 <img
                     src={flagUrl}
                     alt={`${name} flag`}
-                    className="h-12 w-20 rounded-2xl object-cover shadow-lg"
+                    className="h-10 w-16 rounded-xl object-cover shadow-lg"
                 />
             ) : (
-                <div className="h-12 w-20 rounded-2xl bg-white/15" />
+                <div className="h-10 w-16 rounded-xl bg-white/15" />
             )}
 
-            <p className={`mt-1.5 text-center text-xs font-bold ${learning ? "text-white" : "text-transparent"}`}>
+            <p className={`mt-1 text-center text-[11px] font-bold ${learning ? "text-white" : "text-transparent"}`}>
                 {learningLabel}
             </p>
         </div>
