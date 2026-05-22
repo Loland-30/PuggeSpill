@@ -22,7 +22,6 @@ interface Props {
 
 interface ModeCardProps {
     title: string
-    description: string
     onClick: () => void
     children: ReactNode
 }
@@ -32,32 +31,28 @@ interface RoundLimitOption {
     value: RoundLimit
 }
 
-function ModeCard({ title, description, onClick, children }: ModeCardProps) {
+function ModeCard({ title, onClick, children }: ModeCardProps) {
     return (
         <button
             type="button"
             onClick={onClick}
-            className="group text-left transition hover:-translate-y-1 focus:outline-none"
+            className="group text-left transition duration-200 ease-out focus:outline-none"
         >
             <GradientFrame
                 radius={18}
                 radiusClass="rounded-2xl"
-                className="min-h-[230px]"
-                contentClassName="flex min-h-[230px] flex-col justify-between p-6"
+                className="min-h-[13.25rem] transition duration-200 ease-out"
+                fillClassName="bg-white/[0.025]"
+                hoverFillClassName="group-hover:bg-white/[0.08]"
+                contentClassName="flex min-h-[13.25rem] flex-col items-center justify-center gap-8 p-8"
             >
-                <div className="flex flex-col items-center justify-center gap-5 text-white">
+                <div className="flex flex-col items-center justify-center gap-6 text-white">
                     {children}
 
-                    <div className="text-center">
-                        <p className="text-2xl font-black tracking-tight text-white">
-                            {title}
-                        </p>
-                    </div>
+                    <p className="text-center text-[1.85rem] font-black leading-tight tracking-tight text-white">
+                        {title}
+                    </p>
                 </div>
-
-                <p className="text-center text-sm font-medium text-white/65 transition group-hover:text-white">
-                    {description}
-                </p>
             </GradientFrame>
         </button>
     )
@@ -88,11 +83,11 @@ function RoundLimitPicker({ value, onChange }: RoundLimitPickerProps) {
             <button
                 type="button"
                 onClick={() => setIsOpen(open => !open)}
-                className="flex items-center gap-3 rounded-full bg-white/90 px-5 py-2 text-sm font-bold text-gray-800 shadow-xl transition hover:bg-white"
+                className="group flex items-center gap-2 rounded-full px-2.5 py-2 text-base font-bold text-white/80 transition hover:bg-white/5 hover:text-white"
             >
-                <span className="text-gray-500">{t.gameMode.length}</span>
+                <span>{t.gameMode.length}</span>
 
-                <span className="font-black">
+                <span className="font-black text-white">
                     {selectedOption.label}
                 </span>
 
@@ -164,124 +159,101 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/80 px-4 py-8"
+            className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/85 px-4 py-8 backdrop-blur-sm"
             onClick={onClose}
         >
             <div
-                className="w-full max-w-5xl"
+                className="w-[min(94vw,72rem)] rounded-[2rem] bg-slate-900/45 p-7 shadow-2xl md:p-10"
                 onClick={event => event.stopPropagation()}
             >
-                <GradientFrame
-                    glow
-                    radius={24}
-                    radiusClass="rounded-3xl"
-                    contentClassName="p-6 sm:p-8"
-                >
-                    <div className="flex flex-col gap-6">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <p className="text-sm font-bold uppercase tracking-[0.25em] text-white/45">
-                                    SpellStack
-                                </p>
+                <div className="flex flex-col gap-9">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <h2 className="text-[2.4rem] font-black leading-tight tracking-tight text-white">
+                            {t.gameMode.chooseGameMode}
+                        </h2>
 
-                                <h2 className="text-3xl font-black tracking-tight text-white">
-                                    {t.gameMode.chooseGameMode}
-                                </h2>
-                            </div>
+                        <div className="flex flex-wrap items-center gap-5">
+                            <RoundLimitPicker
+                                value={roundLimit}
+                                onChange={setRoundLimit}
+                            />
 
-                            <div className="flex flex-wrap items-center gap-3">
-                                <RoundLimitPicker
-                                    value={roundLimit}
-                                    onChange={setRoundLimit}
-                                />
+                            <button
+                                type="button"
+                                onClick={() => setShowModifierPicker(open => !open)}
+                                className={`rounded-full px-2.5 py-2 text-base font-bold transition hover:bg-white/5 hover:text-white ${modifiers.length === 0 ? "text-white/80" : palette.accentText}`}
+                            >
+                                {t.gameMode.mods}: <span className="text-white">{modifierLabel}</span>
+                            </button>
 
-                                <button
-                                    type="button"
-                                    onClick={() => setShowModifierPicker(open => !open)}
-                                    className={`flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold shadow-xl transition ${modifiers.length === 0 ? "bg-white/90 text-gray-800 hover:bg-white" : `${palette.primaryButton} ${palette.primaryButtonText}`}`}
-                                >
-                                    <span className="grid h-6 w-6 place-items-center rounded-full bg-black/10 text-xs">
-                                        +
-                                    </span>
-
-                                    {t.gameMode.mods}: {modifierLabel}
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    className={`grid h-11 w-11 place-items-center rounded-full border ${palette.border} bg-white/90 text-gray-800 shadow-xl transition hover:bg-white/10 hover:text-white`}
-                                    aria-label={t.gameMode.closeLabel}
-                                >
-                                    <X size={22} strokeWidth={2.7} />
-                                </button>
-                            </div>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className={`grid h-11 w-11 place-items-center rounded-full border ${palette.border} bg-white/5 text-white/80 transition hover:bg-white/10 hover:text-white`}
+                                aria-label={t.gameMode.closeLabel}
+                            >
+                                <X size={21} strokeWidth={2.7} />
+                            </button>
                         </div>
-
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                                <ModeCard
-                                    title={`${lang1Label} → ${lang2Label}`}
-                                    description={t.gameMode.translateFrom.replace("{language}", lang1Label)}
-                                    onClick={() => onSelect("original", modifiers, roundLimit)}
-                                >
-                                    <div className="flex items-center justify-center gap-5">
-                                        <LanguageDot flagUrl={lang1?.flagUrl} label={lang1Label} />
-                                        <span className="text-xs font-black uppercase tracking-[0.25em] text-white/40">
-                                            {t.gameMode.to}
-                                        </span>
-                                        <LanguageDot flagUrl={lang2?.flagUrl} label={lang2Label} />
-                                    </div>
-                                </ModeCard>
-
-                                <ModeCard
-                                    title={`${lang2Label} → ${lang1Label}`}
-                                    description={t.gameMode.translateFrom.replace("{language}", lang2Label)}
-                                    onClick={() => onSelect("translation", modifiers, roundLimit)}
-                                >
-                                    <div className="flex items-center justify-center gap-5">
-                                        <LanguageDot flagUrl={lang2?.flagUrl} label={lang2Label} />
-                                        <span className="text-xs font-black uppercase tracking-[0.25em] text-white/40">
-                                            {t.gameMode.to}
-                                        </span>
-                                        <LanguageDot flagUrl={lang1?.flagUrl} label={lang1Label} />
-                                    </div>
-                                </ModeCard>
-
-                                <ModeCard
-                                    title={t.gameMode.mixed}
-                                    description={t.gameMode.randomDirectionEachWord}
-                                    onClick={() => onSelect("mixed", modifiers, roundLimit)}
-                                >
-                                    <div className="flex flex-col items-center gap-3">
-                                        <div className="rounded-2xl bg-white/10 px-6 py-4 text-4xl font-black text-white shadow-inner">
-                                            A/B
-                                        </div>
-
-                                        <p className="text-center text-sm font-bold text-white/65">
-                                            {t.gameMode.bothDirections}
-                                        </p>
-                                    </div>
-                                </ModeCard>
-                            </div>
                     </div>
-                </GradientFrame>
+
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                        <ModeCard
+                            title={`${lang1Label} → ${lang2Label}`}
+                            onClick={() => onSelect("original", modifiers, roundLimit)}
+                        >
+                            <div className="flex items-center justify-center gap-5">
+                                <LanguageDot flagUrl={lang1?.flagUrl} label={lang1Label} />
+                                <span className="text-xs font-black uppercase tracking-[0.25em] text-white/40">
+                                    {t.gameMode.to}
+                                </span>
+                                <LanguageDot flagUrl={lang2?.flagUrl} label={lang2Label} />
+                            </div>
+                        </ModeCard>
+
+                        <ModeCard
+                            title={`${lang2Label} → ${lang1Label}`}
+                            onClick={() => onSelect("translation", modifiers, roundLimit)}
+                        >
+                            <div className="flex items-center justify-center gap-5">
+                                <LanguageDot flagUrl={lang2?.flagUrl} label={lang2Label} />
+                                <span className="text-xs font-black uppercase tracking-[0.25em] text-white/40">
+                                    {t.gameMode.to}
+                                </span>
+                                <LanguageDot flagUrl={lang1?.flagUrl} label={lang1Label} />
+                            </div>
+                        </ModeCard>
+
+                        <ModeCard
+                            title={t.gameMode.mixed}
+                            onClick={() => onSelect("mixed", modifiers, roundLimit)}
+                        >
+                            <div className="rounded-2xl bg-white/10 px-8 py-6 text-[3.25rem] font-black leading-none text-white shadow-inner transition group-hover:bg-white/[0.14]">
+                                A/B
+                            </div>
+                        </ModeCard>
+                    </div>
+                </div>
             </div>
         </div>
     )
 }
 
 function LanguageDot({ flagUrl, label }: { flagUrl?: string; label: string }) {
-    return (
-        <div className="flex flex-col items-center gap-2">
-            <img
-                src={flagUrl}
-                alt={label}
-                className="h-14 w-14 rounded-full object-cover shadow-lg"
+    if (!flagUrl) {
+        return (
+            <div
+                aria-label={label}
+                className="h-[4.5rem] w-[4.5rem] rounded-full bg-white/10 shadow-lg"
             />
+        )
+    }
 
-            <p className="text-sm font-bold text-white/80">
-                {label}
-            </p>
-        </div>
+    return (
+        <img
+            src={flagUrl}
+            alt={label}
+            className="h-[4.5rem] w-[4.5rem] rounded-full object-cover shadow-lg"
+        />
     )
 }
