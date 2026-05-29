@@ -6,6 +6,7 @@ import type { ActiveGameModifier, GameDirection, RoundLimit } from "../api/gameS
 import { languages } from "../data/languages"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
+import { readGameplaySettings, resolveDefaultGameDirection, toRoundLimit } from "../utils/gameplaySettings"
 import GradientFrame from "./GradientFrame"
 import { MODIFIER_DEFINITIONS, type ModifierCategory, type ModifierDefinition } from "./mods/modifierData"
 import { formatScoreMultiplier, getModifierScoreMultiplier, toggleModifier } from "./mods/modifierUtils"
@@ -36,14 +37,19 @@ interface RoundLimitOption {
 export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props) {
     const [selectedDirection, setSelectedDirection] = useState<GameDirection>("original")
     const [modifiers, setModifiers] = useState<ActiveGameModifier[]>([])
-    const [roundLimit, setRoundLimit] = useState<RoundLimit>(25)
+    const [roundLimit, setRoundLimit] = useState<RoundLimit>(() => toRoundLimit(readGameplaySettings().defaultRoundLength))
     const [activeModifierCategory, setActiveModifierCategory] = useState<ModifierCategory>("easier")
     const [displayDeck, setDisplayDeck] = useState<Deck | null>(deck ?? null)
     const { t } = useI18n()
     const { palette } = useTheme()
 
     useEffect(() => {
-        if (isOpen && deck) setDisplayDeck(deck)
+        if (isOpen && deck) {
+            const gameplaySettings = readGameplaySettings()
+            setDisplayDeck(deck)
+            setSelectedDirection(resolveDefaultGameDirection(deck, gameplaySettings.defaultGameDirection))
+            setRoundLimit(toRoundLimit(gameplaySettings.defaultRoundLength))
+        }
     }, [isOpen, deck])
 
     const activeDeck = deck ?? displayDeck

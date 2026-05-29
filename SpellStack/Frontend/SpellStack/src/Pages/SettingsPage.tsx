@@ -7,6 +7,14 @@ import { appLanguages, countries } from "../data/languages"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
 import { getStoredLargerText, setGlobalLargerText } from "../utils/accessibilitySettings"
+import {
+    readGameplaySettings,
+    saveGameplaySettings,
+    type AccentHandling,
+    type DefaultGameDirection,
+    type DefaultRoundLength,
+    type WrongAnswerRevealDuration
+} from "../utils/gameplaySettings"
 import FadeIn from "../components/FadeIn"
 import PageContentTransition from "../components/PageContentTransition"
 import AppPageShell from "../components/layout/AppPageShell"
@@ -18,14 +26,7 @@ import SettingsSlider from "../components/settings/SettingsSlider"
 import SettingsTabs, { type SettingsTab } from "../components/settings/SettingsTabs"
 import SettingsToggle from "../components/settings/SettingsToggle"
 
-const gameplaySettingsStorageKey = "spellstack_gameplay_settings"
-
 type SectionId = "account" | "gameplay" | "audio" | "comfort" | "privacy"
-
-type DefaultRoundLength = "10" | "25" | "50" | "endless"
-type DefaultGameDirection = "known-to-learning" | "learning-to-known" | "mixed"
-type WrongAnswerRevealDuration = "short" | "normal" | "long"
-type AccentHandling = "strict" | "forgiving"
 
 interface SettingsState {
     username: string
@@ -53,15 +54,6 @@ interface SettingsState {
     allowLobbyFriendRequests: boolean
 }
 
-interface StoredGameplaySettings {
-    defaultRoundLength?: DefaultRoundLength
-    defaultGameDirection?: DefaultGameDirection
-    wrongAnswerRevealDuration?: WrongAnswerRevealDuration
-    autoFocusAnswerInput?: boolean
-    rushHourAutoSubmit?: boolean
-    accentHandling?: AccentHandling
-}
-
 const appLanguageOptions: SettingsSelectOption[] = appLanguages.map(language => ({
     value: language.code,
     label: language.label,
@@ -73,14 +65,6 @@ const countryOptions: SettingsSelectOption[] = countries.map(country => ({
     label: country.label,
     flagUrl: country.flagUrl
 }))
-
-function readStoredGameplaySettings(): StoredGameplaySettings {
-    try {
-        return JSON.parse(localStorage.getItem(gameplaySettingsStorageKey) ?? "{}") as StoredGameplaySettings
-    } catch {
-        return {}
-    }
-}
 
 export default function SettingsPage() {
     const { user, updateAccountProfile } = useAuth()
@@ -108,7 +92,7 @@ export default function SettingsPage() {
     const [isSaving, setIsSaving] = useState(false)
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
     const [settings, setSettings] = useState<SettingsState>(() => {
-        const storedGameplay = readStoredGameplaySettings()
+        const storedGameplay = readGameplaySettings()
 
         return {
             username: user?.username ?? "",
@@ -226,14 +210,14 @@ export default function SettingsPage() {
         setSavedMessage("")
         setSaveError("")
 
-        localStorage.setItem(gameplaySettingsStorageKey, JSON.stringify({
+        saveGameplaySettings({
             defaultRoundLength: settings.defaultRoundLength,
             defaultGameDirection: settings.defaultGameDirection,
             wrongAnswerRevealDuration: settings.wrongAnswerRevealDuration,
             autoFocusAnswerInput: settings.autoFocusAnswerInput,
             rushHourAutoSubmit: settings.rushHourAutoSubmit,
             accentHandling: settings.accentHandling
-        }))
+        })
 
         try {
             const usernameChanged = settings.username.trim() !== (user?.username ?? "")
