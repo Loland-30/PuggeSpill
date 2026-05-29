@@ -323,6 +323,8 @@
         mismatchError: "New password and confirmation do not match.",
         cancel: "Cancel",
         savePassword: "Save password",
+        saving: "Saving...",
+        genericError: "Could not update password.",
         closeLabel: "Close password modal"
     }
 } as const

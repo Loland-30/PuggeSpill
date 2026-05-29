@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LexiGo.Api.Data;
 using LexiGo.Api.Models;
+using LexiGo.Api.Services;
 
 namespace LexiGo.Api.Controllers {
     [ApiController]
@@ -34,12 +35,12 @@ namespace LexiGo.Api.Controllers {
 
             if (exists) return Conflict("Bruker finnes allerede");
 
-            var salt = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+            var salt = PasswordHasher.CreateSalt();
             var user = new User {
                 Username = username,
                 Email = email,
                 PasswordSalt = salt,
-                PasswordHash = HashPassword(request.Password, salt),
+                PasswordHash = PasswordHasher.HashPassword(request.Password, salt),
                 FavoriteLanguage = request.FavoriteLanguage?.Trim() ?? "Spanish"
             };
 
@@ -55,7 +56,7 @@ namespace LexiGo.Api.Controllers {
             var email = request.Email.Trim().ToLowerInvariant();
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email);
 
-            if (user == null || HashPassword(request.Password, user.PasswordSalt) != user.PasswordHash) {
+            if (user == null || !PasswordHasher.VerifyPassword(request.Password, user.PasswordSalt, user.PasswordHash)) {
                 return Unauthorized("Feil e-post eller passord");
             }
 
@@ -103,9 +104,9 @@ namespace LexiGo.Api.Controllers {
 
             if (resetToken == null) return BadRequest("Reset-lenken er ugyldig eller utløpt");
 
-            var salt = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+            var salt = PasswordHasher.CreateSalt();
             resetToken.User.PasswordSalt = salt;
-            resetToken.User.PasswordHash = HashPassword(request.NewPassword, salt);
+            resetToken.User.PasswordHash = PasswordHasher.HashPassword(request.NewPassword, salt);
             resetToken.UsedAt = DateTime.UtcNow;
 
             var sessions = _context.UserSessions.Where(s => s.UserId == resetToken.UserId);
@@ -164,18 +165,6 @@ namespace LexiGo.Api.Controllers {
             var header = Request.Headers.Authorization.ToString();
             if (!header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)) return null;
             return header["Bearer ".Length..].Trim();
-        }
-
-        private static string HashPassword(string password, string salt) {
-            var saltBytes = Convert.FromBase64String(salt);
-            var hashBytes = Rfc2898DeriveBytes.Pbkdf2(
-                password,
-                saltBytes,
-                100_000,
-                HashAlgorithmName.SHA256,
-                32
-            );
-            return Convert.ToBase64String(hashBytes);
         }
 
         private static string CreateUrlSafeToken() {

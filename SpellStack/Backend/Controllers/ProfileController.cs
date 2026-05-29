@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LexiGo.Api.Data;
 using LexiGo.Api.Models;
+using LexiGo.Api.Services;
+using System.Net.Mail;
 
 namespace LexiGo.Api.Controllers {
     [ApiController]
@@ -81,6 +83,63 @@ namespace LexiGo.Api.Controllers {
             return Ok(stats);
         }
 
+        [HttpPut("account")]
+        public async Task<IActionResult> UpdateAccount([FromBody] UpdateAccountRequest request) {
+            var user = await GetCurrentUser();
+            if (user == null) return Unauthorized();
+
+            var username = request.Username?.Trim() ?? "";
+            var email = request.Email?.Trim().ToLowerInvariant() ?? "";
+
+            if (username.Length < 2) return BadRequest("Brukernavnet er for kort");
+            if (!IsValidEmail(email)) return BadRequest("E-posten er ugyldig");
+
+            var normalizedUsername = username.ToLowerInvariant();
+            var usernameExists = await _context.Users.AnyAsync(otherUser =>
+                otherUser.Id != user.Id &&
+                otherUser.Username.ToLower() == normalizedUsername);
+            if (usernameExists) return Conflict("Brukernavnet er allerede i bruk");
+
+            var emailExists = await _context.Users.AnyAsync(otherUser =>
+                otherUser.Id != user.Id &&
+                otherUser.Email.ToLower() == email);
+            if (emailExists) return Conflict("E-posten er allerede i bruk");
+
+            user.Username = username;
+            user.Email = email;
+            await _context.SaveChangesAsync();
+
+            return Ok(ToUserResponse(user));
+        }
+
+        [HttpPut("password")]
+        public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordRequest request) {
+            var user = await GetCurrentUser();
+            if (user == null) return Unauthorized();
+
+            if (
+                string.IsNullOrWhiteSpace(request.CurrentPassword) ||
+                string.IsNullOrWhiteSpace(request.NewPassword) ||
+                string.IsNullOrWhiteSpace(request.ConfirmPassword)
+            ) {
+                return BadRequest("Alle passordfelt maa fylles ut");
+            }
+
+            if (request.NewPassword.Length < 6) return BadRequest("Passord maa vaere minst 6 tegn");
+            if (request.NewPassword != request.ConfirmPassword) return BadRequest("Passordene matcher ikke");
+
+            if (!PasswordHasher.VerifyPassword(request.CurrentPassword, user.PasswordSalt, user.PasswordHash)) {
+                return BadRequest("Naavaerende passord er feil");
+            }
+
+            var salt = PasswordHasher.CreateSalt();
+            user.PasswordSalt = salt;
+            user.PasswordHash = PasswordHasher.HashPassword(request.NewPassword, salt);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Passordet er oppdatert" });
+        }
+
         [HttpPost("image")]
         [RequestSizeLimit(MaxProfileImageBytes)]
         public async Task<IActionResult> UploadImage([FromForm(Name = "image")] IFormFile? image) {
@@ -139,6 +198,17 @@ namespace LexiGo.Api.Controllers {
             var header = Request.Headers.Authorization.ToString();
             if (!header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)) return null;
             return header["Bearer ".Length..].Trim();
+        }
+
+        private static bool IsValidEmail(string email) {
+            if (string.IsNullOrWhiteSpace(email)) return false;
+
+            try {
+                var address = new MailAddress(email);
+                return address.Address.Equals(email, StringComparison.OrdinalIgnoreCase);
+            } catch {
+                return false;
+            }
         }
 
         private string GetProfileImageUploadRoot() {
@@ -201,4 +271,6 @@ namespace LexiGo.Api.Controllers {
 
     public record ProfileSummaryResponse(int RunsPlayed, int LongestStreak, int WordsLearned);
     public record LanguageStatsResponse(string LanguageCode, int RunsPlayed, int LongestStreak, int WordsLearned);
+    public record UpdateAccountRequest(string Username, string Email);
+    public record UpdatePasswordRequest(string CurrentPassword, string NewPassword, string ConfirmPassword);
 }

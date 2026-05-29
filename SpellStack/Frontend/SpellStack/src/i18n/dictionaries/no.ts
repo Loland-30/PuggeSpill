@@ -319,6 +319,8 @@ export const no = {
         mismatchError: "Nytt passord og bekreftelsen matcher ikke.",
         cancel: "Avbryt",
         savePassword: "Lagre passord",
+        saving: "Lagrer...",
+        genericError: "Kunne ikke oppdatere passordet.",
         closeLabel: "Lukk passordvindu"
     }
 } satisfies Dictionary

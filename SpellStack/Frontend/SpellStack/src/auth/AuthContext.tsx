@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
-import { clearStoredToken, getMe, getStoredToken, login, logout, register, storeToken, type AuthUser } from "../api/auth"
+import { clearStoredToken, getMe, getStoredToken, login, logout, register, storeToken, updateAccountProfile as updateAccountProfileRequest, type AuthUser } from "../api/auth"
 import { deleteProfileImage as deleteProfileImageRequest, uploadProfileImage as uploadProfileImageRequest } from "../api/profileImage"
 import { resolveAssetUrl } from "../utils/assetUrl"
 
@@ -10,6 +10,7 @@ interface AuthContextValue {
     setProfileImage: (image: File | null) => Promise<AuthUser | null>
     uploadProfileImage: (image: File) => Promise<AuthUser>
     deleteProfileImage: () => Promise<AuthUser | null>
+    updateAccountProfile: (username: string, email: string) => Promise<AuthUser>
     loginUser: (email: string, password: string) => Promise<AuthUser>
     registerUser: (username: string, email: string, password: string, favoriteLanguage: string) => Promise<AuthUser>
     logoutUser: () => Promise<void>
@@ -60,6 +61,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return deleteProfileImage()
     }, [deleteProfileImage, uploadProfileImage, user])
 
+    const updateAccountProfile = useCallback(async (username: string, email: string) => {
+        const updatedUser = await updateAccountProfileRequest(username, email)
+        setUser(updatedUser)
+        window.dispatchEvent(new Event("spellstack-auth-changed"))
+        return updatedUser
+    }, [])
+
     const value = useMemo<AuthContextValue>(() => ({
         user,
         loading,
@@ -67,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfileImage,
         uploadProfileImage,
         deleteProfileImage,
+        updateAccountProfile,
         loginUser: async (email, password) => {
             const result = await login(email, password)
             storeToken(result.token)
@@ -86,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null)
             window.dispatchEvent(new Event("spellstack-auth-changed"))
         }
-    }), [deleteProfileImage, loading, profileImage, setProfileImage, uploadProfileImage, user])
+    }), [deleteProfileImage, loading, profileImage, setProfileImage, updateAccountProfile, uploadProfileImage, user])
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

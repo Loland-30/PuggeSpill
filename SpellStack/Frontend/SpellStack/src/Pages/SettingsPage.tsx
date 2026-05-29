@@ -1,6 +1,7 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { KeyRound, Save } from "lucide-react"
 
+import { changePassword } from "../api/auth"
 import { useAuth } from "../auth/AuthContext"
 import { appLanguages, countries } from "../data/languages"
 import { useI18n } from "../i18n/I18nContext"
@@ -82,7 +83,7 @@ function readStoredGameplaySettings(): StoredGameplaySettings {
 }
 
 export default function SettingsPage() {
-    const { user } = useAuth()
+    const { user, updateAccountProfile } = useAuth()
     const { palette } = useTheme()
     const {
         t,
@@ -103,6 +104,8 @@ export default function SettingsPage() {
     })
     const [activeTab, setActiveTab] = useState<SectionId>("account")
     const [savedMessage, setSavedMessage] = useState("")
+    const [saveError, setSaveError] = useState("")
+    const [isSaving, setIsSaving] = useState(false)
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
     const [settings, setSettings] = useState<SettingsState>(() => {
         const storedGameplay = readStoredGameplaySettings()
@@ -170,21 +173,33 @@ export default function SettingsPage() {
 
     const updateSetting = <Key extends keyof SettingsState>(key: Key, value: SettingsState[Key]) => {
         setSavedMessage("")
+        setSaveError("")
         setSettings(current => ({ ...current, [key]: value }))
     }
 
+    useEffect(() => {
+        setSettings(current => ({
+            ...current,
+            username: user?.username ?? "",
+            email: user?.email ?? ""
+        }))
+    }, [user?.email, user?.username])
+
     const updateManualAppLanguage = (value: string) => {
         setSavedMessage("")
+        setSaveError("")
         setManualAppLanguage(value)
     }
 
     const updateCountryRegion = (value: string) => {
         setSavedMessage("")
+        setSaveError("")
         setCountryRegion(value)
     }
 
     const updateUseRegionLanguage = (value: boolean) => {
         setSavedMessage("")
+        setSaveError("")
         setUseRegionLanguage(value)
     }
 
@@ -199,13 +214,18 @@ export default function SettingsPage() {
         sectionRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "start" })
     }
 
-    const handlePasswordSave = (_request: PasswordChangeRequest) => {
-        // TODO: Send password change request to a dedicated auth endpoint.
-        setSavedMessage(copy.passwordReadyMessage)
+    const handlePasswordSave = async (request: PasswordChangeRequest) => {
+        const message = await changePassword(request.currentPassword, request.newPassword, request.confirmPassword)
+        setSavedMessage(message || copy.passwordReadyMessage)
+        setSaveError("")
+        return message
     }
 
-    const handleSave = () => {
-        // TODO: Persist account/audio/comfort/privacy settings when user settings endpoints exist in the backend.
+    const handleSave = async () => {
+        setIsSaving(true)
+        setSavedMessage("")
+        setSaveError("")
+
         localStorage.setItem(gameplaySettingsStorageKey, JSON.stringify({
             defaultRoundLength: settings.defaultRoundLength,
             defaultGameDirection: settings.defaultGameDirection,
@@ -214,7 +234,27 @@ export default function SettingsPage() {
             rushHourAutoSubmit: settings.rushHourAutoSubmit,
             accentHandling: settings.accentHandling
         }))
-        setSavedMessage(copy.savedMessage)
+
+        try {
+            const usernameChanged = settings.username.trim() !== (user?.username ?? "")
+            const emailChanged = settings.email.trim().toLowerCase() !== (user?.email ?? "").toLowerCase()
+
+            if (user && (usernameChanged || emailChanged)) {
+                const updatedUser = await updateAccountProfile(settings.username, settings.email)
+                setSettings(current => ({
+                    ...current,
+                    username: updatedUser.username,
+                    email: updatedUser.email
+                }))
+            }
+
+            setSavedMessage(copy.savedMessage)
+        } catch (error) {
+            const message = error instanceof Error ? error.message : ""
+            setSaveError(message || "Kunne ikke lagre innstillingene")
+        } finally {
+            setIsSaving(false)
+        }
     }
 
     const inputClassName = `w-full min-w-64 rounded-2xl border ${palette.border} bg-slate-950/90 px-4 py-3 text-sm font-bold text-white placeholder:text-white/35 outline-none backdrop-blur transition focus:ring-2 focus:ring-white/20`
@@ -409,13 +449,15 @@ export default function SettingsPage() {
 
                     <div className="sticky bottom-6 z-20 mt-8 flex items-center justify-end gap-4 rounded-3xl border border-white/10 bg-slate-950/80 px-5 py-4 shadow-2xl backdrop-blur-xl">
                         {savedMessage && <p className="text-sm font-semibold text-white/62">{savedMessage}</p>}
+                        {saveError && <p className="text-sm font-semibold text-red-300">{saveError}</p>}
                         <button
                             type="button"
                             onClick={handleSave}
+                            disabled={isSaving}
                             className={`inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-black shadow-xl transition hover:-translate-y-0.5 ${palette.primaryButton} ${palette.primaryButtonText}`}
                         >
                             <Save size={18} strokeWidth={2.6} />
-                            {copy.saveChanges}
+                            {isSaving ? "Saving..." : copy.saveChanges}
                         </button>
                     </div>
                 </AppPageShell>

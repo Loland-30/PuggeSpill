@@ -319,6 +319,8 @@ export const es = {
         mismatchError: "La nueva contraseña y la confirmación no coinciden.",
         cancel: "Cancelar",
         savePassword: "Guardar contraseña",
+        saving: "Guardando...",
+        genericError: "No se pudo actualizar la contraseña.",
         closeLabel: "Cerrar diálogo de contraseña"
     }
 } satisfies Dictionary

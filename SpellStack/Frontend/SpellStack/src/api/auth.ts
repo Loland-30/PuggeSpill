@@ -103,6 +103,37 @@ export async function logout(): Promise<void> {
     clearStoredToken()
 }
 
+export async function updateAccountProfile(username: string, email: string): Promise<AuthUser> {
+    const response = await fetch(`${API_URL}/profile/account`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ username, email })
+    })
+    if (!response.ok) {
+        const message = await response.text()
+        throw new Error(message || "Kunne ikke oppdatere kontoen")
+    }
+    return response.json()
+}
+
+export async function changePassword(
+    currentPassword: string,
+    newPassword: string,
+    confirmPassword: string
+): Promise<string> {
+    const response = await fetch(`${API_URL}/profile/password`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ currentPassword, newPassword, confirmPassword })
+    })
+    if (!response.ok) {
+        const message = await response.text()
+        throw new Error(message || "Kunne ikke oppdatere passordet")
+    }
+    const result: { message: string } = await response.json()
+    return result.message
+}
+
 export async function getProfileSummary(): Promise<ProfileSummary> {
     const response = await fetch(`${API_URL}/profile/summary`, {
         headers: authHeaders()

@@ -14,7 +14,7 @@ export interface PasswordChangeRequest {
 interface ChangePasswordModalProps {
     isOpen: boolean
     onClose: () => void
-    onSave: (request: PasswordChangeRequest) => void
+    onSave: (request: PasswordChangeRequest) => Promise<string | void>
     palette: PaletteTheme
 }
 
@@ -23,6 +23,7 @@ export default function ChangePasswordModal({ isOpen, onClose, onSave, palette }
     const [newPassword, setNewPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
     const [error, setError] = useState("")
+    const [isSaving, setIsSaving] = useState(false)
     const { t } = useI18n()
     const copy = t.passwordModal
 
@@ -31,13 +32,14 @@ export default function ChangePasswordModal({ isOpen, onClose, onSave, palette }
         setNewPassword("")
         setConfirmPassword("")
         setError("")
+        setIsSaving(false)
     }
 
     const closeModal = () => {
         onClose()
     }
 
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
 
         if (!currentPassword || !newPassword || !confirmPassword) {
@@ -50,8 +52,18 @@ export default function ChangePasswordModal({ isOpen, onClose, onSave, palette }
             return
         }
 
-        onSave({ currentPassword, newPassword, confirmPassword })
-        closeModal()
+        setIsSaving(true)
+        setError("")
+
+        try {
+            await onSave({ currentPassword, newPassword, confirmPassword })
+            closeModal()
+        } catch (saveError) {
+            const message = saveError instanceof Error ? saveError.message : ""
+            setError(message || copy.genericError)
+        } finally {
+            setIsSaving(false)
+        }
     }
 
     const inputClassName = `w-full rounded-2xl border ${palette.border} bg-slate-950/90 px-4 py-3 text-sm font-bold text-white placeholder:text-white/35 outline-none backdrop-blur transition focus:ring-2 focus:ring-white/20`
@@ -77,6 +89,7 @@ export default function ChangePasswordModal({ isOpen, onClose, onSave, palette }
                         <button
                             type="button"
                             onClick={closeModal}
+                            disabled={isSaving}
                             className="absolute right-5 top-5 grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/10 text-white transition hover:bg-white/15"
                             aria-label={copy.closeLabel}
                         >
@@ -142,18 +155,20 @@ export default function ChangePasswordModal({ isOpen, onClose, onSave, palette }
 
                         <div className="mt-8 flex justify-end gap-3">
                             <button
-                                type="button"
-                                onClick={closeModal}
-                                className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15"
-                            >
+                            type="button"
+                            onClick={closeModal}
+                            disabled={isSaving}
+                            className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15"
+                        >
                                 {copy.cancel}
                             </button>
                             <button
                                 type="submit"
+                                disabled={isSaving}
                                 className={`inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-black shadow-xl transition hover:-translate-y-0.5 ${palette.primaryButton} ${palette.primaryButtonText}`}
                             >
                                 <Save size={18} strokeWidth={2.6} />
-                                {copy.savePassword}
+                                {isSaving ? copy.saving : copy.savePassword}
                             </button>
                         </div>
                     </motion.form>

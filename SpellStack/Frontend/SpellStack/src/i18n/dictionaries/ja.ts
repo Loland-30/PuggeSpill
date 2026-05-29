@@ -319,6 +319,8 @@ export const ja = {
         mismatchError: "新しいパスワードと確認が一致しません。",
         cancel: "キャンセル",
         savePassword: "パスワードを保存",
+        saving: "保存中...",
+        genericError: "パスワードを更新できませんでした。",
         closeLabel: "パスワード画面を閉じる"
     }
 } satisfies Dictionary
