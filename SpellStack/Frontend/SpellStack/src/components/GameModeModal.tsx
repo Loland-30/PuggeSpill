@@ -20,6 +20,9 @@ interface Props {
         roundLimit: RoundLimit
     ) => void
     onClose: () => void
+    variant?: "singleplayer" | "multiplayer"
+    primaryLabel?: string
+    disabledModifiers?: ActiveGameModifier[]
 }
 
 interface ModeOption {
@@ -34,7 +37,14 @@ interface RoundLimitOption {
     value: RoundLimit
 }
 
-export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props) {
+export default function GameModeModal({
+    isOpen,
+    deck,
+    onSelect,
+    onClose,
+    primaryLabel = "Start game",
+    disabledModifiers = []
+}: Props) {
     const [selectedDirection, setSelectedDirection] = useState<GameDirection>("original")
     const [modifiers, setModifiers] = useState<ActiveGameModifier[]>([])
     const [roundLimit, setRoundLimit] = useState<RoundLimit>(() => toRoundLimit(readGameplaySettings().defaultRoundLength))
@@ -60,7 +70,8 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
     const lang2 = languages.find(language => language.code === activeDeck.translationLanguage)
     const lang1Label = lang1?.label ?? activeDeck.language
     const lang2Label = lang2?.label ?? activeDeck.translationLanguage
-    const scoreMultiplier = getModifierScoreMultiplier(modifiers)
+    const activeModifiers = modifiers.filter(modifier => !disabledModifiers.includes(modifier))
+    const scoreMultiplier = getModifierScoreMultiplier(activeModifiers)
 
     const roundLimitOptions: RoundLimitOption[] = [
         { label: `10 ${t.gameMode.questions}`, value: 10 },
@@ -106,8 +117,11 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
     ]
 
     function handleToggleModifier(modifier: ActiveGameModifier) {
+        if (disabledModifiers.includes(modifier)) return
         setModifiers(currentModifiers => toggleModifier(currentModifiers, modifier))
     }
+
+    const primaryActionLabel = primaryLabel
 
     return (
         <AnimatePresence>
@@ -199,7 +213,7 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
                                 </p>
                             </div>
 
-                            {modifiers.length > 0 && (
+                            {activeModifiers.length > 0 && (
                                 <button
                                     type="button"
                                     onClick={() => setModifiers([])}
@@ -221,8 +235,9 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
                         <div>
                             <ModifierGroup
                                 category={activeModifierCategory}
-                                selectedModifiers={modifiers}
+                                selectedModifiers={activeModifiers}
                                 onToggle={handleToggleModifier}
+                                disabledModifiers={disabledModifiers}
                                 palette={palette}
                             />
                         </div>
@@ -235,10 +250,10 @@ export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props
 
                         <button
                             type="button"
-                            onClick={() => onSelect(selectedDirection, modifiers, roundLimit)}
+                            onClick={() => onSelect(selectedDirection, activeModifiers, roundLimit)}
                             className={`inline-flex items-center justify-center gap-3 rounded-2xl px-8 py-4 text-base font-black uppercase tracking-[0.18em] shadow-xl transition hover:-translate-y-0.5 ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`}
                         >
-                            Start game
+                            {primaryActionLabel}
                             <Play size={18} fill="currentColor" strokeWidth={2.4} />
                         </button>
                     </div>
@@ -351,10 +366,11 @@ function ModifierCategorySwitch({ activeCategory, onChange, palette }: {
     )
 }
 
-function ModifierGroup({ category, selectedModifiers, onToggle, palette }: {
+function ModifierGroup({ category, selectedModifiers, onToggle, disabledModifiers, palette }: {
     category: ModifierCategory
     selectedModifiers: ActiveGameModifier[]
     onToggle: (modifier: ActiveGameModifier) => void
+    disabledModifiers: ActiveGameModifier[]
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
     const modifiers = MODIFIER_DEFINITIONS.filter(modifier => modifier.category === category)
@@ -367,6 +383,7 @@ function ModifierGroup({ category, selectedModifiers, onToggle, palette }: {
                     modifier={modifier}
                     selected={selectedModifiers.includes(modifier.id)}
                     onToggle={onToggle}
+                    disabled={disabledModifiers.includes(modifier.id)}
                     palette={palette}
                 />
             ))}
@@ -374,17 +391,23 @@ function ModifierGroup({ category, selectedModifiers, onToggle, palette }: {
     )
 }
 
-function ModifierChip({ modifier, selected, onToggle, palette }: {
+function ModifierChip({ modifier, selected, onToggle, disabled, palette }: {
     modifier: ModifierDefinition
     selected: boolean
     onToggle: (modifier: ActiveGameModifier) => void
+    disabled: boolean
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
     return (
         <button
             type="button"
             onClick={() => onToggle(modifier.id)}
-            className={`min-h-24 rounded-2xl border p-4 text-left transition hover:bg-white/[0.07] ${
+            disabled={disabled}
+            className={`min-h-24 rounded-2xl border p-4 text-left transition ${
+                disabled
+                    ? "cursor-not-allowed border-white/10 bg-white/[0.02] opacity-45"
+                    : "hover:bg-white/[0.07]"
+            } ${
                 selected
                     ? `${palette.border} ${palette.card} ${palette.glow}`
                     : "border-white/10 bg-white/[0.035] hover:border-white/25"
@@ -402,7 +425,7 @@ function ModifierChip({ modifier, selected, onToggle, palette }: {
             </div>
 
             <p className="mt-3 text-xs font-black uppercase tracking-[0.14em] text-white/40">
-                Score {formatScoreMultiplier(modifier.scoreMultiplier)}
+                {disabled ? "Not available in multiplayer" : `Score ${formatScoreMultiplier(modifier.scoreMultiplier)}`}
             </p>
         </button>
     )

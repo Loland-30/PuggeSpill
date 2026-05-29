@@ -11,6 +11,7 @@ import ThemePage from "./Pages/ThemePage"
 import SettingsPage from "./Pages/SettingsPage"
 import TrialPage from "./Pages/TrialPage"
 import TrialsMenuPage from "./Pages/TrialsMenuPage"
+import MultiplayerPage from "./Pages/MultiplayerPage"
 import ThemedPage from "./components/ThemedPage"
 import AppSideNav from "./components/AppSideNav"
 
@@ -18,7 +19,7 @@ function App() {
     const location = useLocation()
     const isGameplay = location.pathname.includes("/play") || location.pathname.includes("/trials/")
     const showSideNav = !isGameplay && location.pathname !== "/login" && location.pathname !== "/reset-password"
-    const lockPageScroll = location.pathname === "/trials"
+    const lockPageScroll = location.pathname === "/trials" || location.pathname === "/multiplayer"
 
     if (isGameplay) {
         return (
@@ -30,7 +31,7 @@ function App() {
     }
 
     return (
-        <ThemedPage className={`px-6 py-8 text-white ${lockPageScroll ? "h-screen" : ""}`}>
+        <ThemedPage className={`px-6 py-8 text-white ${lockPageScroll ? "h-screen overflow-hidden" : ""}`}>
             {showSideNav && <AppSideNav />}
             <AnimatePresence mode="wait">
                 <Routes location={location} key={location.pathname}>
@@ -40,6 +41,7 @@ function App() {
                     <Route path="/profile" element={<ProfileContainer />} />
                     <Route path="/theme" element={<ThemePage />} />
                     <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/multiplayer" element={<MultiplayerPage />} />
                     <Route path="/trials" element={<TrialsMenuPage />} />
                     <Route path="/decks" element={<DeckPage />} />
                     <Route path="/decks/create" element={<CreateDeckPage />} />

@@ -1,10 +1,10 @@
 ﻿import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { BookOpen, Trophy, type LucideIcon } from "lucide-react"
+import { BookOpen, Trophy, UsersRound, type LucideIcon } from "lucide-react"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
 
-export type LibraryView = "decks" | "trials"
+export type LibraryView = "decks" | "multiplayer" | "trials"
 
 interface LibraryViewPickerProps {
     activeView: LibraryView
@@ -13,6 +13,7 @@ interface LibraryViewPickerProps {
 
 const views: Array<{ id: LibraryView; icon: LucideIcon }> = [
     { id: "decks", icon: BookOpen },
+    { id: "multiplayer", icon: UsersRound },
     { id: "trials", icon: Trophy }
 ]
 
@@ -25,7 +26,11 @@ export default function LibraryViewPicker({ activeView, onChange }: LibraryViewP
         setVisualActiveView(activeView)
     }, [activeView])
 
-    const getLabel = (view: LibraryView) => view === "decks" ? t.common.decks : t.common.trials
+    const getLabel = (view: LibraryView) => {
+        if (view === "decks") return t.common.decks
+        if (view === "multiplayer") return t.nav.multiplayer
+        return t.common.trials
+    }
 
     const handleChange = (view: LibraryView) => {
         setVisualActiveView(view)
