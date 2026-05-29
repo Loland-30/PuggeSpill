@@ -264,7 +264,6 @@ export default function CreateDeckPage() {
         navigate("/")
     }
 
-    const inputClass = `w-full min-w-0 rounded-lg border-2 ${palette.border} ${textTone.panelClass} ${palette.glow} px-4 py-3 text-sm font-semibold ${textTone.inputClass} ${textTone.placeholderClass} outline-none backdrop-blur transition focus:-translate-y-0.5 focus:bg-white/15 focus:ring-2 focus:ring-white/20`
     const framedWordInputClass = `w-full min-w-0 rounded-[inherit] border-0 bg-transparent px-4 py-4 text-sm font-semibold ${textTone.inputClass} ${textTone.placeholderClass} outline-none transition focus:bg-white/10`
     const rowButtonClass = `grid h-11 w-11 shrink-0 place-items-center rounded-lg border-2 ${palette.border} bg-black/25 ${palette.glow} text-white/80 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white`
     const deleteButtonClass = "grid h-11 w-11 shrink-0 place-items-center rounded-lg border-2 border-red-300/40 bg-black/25 text-red-300 backdrop-blur transition hover:-translate-y-0.5 hover:bg-red-500/20 hover:text-red-100"
@@ -366,24 +365,28 @@ export default function CreateDeckPage() {
                     <FadeIn className="mb-6 flex flex-col gap-4">
                         <div>
                             <label className="mb-1 block text-sm text-white/70">Deck name</label>
-                            <input
-                                type="text"
-                                placeholder="E.g. Spanish basics"
-                                value={deckName}
-                                onChange={event => updateDeckName(event.target.value)}
-                                className={inputClass}
-                            />
+                            <GradientFrame glass radius={8} radiusClass="rounded-lg" className="w-full" contentClassName="rounded-[inherit]">
+                                <input
+                                    type="text"
+                                    placeholder="E.g. Spanish basics"
+                                    value={deckName}
+                                    onChange={event => updateDeckName(event.target.value)}
+                                    className={framedWordInputClass}
+                                />
+                            </GradientFrame>
                         </div>
 
                         <div>
                             <label className="mb-1 block text-sm text-white/70">Description (optional)</label>
-                            <input
-                                type="text"
-                                placeholder="E.g. Common words for beginners"
-                                value={description}
-                                onChange={event => updateDescription(event.target.value)}
-                                className={inputClass}
-                            />
+                            <GradientFrame glass radius={8} radiusClass="rounded-lg" className="w-full" contentClassName="rounded-[inherit]">
+                                <input
+                                    type="text"
+                                    placeholder="E.g. Common words for beginners"
+                                    value={description}
+                                    onChange={event => updateDescription(event.target.value)}
+                                    className={framedWordInputClass}
+                                />
+                            </GradientFrame>
                         </div>
                     </FadeIn>
 
@@ -431,7 +434,7 @@ export default function CreateDeckPage() {
                             <FadeIn key={word.clientId} className="w-full">
                                 <div className="relative mx-auto w-full max-w-2xl">
                                     <div className="grid grid-cols-2 gap-3">
-                                        <GradientFrame radius={8} radiusClass="rounded-lg" className="w-full" contentClassName="rounded-[inherit]">
+                                        <GradientFrame glass radius={8} radiusClass="rounded-lg" className="w-full" contentClassName="rounded-[inherit]">
                                             <input
                                                 type="text"
                                                 placeholder="E.g. hola"
@@ -441,7 +444,7 @@ export default function CreateDeckPage() {
                                             />
                                         </GradientFrame>
 
-                                        <GradientFrame radius={8} radiusClass="rounded-lg" className="w-full" contentClassName="rounded-[inherit]">
+                                        <GradientFrame glass radius={8} radiusClass="rounded-lg" className="w-full" contentClassName="rounded-[inherit]">
                                             <input
                                                 type="text"
                                                 placeholder="E.g. hello"
@@ -454,7 +457,7 @@ export default function CreateDeckPage() {
 
                                     {isExpanded && (
                                         <div className="absolute left-full top-0 ml-3 w-72">
-                                            <GradientFrame radius={8} radiusClass="rounded-lg" className="w-full" contentClassName="rounded-[inherit]">
+                                            <GradientFrame glass radius={8} radiusClass="rounded-lg" className="w-full" contentClassName="rounded-[inherit]">
                                                 <input
                                                     type="text"
                                                     placeholder="Accepted answer"

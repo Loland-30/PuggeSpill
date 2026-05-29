@@ -1,13 +1,14 @@
-import { useState, type ReactNode } from "react"
-import { ChevronDown, X } from "lucide-react"
+import { useEffect, useState, type ReactNode } from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import { Check, Play, X } from "lucide-react"
 import type { Deck } from "../api/decks"
 import type { ActiveGameModifier, GameDirection, RoundLimit } from "../api/gameSession"
 import { languages } from "../data/languages"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
 import GradientFrame from "./GradientFrame"
-import ModifierPicker from "./mods/ModifierPicker"
-import { getModifierNames } from "./mods/modifierUtils"
+import { MODIFIER_DEFINITIONS, type ModifierCategory, type ModifierDefinition } from "./mods/modifierData"
+import { formatScoreMultiplier, getModifierScoreMultiplier, toggleModifier } from "./mods/modifierUtils"
 
 interface Props {
     isOpen: boolean
@@ -20,10 +21,11 @@ interface Props {
     onClose: () => void
 }
 
-interface ModeCardProps {
+interface ModeOption {
+    direction: GameDirection
     title: string
-    onClick: () => void
-    children: ReactNode
+    description: string
+    visual: ReactNode
 }
 
 interface RoundLimitOption {
@@ -31,42 +33,29 @@ interface RoundLimitOption {
     value: RoundLimit
 }
 
-function ModeCard({ title, onClick, children }: ModeCardProps) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className="group text-left transition duration-200 ease-out focus:outline-none"
-        >
-            <GradientFrame
-                radius={18}
-                radiusClass="rounded-2xl"
-                className="min-h-[13.25rem] transition duration-200 ease-out"
-                fillClassName="bg-white/[0.025]"
-                hoverFillClassName="group-hover:bg-white/[0.08]"
-                contentClassName="flex min-h-[13.25rem] flex-col items-center justify-center gap-8 p-8"
-            >
-                <div className="flex flex-col items-center justify-center gap-6 text-white">
-                    {children}
-
-                    <p className="text-center text-[1.85rem] font-black leading-tight tracking-tight text-white">
-                        {title}
-                    </p>
-                </div>
-            </GradientFrame>
-        </button>
-    )
-}
-
-interface RoundLimitPickerProps {
-    value: RoundLimit
-    onChange: (value: RoundLimit) => void
-}
-
-function RoundLimitPicker({ value, onChange }: RoundLimitPickerProps) {
-    const [isOpen, setIsOpen] = useState(false)
+export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props) {
+    const [selectedDirection, setSelectedDirection] = useState<GameDirection>("original")
+    const [modifiers, setModifiers] = useState<ActiveGameModifier[]>([])
+    const [roundLimit, setRoundLimit] = useState<RoundLimit>(25)
+    const [activeModifierCategory, setActiveModifierCategory] = useState<ModifierCategory>("easier")
+    const [displayDeck, setDisplayDeck] = useState<Deck | null>(deck ?? null)
     const { t } = useI18n()
     const { palette } = useTheme()
+
+    useEffect(() => {
+        if (isOpen && deck) setDisplayDeck(deck)
+    }, [isOpen, deck])
+
+    const activeDeck = deck ?? displayDeck
+
+    if (!activeDeck) return null
+
+    const lang1 = languages.find(language => language.code === activeDeck.language)
+    const lang2 = languages.find(language => language.code === activeDeck.translationLanguage)
+    const lang1Label = lang1?.label ?? activeDeck.language
+    const lang2Label = lang2?.label ?? activeDeck.translationLanguage
+    const scoreMultiplier = getModifierScoreMultiplier(modifiers)
+
     const roundLimitOptions: RoundLimitOption[] = [
         { label: `10 ${t.gameMode.questions}`, value: 10 },
         { label: `25 ${t.gameMode.questions}`, value: 25 },
@@ -75,166 +64,352 @@ function RoundLimitPicker({ value, onChange }: RoundLimitPickerProps) {
         { label: t.gameMode.endless, value: null }
     ]
 
-    const selectedOption =
-        roundLimitOptions.find(option => option.value === value) ?? roundLimitOptions[1]
+    const modeOptions: ModeOption[] = [
+        {
+            direction: "original",
+            title: `${lang1Label} -> ${lang2Label}`,
+            description: `Practice from ${lang1Label} to ${lang2Label}`,
+            visual: (
+                <FlagPair
+                    left={<LanguageDot flagUrl={lang1?.flagUrl} label={lang1Label} />}
+                    right={<LanguageDot flagUrl={lang2?.flagUrl} label={lang2Label} />}
+                />
+            )
+        },
+        {
+            direction: "translation",
+            title: `${lang2Label} -> ${lang1Label}`,
+            description: `Practice from ${lang2Label} to ${lang1Label}`,
+            visual: (
+                <FlagPair
+                    left={<LanguageDot flagUrl={lang2?.flagUrl} label={lang2Label} />}
+                    right={<LanguageDot flagUrl={lang1?.flagUrl} label={lang1Label} />}
+                />
+            )
+        },
+        {
+            direction: "mixed",
+            title: t.gameMode.mixed,
+            description: "Practice both directions",
+            visual: (
+                <div className="rounded-2xl bg-white/10 px-6 py-4 text-4xl font-black leading-none text-white shadow-inner">
+                    A/B
+                </div>
+            )
+        }
+    ]
+
+    function handleToggleModifier(modifier: ActiveGameModifier) {
+        setModifiers(currentModifiers => toggleModifier(currentModifiers, modifier))
+    }
 
     return (
-        <div className="relative">
-            <button
-                type="button"
-                onClick={() => setIsOpen(open => !open)}
-                className="group flex items-center gap-2 rounded-full px-2.5 py-2 text-base font-bold text-white/80 transition hover:bg-white/5 hover:text-white"
-            >
-                <span>{t.gameMode.length}</span>
-
-                <span className="font-black text-white">
-                    {selectedOption.label}
-                </span>
-
-                <ChevronDown
-                    size={16}
-                    strokeWidth={3}
-                    className={`transition ${isOpen ? "rotate-180" : ""}`}
-                />
-            </button>
-
+        <AnimatePresence>
             {isOpen && (
-                <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-52 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 p-2 shadow-2xl">
-                    {roundLimitOptions.map(option => {
-                        const isSelected = option.value === value
+                <motion.div
+                    key="game-mode-backdrop"
+                    className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/65 px-4 py-8 backdrop-blur-sm"
+                    initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+                    animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
+                    exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+                    transition={{ duration: 0.28, ease: "easeOut" }}
+                    onClick={onClose}
+                >
+                    <motion.div
+                        className="w-[min(94vw,82rem)]"
+                        initial={{ opacity: 0, y: 10, filter: "blur(3px)" }}
+                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                        exit={{ opacity: 0, y: 8, filter: "blur(3px)" }}
+                        transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+                        onClick={event => event.stopPropagation()}
+                    >
+                        <GradientFrame
+                            glass
+                            glow
+                            radius={32}
+                            radiusClass="rounded-[2rem]"
+                            className="shadow-2xl"
+                            contentClassName="p-6 md:p-8"
+                        >
+                <div className="flex flex-col gap-7">
+                    <header className="flex items-start justify-between gap-5">
+                        <div>
+                            <h2 className="text-4xl font-black tracking-tight text-white md:text-5xl">
+                                Set up your game
+                            </h2>
+                            <p className="mt-2 max-w-xl text-sm font-semibold text-white/65 md:text-base">
+                                Choose mode, question count, and run modifiers for {activeDeck.name}.
+                            </p>
+                        </div>
 
-                        return (
-                            <button
-                                key={option.label}
-                                type="button"
-                                onClick={() => {
-                                    onChange(option.value)
-                                    setIsOpen(false)
-                                }}
-                                className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-bold transition ${isSelected ? `${palette.primaryButton} ${palette.primaryButtonText}` : "text-white/70 hover:bg-white/10 hover:text-white"}`}
-                            >
-                                <span>{option.label}</span>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className={`grid h-11 w-11 shrink-0 place-items-center rounded-full border ${palette.border} bg-white/5 text-white/80 transition hover:bg-white/10 hover:text-white`}
+                            aria-label={t.gameMode.closeLabel}
+                        >
+                            <X size={21} strokeWidth={2.7} />
+                        </button>
+                    </header>
 
-                                {isSelected && (
-                                    <span className="grid h-5 w-5 place-items-center rounded-full bg-white/20 text-xs">
-                                        ✓
-                                    </span>
-                                )}
-                            </button>
-                        )
-                    })}
+                    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+                        <section>
+                            <SectionHeading label={t.gameMode.chooseGameMode} />
+                            <div className="mt-3 grid gap-4 md:grid-cols-3">
+                                {modeOptions.map(option => (
+                                    <ModeCard
+                                        key={option.direction}
+                                        option={option}
+                                        selected={selectedDirection === option.direction}
+                                        onSelect={setSelectedDirection}
+                                        palette={palette}
+                                    />
+                                ))}
+                            </div>
+                        </section>
+
+                        <section>
+                            <SectionHeading label={t.gameMode.length} />
+                            <div className="mt-3 flex flex-col gap-3">
+                                {roundLimitOptions.map(option => (
+                                    <LengthOption
+                                        key={option.label}
+                                        option={option}
+                                        selected={option.value === roundLimit}
+                                        onSelect={setRoundLimit}
+                                        palette={palette}
+                                    />
+                                ))}
+                            </div>
+                        </section>
+                    </div>
+
+                    <section className="rounded-[1.75rem] border border-white/10 bg-black/20 p-5 backdrop-blur-md md:p-6">
+                        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+                            <div>
+                                <SectionHeading label={t.gameMode.mods} />
+                                <p className="mt-1 text-sm font-semibold text-white/45">
+                                    Selected score: {formatScoreMultiplier(scoreMultiplier)}
+                                </p>
+                            </div>
+
+                            {modifiers.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setModifiers([])}
+                                    className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-sm font-bold text-white/70 transition hover:bg-white/[0.09] hover:text-white"
+                                >
+                                    Clear mods
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="mb-5">
+                            <ModifierCategorySwitch
+                                activeCategory={activeModifierCategory}
+                                onChange={setActiveModifierCategory}
+                                palette={palette}
+                            />
+                        </div>
+
+                        <div>
+                            <ModifierGroup
+                                category={activeModifierCategory}
+                                selectedModifiers={modifiers}
+                                onToggle={handleToggleModifier}
+                                palette={palette}
+                            />
+                        </div>
+                    </section>
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-sm font-semibold text-white/45">
+                            {roundLimit === null ? t.gameMode.endless : `${roundLimit} ${t.gameMode.questions}`} | {formatScoreMultiplier(scoreMultiplier)}
+                        </p>
+
+                        <button
+                            type="button"
+                            onClick={() => onSelect(selectedDirection, modifiers, roundLimit)}
+                            className={`inline-flex items-center justify-center gap-3 rounded-2xl px-8 py-4 text-base font-black uppercase tracking-[0.18em] shadow-xl transition hover:-translate-y-0.5 ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`}
+                        >
+                            Start game
+                            <Play size={18} fill="currentColor" strokeWidth={2.4} />
+                        </button>
+                    </div>
                 </div>
+                        </GradientFrame>
+                    </motion.div>
+                </motion.div>
             )}
+        </AnimatePresence>
+    )
+}
+
+function SectionHeading({ label }: { label: string }) {
+    return (
+        <h3 className="text-xs font-black uppercase tracking-[0.22em] text-white/55">
+            {label}
+        </h3>
+    )
+}
+
+function ModeCard({ option, selected, onSelect, palette }: {
+    option: ModeOption
+    selected: boolean
+    onSelect: (direction: GameDirection) => void
+    palette: ReturnType<typeof useTheme>["palette"]
+}) {
+    return (
+        <button
+            type="button"
+            onClick={() => onSelect(option.direction)}
+            className={`group relative min-h-[15rem] rounded-3xl border p-5 text-left transition duration-200 hover:bg-white/[0.07] ${
+                selected
+                    ? `${palette.border} ${palette.card} ${palette.glow}`
+                    : "border-white/10 bg-white/[0.035] hover:border-white/25"
+            }`}
+        >
+            {selected && (
+                <span className={`absolute right-4 top-4 grid h-7 w-7 place-items-center rounded-full ${palette.primaryButton} ${palette.primaryButtonText}`}>
+                    <Check size={16} strokeWidth={3} />
+                </span>
+            )}
+
+            <div className="flex h-full flex-col items-center justify-center gap-5 text-center">
+                {option.visual}
+                <div>
+                    <p className="text-2xl font-black tracking-tight text-white">{option.title}</p>
+                    <p className="mt-2 text-sm font-semibold leading-5 text-white/58">{option.description}</p>
+                </div>
+            </div>
+        </button>
+    )
+}
+
+function LengthOption({ option, selected, onSelect, palette }: {
+    option: RoundLimitOption
+    selected: boolean
+    onSelect: (value: RoundLimit) => void
+    palette: ReturnType<typeof useTheme>["palette"]
+}) {
+    return (
+        <button
+            type="button"
+            onClick={() => onSelect(option.value)}
+            className={`flex items-center justify-between rounded-2xl border px-4 py-4 text-left transition hover:bg-white/[0.07] ${
+                selected
+                    ? `${palette.border} ${palette.card} ${palette.glow}`
+                    : "border-white/10 bg-white/[0.035] hover:border-white/25"
+            }`}
+        >
+            <span className="text-base font-black text-white">{option.label}</span>
+            <span className={`grid h-5 w-5 place-items-center rounded-full border ${selected ? `${palette.primaryButton} ${palette.primaryButtonText} border-transparent` : "border-white/20"}`}>
+                {selected && <Check size={13} strokeWidth={3} />}
+            </span>
+        </button>
+    )
+}
+
+function ModifierCategorySwitch({ activeCategory, onChange, palette }: {
+    activeCategory: ModifierCategory
+    onChange: (category: ModifierCategory) => void
+    palette: ReturnType<typeof useTheme>["palette"]
+}) {
+    const { t } = useI18n()
+    const options: Array<{ label: string; value: ModifierCategory }> = [
+        { label: t.gameMode.easier, value: "easier" },
+        { label: t.gameMode.harder, value: "harder" }
+    ]
+
+    return (
+        <div className="inline-flex h-11 items-center rounded-full border border-white/10 bg-black/30 p-1 backdrop-blur-md">
+            {options.map(option => {
+                const isActive = activeCategory === option.value
+
+                return (
+                    <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => onChange(option.value)}
+                        className={`flex h-9 min-w-[6rem] items-center justify-center rounded-full px-4 text-sm font-black transition ${
+                            isActive
+                                ? `${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`
+                                : "text-white/55 hover:text-white"
+                        }`}
+                    >
+                        {option.label}
+                    </button>
+                )
+            })}
         </div>
     )
 }
 
-export default function GameModeModal({ isOpen, deck, onSelect, onClose }: Props) {
-    const [modifiers, setModifiers] = useState<ActiveGameModifier[]>([])
-    const [showModifierPicker, setShowModifierPicker] = useState(false)
-    const [roundLimit, setRoundLimit] = useState<RoundLimit>(25)
-    const { t } = useI18n()
-    const { palette } = useTheme()
-
-    if (!isOpen || !deck) return null
-
-    const lang1 = languages.find(language => language.code === deck.language)
-    const lang2 = languages.find(language => language.code === deck.translationLanguage)
-
-    const lang1Label = lang1?.label ?? deck.language
-    const lang2Label = lang2?.label ?? deck.translationLanguage
-    const modifierLabel = modifiers.length === 0 ? t.gameMode.modsNone : getModifierNames(modifiers)
-
-    if (showModifierPicker) {
-        return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/85 py-8 backdrop-blur-sm">
-                <ModifierPicker
-                    selectedModifiers={modifiers}
-                    onChange={setModifiers}
-                    onClose={() => setShowModifierPicker(false)}
-                />
-            </div>
-        )
-    }
+function ModifierGroup({ category, selectedModifiers, onToggle, palette }: {
+    category: ModifierCategory
+    selectedModifiers: ActiveGameModifier[]
+    onToggle: (modifier: ActiveGameModifier) => void
+    palette: ReturnType<typeof useTheme>["palette"]
+}) {
+    const modifiers = MODIFIER_DEFINITIONS.filter(modifier => modifier.category === category)
 
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/85 px-4 py-8 backdrop-blur-sm"
-            onClick={onClose}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {modifiers.map(modifier => (
+                <ModifierChip
+                    key={modifier.id}
+                    modifier={modifier}
+                    selected={selectedModifiers.includes(modifier.id)}
+                    onToggle={onToggle}
+                    palette={palette}
+                />
+            ))}
+        </div>
+    )
+}
+
+function ModifierChip({ modifier, selected, onToggle, palette }: {
+    modifier: ModifierDefinition
+    selected: boolean
+    onToggle: (modifier: ActiveGameModifier) => void
+    palette: ReturnType<typeof useTheme>["palette"]
+}) {
+    return (
+        <button
+            type="button"
+            onClick={() => onToggle(modifier.id)}
+            className={`min-h-24 rounded-2xl border p-4 text-left transition hover:bg-white/[0.07] ${
+                selected
+                    ? `${palette.border} ${palette.card} ${palette.glow}`
+                    : "border-white/10 bg-white/[0.035] hover:border-white/25"
+            }`}
         >
-            <div
-                className="w-[min(94vw,72rem)] rounded-[2rem] bg-slate-900/45 p-7 shadow-2xl md:p-10"
-                onClick={event => event.stopPropagation()}
-            >
-                <div className="flex flex-col gap-9">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <h2 className="text-[2.4rem] font-black leading-tight tracking-tight text-white">
-                            {t.gameMode.chooseGameMode}
-                        </h2>
-
-                        <div className="flex flex-wrap items-center gap-5">
-                            <RoundLimitPicker
-                                value={roundLimit}
-                                onChange={setRoundLimit}
-                            />
-
-                            <button
-                                type="button"
-                                onClick={() => setShowModifierPicker(open => !open)}
-                                className={`rounded-full px-2.5 py-2 text-base font-bold transition hover:bg-white/5 hover:text-white ${modifiers.length === 0 ? "text-white/80" : palette.accentText}`}
-                            >
-                                {t.gameMode.mods}: <span className="text-white">{modifierLabel}</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className={`grid h-11 w-11 place-items-center rounded-full border ${palette.border} bg-white/5 text-white/80 transition hover:bg-white/10 hover:text-white`}
-                                aria-label={t.gameMode.closeLabel}
-                            >
-                                <X size={21} strokeWidth={2.7} />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                        <ModeCard
-                            title={`${lang1Label} → ${lang2Label}`}
-                            onClick={() => onSelect("original", modifiers, roundLimit)}
-                        >
-                            <div className="flex items-center justify-center gap-5">
-                                <LanguageDot flagUrl={lang1?.flagUrl} label={lang1Label} />
-                                <span className="text-xs font-black uppercase tracking-[0.25em] text-white/40">
-                                    {t.gameMode.to}
-                                </span>
-                                <LanguageDot flagUrl={lang2?.flagUrl} label={lang2Label} />
-                            </div>
-                        </ModeCard>
-
-                        <ModeCard
-                            title={`${lang2Label} → ${lang1Label}`}
-                            onClick={() => onSelect("translation", modifiers, roundLimit)}
-                        >
-                            <div className="flex items-center justify-center gap-5">
-                                <LanguageDot flagUrl={lang2?.flagUrl} label={lang2Label} />
-                                <span className="text-xs font-black uppercase tracking-[0.25em] text-white/40">
-                                    {t.gameMode.to}
-                                </span>
-                                <LanguageDot flagUrl={lang1?.flagUrl} label={lang1Label} />
-                            </div>
-                        </ModeCard>
-
-                        <ModeCard
-                            title={t.gameMode.mixed}
-                            onClick={() => onSelect("mixed", modifiers, roundLimit)}
-                        >
-                            <div className="rounded-2xl bg-white/10 px-8 py-6 text-[3.25rem] font-black leading-none text-white shadow-inner transition group-hover:bg-white/[0.14]">
-                                A/B
-                            </div>
-                        </ModeCard>
-                    </div>
+            <div className="flex items-start justify-between gap-3">
+                <div>
+                    <p className="text-base font-black text-white">{modifier.name}</p>
+                    <p className="mt-1 text-sm font-semibold leading-5 text-white/55">{modifier.shortDescription}</p>
                 </div>
+
+                <span className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border ${selected ? `${palette.primaryButton} ${palette.primaryButtonText} border-transparent` : "border-white/20"}`}>
+                    {selected && <Check size={14} strokeWidth={3} />}
+                </span>
             </div>
+
+            <p className="mt-3 text-xs font-black uppercase tracking-[0.14em] text-white/40">
+                Score {formatScoreMultiplier(modifier.scoreMultiplier)}
+            </p>
+        </button>
+    )
+}
+
+function FlagPair({ left, right }: { left: ReactNode; right: ReactNode }) {
+    return (
+        <div className="flex items-center justify-center gap-4">
+            {left}
+            <span className="text-sm font-black uppercase tracking-[0.25em] text-white/35">
+                {">"}
+            </span>
+            {right}
         </div>
     )
 }
@@ -244,7 +419,7 @@ function LanguageDot({ flagUrl, label }: { flagUrl?: string; label: string }) {
         return (
             <div
                 aria-label={label}
-                className="h-[4.5rem] w-[4.5rem] rounded-full bg-white/10 shadow-lg"
+                className="h-16 w-16 rounded-full bg-white/10 shadow-lg"
             />
         )
     }
@@ -253,7 +428,7 @@ function LanguageDot({ flagUrl, label }: { flagUrl?: string; label: string }) {
         <img
             src={flagUrl}
             alt={label}
-            className="h-[4.5rem] w-[4.5rem] rounded-full object-cover shadow-lg"
+            className="h-16 w-16 rounded-full object-cover shadow-lg"
         />
     )
 }
