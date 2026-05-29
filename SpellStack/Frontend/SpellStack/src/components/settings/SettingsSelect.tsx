@@ -18,6 +18,7 @@ interface SettingsSelectProps {
     palette: PaletteTheme
     disabled?: boolean
     label: string
+    searchable?: boolean
 }
 
 interface MenuPosition {
@@ -27,7 +28,7 @@ interface MenuPosition {
     maxHeight: number
 }
 
-export default function SettingsSelect({ value, onChange, options, palette, disabled = false, label }: SettingsSelectProps) {
+export default function SettingsSelect({ value, onChange, options, palette, disabled = false, label, searchable = false }: SettingsSelectProps) {
     const { t } = useI18n()
     const [open, setOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
@@ -37,7 +38,7 @@ export default function SettingsSelect({ value, onChange, options, palette, disa
     const searchInputRef = useRef<HTMLInputElement>(null)
     const selected = options.find(option => option.value === value) ?? options[0]
     const normalizedSearch = searchTerm.trim().toLowerCase()
-    const filteredOptions = normalizedSearch
+    const filteredOptions = searchable && normalizedSearch
         ? options.filter(option =>
             option.label.toLowerCase().includes(normalizedSearch) ||
             option.value.toLowerCase().includes(normalizedSearch)
@@ -72,7 +73,9 @@ export default function SettingsSelect({ value, onChange, options, palette, disa
         if (!open) return
 
         updateMenuPosition()
-        window.setTimeout(() => searchInputRef.current?.focus(), 0)
+        if (searchable) {
+            window.setTimeout(() => searchInputRef.current?.focus(), 0)
+        }
 
         const handlePointerDown = (event: PointerEvent) => {
             const target = event.target as Node
@@ -99,7 +102,7 @@ export default function SettingsSelect({ value, onChange, options, palette, disa
 
     return (
         <div ref={rootRef} className="relative w-full min-w-64">
-            {open ? (
+            {open && searchable ? (
                 <div className={`flex w-full items-center gap-3 rounded-2xl border ${palette.border} bg-slate-950/90 px-4 py-3 text-left text-sm font-bold text-white shadow-xl outline-none backdrop-blur transition focus-within:ring-2 focus-within:ring-white/20`}>
                     {searchTerm ? (
                         <Search size={18} strokeWidth={2.6} className="shrink-0 text-white/50" />
@@ -135,7 +138,7 @@ export default function SettingsSelect({ value, onChange, options, palette, disa
             ) : (
                 <button
                     type="button"
-                    onClick={openMenu}
+                    onClick={open ? closeMenu : openMenu}
                     disabled={disabled}
                     aria-label={label}
                     aria-expanded={open}
@@ -149,7 +152,7 @@ export default function SettingsSelect({ value, onChange, options, palette, disa
                         />
                     )}
                     <span className="min-w-0 flex-1 truncate">{selected?.label}</span>
-                    <ChevronDown size={18} strokeWidth={3} className="shrink-0 transition" />
+                    <ChevronDown size={18} strokeWidth={3} className={`shrink-0 transition ${open ? "rotate-180" : ""}`} />
                 </button>
             )}
 

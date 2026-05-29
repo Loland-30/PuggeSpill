@@ -315,6 +315,7 @@ export default function SettingsPage() {
                                         options={countryOptions}
                                         palette={palette}
                                         label={copy.account.countryRegion}
+                                        searchable
                                     />
                                 </SettingRow>
 
