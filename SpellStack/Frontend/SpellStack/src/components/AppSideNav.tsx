@@ -2,6 +2,7 @@ import type { ComponentType } from "react"
 import { FolderOpen, LogOut, Palette, Settings, UserRound } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
 
+import { useUISound } from "../audio/useUISound"
 import { useAuth } from "../auth/AuthContext"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
@@ -20,6 +21,7 @@ export default function AppSideNav() {
     const { user, logoutUser, profileImage } = useAuth()
     const { t } = useI18n()
     const { palette } = useTheme()
+    const { playHoverSound } = useUISound()
 
     const navItems: NavItem[] = [
         {
@@ -52,6 +54,7 @@ export default function AppSideNav() {
             <button
                 type="button"
                 onClick={() => navigate(user ? "/profile" : "/login")}
+                onMouseEnter={playHoverSound}
                 className="group relative grid h-14 w-14 place-items-center overflow-visible rounded-full text-xl font-black transition hover:scale-105"
                 aria-label={t.nav.openProfile}
             >
@@ -85,6 +88,7 @@ export default function AppSideNav() {
                             key={item.path}
                             type="button"
                             onClick={() => navigate(item.path)}
+                            onMouseEnter={playHoverSound}
                             className="group flex items-center gap-3 text-left text-lg font-medium text-white transition"
                         >
                             <span className={`h-7 w-1 rounded-full transition-all duration-200 ${active ? palette.primaryButton : "bg-transparent"}`} />
@@ -104,6 +108,7 @@ export default function AppSideNav() {
             <button
                 type="button"
                 onClick={handleLogout}
+                onMouseEnter={playHoverSound}
                 className="group mt-auto flex items-center gap-3 pb-8 text-left text-lg font-medium text-white/85 transition hover:text-white"
             >
                 <LogOut

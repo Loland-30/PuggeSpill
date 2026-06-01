@@ -2,6 +2,7 @@ import type { KeyboardEvent, MouseEvent } from "react"
 import { Pencil, Trash2, Trophy } from "lucide-react"
 
 import type { Deck } from "../../api/decks"
+import { useUISound } from "../../audio/useUISound"
 import { languages } from "../../data/languages"
 import { useI18n } from "../../i18n/I18nContext"
 import type { PaletteTheme } from "../../theme/themes"
@@ -25,6 +26,7 @@ function formatScore(score: number) {
 
 export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }: DeckGridCardProps) {
     const { t } = useI18n()
+    const { playHoverSound } = useUISound()
     const sourceLanguage = getLanguage(deck.language)
     const translationLanguage = getLanguage(deck.translationLanguage)
     const sourceIsLearning = deck.language === deck.learningLanguage
@@ -56,6 +58,7 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
                 tabIndex={0}
                 onClick={onPlay}
                 onKeyDown={handleKeyDown}
+                onMouseEnter={playHoverSound}
                 className="relative flex h-full min-h-[9rem] cursor-pointer flex-col overflow-hidden outline-none"
                 aria-label={`${t.common.play} ${deck.name}`}
             >

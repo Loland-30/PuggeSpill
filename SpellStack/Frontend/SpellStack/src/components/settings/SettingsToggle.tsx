@@ -1,4 +1,5 @@
-﻿import type { PaletteTheme } from "../../theme/themes"
+import { useUISound } from "../../audio/useUISound"
+import type { PaletteTheme } from "../../theme/themes"
 
 interface SettingsToggleProps {
     checked: boolean
@@ -9,10 +10,13 @@ interface SettingsToggleProps {
 }
 
 export default function SettingsToggle({ checked, onChange, palette, disabled = false, label }: SettingsToggleProps) {
+    const { playHoverSound } = useUISound()
+
     return (
         <button
             type="button"
             onClick={() => !disabled && onChange(!checked)}
+            onMouseEnter={playHoverSound}
             disabled={disabled}
             className={`relative h-9 w-16 rounded-full border transition ${
                 checked ? `${palette.border} ${palette.primaryButton}` : "border-white/20 bg-black/30"

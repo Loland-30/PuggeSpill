@@ -3,6 +3,7 @@ export type BackgroundThemeId = "night" | "aurora" | "sunset" | "forest" | "rose
 export type PaletteThemeId = "blue" | "pink" | "green" | "red" | "yellow" | "orange" | "purple" | "white" | "purpleGradient" | "mangoPop" | "frostByte"
 export type OverlayStrength = "low" | "medium" | "high"
 export type TextTone = "light" | "dark"
+export type AudioPresetKey = "ui_hover_soft_01" | "ui_hover_soft_02"
 
 export interface BackgroundTheme {
     id: BackgroundThemeId
@@ -36,6 +37,20 @@ export interface AppTheme {
     customBackgroundImage: string | null
     overlayStrength: OverlayStrength
     textTone: TextTone
+    audio: AudioSettings
+}
+
+export interface AudioSettings {
+    audioEnabled: boolean
+    uiVolume: number
+    musicVolume: number
+    hoverSound: AudioPresetKey | null
+    clickSound: string | null
+    successSound: string | null
+    errorSound: string | null
+    signInSound: string | null
+    backgroundMusic: string | null
+    inGameMusic: string | null
 }
 
 export const backgroundThemes: BackgroundTheme[] = [
@@ -229,12 +244,37 @@ export const paletteThemes: PaletteTheme[] = [
     }
 ]
 
+export const defaultAudioSettings: AudioSettings = {
+    audioEnabled: true,
+    uiVolume: 0.35,
+    musicVolume: 0.25,
+    hoverSound: "ui_hover_soft_01",
+    clickSound: null,
+    successSound: null,
+    errorSound: null,
+    signInSound: null,
+    backgroundMusic: null,
+    inGameMusic: null
+}
+
 export const defaultTheme: AppTheme = {
     backgroundId: "night",
     paletteId: "purpleGradient",
     customBackgroundImage: null,
     overlayStrength: "medium",
-    textTone: "light"
+    textTone: "light",
+    audio: defaultAudioSettings
+}
+
+export function normalizeTheme(theme: Partial<AppTheme> | null | undefined): AppTheme {
+    return {
+        ...defaultTheme,
+        ...theme,
+        audio: {
+            ...defaultAudioSettings,
+            ...(theme?.audio ?? {})
+        }
+    }
 }
 
 export const textTones: Array<{ id: TextTone; name: string; inputClass: string; placeholderClass: string; panelClass: string }> = [

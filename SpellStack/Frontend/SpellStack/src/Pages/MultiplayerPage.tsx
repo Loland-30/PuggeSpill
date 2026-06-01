@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { Check, Crown, Lock, Plus, Send, Trophy, UsersRound } from "lucide-react"
 
 import { getDecks, type Deck } from "../api/decks"
+import { useUISound } from "../audio/useUISound"
 import type { ActiveGameModifier, GameDirection, RoundLimit } from "../api/gameSession"
 import { useAuth } from "../auth/AuthContext"
 import FadeIn from "../components/FadeIn"
@@ -192,11 +193,14 @@ function LandingAction({ title, description, icon, onClick, palette }: {
     onClick: () => void
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
+    const { playHoverSound } = useUISound()
+
     return (
         <GradientFrame glow glass radius={26} radiusClass="rounded-[1.625rem]" className="h-full transition hover:-translate-y-1">
             <button
                 type="button"
                 onClick={onClick}
+                onMouseEnter={playHoverSound}
                 className="flex h-full min-h-48 w-full flex-col items-start justify-between rounded-[inherit] p-6 text-left"
             >
                 <span className={`grid h-14 w-14 place-items-center rounded-2xl ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`}>
@@ -282,11 +286,13 @@ function MultiplayerDeckCard({ deck, selected, ready, disabled, onSelect, palett
     const translationLanguage = getLanguage(deck.translationLanguage)
     const sourceIsLearning = deck.language === deck.learningLanguage
     const translationIsLearning = deck.translationLanguage === deck.learningLanguage
+    const { playHoverSound } = useUISound()
 
     return (
         <button
             type="button"
             onClick={onSelect}
+            onMouseEnter={playHoverSound}
             disabled={disabled}
             className={`group relative h-full rounded-3xl text-left transition duration-200 ${disabled ? "cursor-not-allowed opacity-55" : "hover:-translate-y-1"}`}
         >

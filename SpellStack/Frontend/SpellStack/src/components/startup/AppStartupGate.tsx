@@ -6,7 +6,7 @@ import WelcomeBackSplash from "../auth/WelcomeBackSplash"
 const startupTipSeenKey = "spellstack_startup_tip_seen"
 const welcomeBackSeenKey = "spellstack_welcome_back_seen"
 const startupTipMinimumMs = 2500
-const welcomeBackMs = 1050
+const welcomeBackMs = 1700
 
 type StartupGateStep = "startup-tip" | "welcome-back" | "ready"
 

@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { Check, Play, X } from "lucide-react"
+import { useUISound } from "../audio/useUISound"
 import type { Deck } from "../api/decks"
 import type { ActiveGameModifier, GameDirection, RoundLimit } from "../api/gameSession"
 import { languages } from "../data/languages"
@@ -52,6 +53,7 @@ export default function GameModeModal({
     const [displayDeck, setDisplayDeck] = useState<Deck | null>(deck ?? null)
     const { t } = useI18n()
     const { palette } = useTheme()
+    const { playHoverSound } = useUISound()
 
     useEffect(() => {
         if (isOpen && deck) {
@@ -165,6 +167,7 @@ export default function GameModeModal({
                         <button
                             type="button"
                             onClick={onClose}
+                            onMouseEnter={playHoverSound}
                             className={`grid h-11 w-11 shrink-0 place-items-center rounded-full border ${palette.border} bg-white/5 text-white/80 transition hover:bg-white/10 hover:text-white`}
                             aria-label={t.gameMode.closeLabel}
                         >
@@ -217,6 +220,7 @@ export default function GameModeModal({
                                 <button
                                     type="button"
                                     onClick={() => setModifiers([])}
+                                    onMouseEnter={playHoverSound}
                                     className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-sm font-bold text-white/70 transition hover:bg-white/[0.09] hover:text-white"
                                 >
                                     Clear mods
@@ -251,6 +255,7 @@ export default function GameModeModal({
                         <button
                             type="button"
                             onClick={() => onSelect(selectedDirection, activeModifiers, roundLimit)}
+                            onMouseEnter={playHoverSound}
                             className={`inline-flex items-center justify-center gap-3 rounded-2xl px-8 py-4 text-base font-black uppercase tracking-[0.18em] shadow-xl transition hover:-translate-y-0.5 ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`}
                         >
                             {primaryActionLabel}
@@ -280,10 +285,13 @@ function ModeCard({ option, selected, onSelect, palette }: {
     onSelect: (direction: GameDirection) => void
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
+    const { playHoverSound } = useUISound()
+
     return (
         <button
             type="button"
             onClick={() => onSelect(option.direction)}
+            onMouseEnter={playHoverSound}
             className={`group relative min-h-[15rem] rounded-3xl border p-5 text-left transition duration-200 hover:bg-white/[0.07] ${
                 selected
                     ? `${palette.border} ${palette.card} ${palette.glow}`
@@ -313,10 +321,13 @@ function LengthOption({ option, selected, onSelect, palette }: {
     onSelect: (value: RoundLimit) => void
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
+    const { playHoverSound } = useUISound()
+
     return (
         <button
             type="button"
             onClick={() => onSelect(option.value)}
+            onMouseEnter={playHoverSound}
             className={`flex items-center justify-between rounded-2xl border px-4 py-4 text-left transition hover:bg-white/[0.07] ${
                 selected
                     ? `${palette.border} ${palette.card} ${palette.glow}`
@@ -337,6 +348,7 @@ function ModifierCategorySwitch({ activeCategory, onChange, palette }: {
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
     const { t } = useI18n()
+    const { playHoverSound } = useUISound()
     const options: Array<{ label: string; value: ModifierCategory }> = [
         { label: t.gameMode.easier, value: "easier" },
         { label: t.gameMode.harder, value: "harder" }
@@ -352,6 +364,7 @@ function ModifierCategorySwitch({ activeCategory, onChange, palette }: {
                         key={option.value}
                         type="button"
                         onClick={() => onChange(option.value)}
+                        onMouseEnter={playHoverSound}
                         className={`flex h-9 min-w-[6rem] items-center justify-center rounded-full px-4 text-sm font-black transition ${
                             isActive
                                 ? `${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`
@@ -398,10 +411,13 @@ function ModifierChip({ modifier, selected, onToggle, disabled, palette }: {
     disabled: boolean
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
+    const { playHoverSound } = useUISound()
+
     return (
         <button
             type="button"
             onClick={() => onToggle(modifier.id)}
+            onMouseEnter={playHoverSound}
             disabled={disabled}
             className={`min-h-24 rounded-2xl border p-4 text-left transition ${
                 disabled
