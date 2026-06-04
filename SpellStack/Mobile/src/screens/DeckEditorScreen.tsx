@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { useNavigation, useRoute } from "@react-navigation/native"
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack"
 import type { RouteProp } from "@react-navigation/native"
-import { Plus, Trash2 } from "lucide-react-native"
+import { ArrowLeft, Plus, Trash2 } from "lucide-react-native"
 
 import { createDeck, getDeck, updateDeck } from "../api/decks"
 import { addWord, deleteWord, updateWord } from "../api/words"
@@ -164,10 +164,21 @@ export function DeckEditorScreen() {
     }
 
     return (
-        <Screen
-            title={isEditing ? "Edit Deck" : "Create Deck"}
-            subtitle={isEditing ? "Tune the word list for mobile practice." : "Build a deck for mobile runs."}
-        >
+        <Screen>
+            <View style={styles.editorHeader}>
+                <View style={styles.headerTitleRow}>
+                    <Pressable
+                        style={[styles.backButton, { borderColor: palette.border, backgroundColor: palette.mutedCard }]}
+                        onPress={() => navigation.goBack()}
+                    >
+                        <ArrowLeft color="#ffffff" size={22} />
+                    </Pressable>
+                    <Text style={styles.headerTitle}>{isEditing ? "Edit Deck" : "Create Deck"}</Text>
+                </View>
+                <Text style={styles.headerSubtitle}>
+                    {isEditing ? "Tune the word list for mobile practice." : "Build a deck for mobile runs."}
+                </Text>
+            </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
                 <Card>
                     <TextField label="Deck name" value={deckName} onChangeText={setDeckName} placeholder="Spanish basics" />
@@ -240,6 +251,40 @@ const styles = StyleSheet.create({
     content: {
         gap: 14,
         paddingBottom: 24
+    },
+    editorHeader: {
+        gap: 6,
+        marginBottom: 18
+    },
+    headerTitleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: 44
+    },
+    headerTitle: {
+        color: "#ffffff",
+        fontSize: 30,
+        fontWeight: "900",
+        letterSpacing: 0,
+        textAlign: "center"
+    },
+    headerSubtitle: {
+        color: "rgba(255,255,255,0.7)",
+        fontSize: 14,
+        fontWeight: "700",
+        lineHeight: 20,
+        textAlign: "center"
+    },
+    backButton: {
+        position: "absolute",
+        left: 0,
+        width: 44,
+        height: 44,
+        borderRadius: 8,
+        borderWidth: 1,
+        alignItems: "center",
+        justifyContent: "center"
     },
     label: {
         color: "rgba(255,255,255,0.7)",
