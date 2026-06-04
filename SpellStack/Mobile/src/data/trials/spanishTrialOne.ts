@@ -1,0 +1,42 @@
+import type { Trial } from "./trialTypes"
+
+export const spanishTrial1: Trial = {
+    id: "spanish-trial-1",
+    language: "spanish",
+    title: "Spanish Trial 1",
+    level: 1,
+    questionCount: 16,
+    passingCorrect: 12,
+    wordPool: [
+        { source: "hello", answer: "hola" },
+        { source: "goodbye", answer: "adios", acceptedAnswers: ["adios", "adiós"] },
+        { source: "yes", answer: "si", acceptedAnswers: ["si", "sí"] },
+        { source: "no", answer: "no" },
+        { source: "thanks", answer: "gracias" },
+        { source: "please", answer: "por favor" },
+        { source: "sorry", answer: "perdon", acceptedAnswers: ["perdon", "perdón"] },
+        { source: "I", answer: "yo" },
+        { source: "you", answer: "tu", acceptedAnswers: ["tu", "tú"] },
+        { source: "he", answer: "el", acceptedAnswers: ["el", "él"] },
+        { source: "she", answer: "ella" },
+        { source: "we", answer: "nosotros" },
+        { source: "they", answer: "ellos" },
+        { source: "water", answer: "agua" },
+        { source: "food", answer: "comida" },
+        { source: "bread", answer: "pan" },
+        { source: "house", answer: "casa" },
+        { source: "school", answer: "escuela" },
+        { source: "friend", answer: "amigo" },
+        { source: "family", answer: "familia" },
+        { source: "mother", answer: "madre" },
+        { source: "father", answer: "padre" },
+        { source: "dog", answer: "perro" },
+        { source: "cat", answer: "gato" },
+        { source: "good", answer: "bueno" },
+        { source: "bad", answer: "malo" },
+        { source: "big", answer: "grande" },
+        { source: "small", answer: "pequeno", acceptedAnswers: ["pequeno", "pequeño"] },
+        { source: "to eat", answer: "comer" },
+        { source: "to drink", answer: "beber" }
+    ]
+}
