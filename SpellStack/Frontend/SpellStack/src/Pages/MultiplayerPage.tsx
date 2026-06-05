@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react"
-import { useNavigate } from "react-router-dom"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useLocation, useNavigate } from "react-router-dom"
 import { Check, Crown, Lock, Plus, Send, Trophy, UsersRound } from "lucide-react"
 
 import { getDecks, type Deck } from "../api/decks"
 import { useUISound } from "../audio/useUISound"
+import readySoundUrl from "../assets/SFX/ready_sfx.mp3"
 import type { ActiveGameModifier, GameDirection, RoundLimit } from "../api/gameSession"
 import { useAuth } from "../auth/AuthContext"
 import FadeIn from "../components/FadeIn"
@@ -13,6 +14,7 @@ import AppPageShell from "../components/layout/AppPageShell"
 import JoinRoomModal from "../components/multiplayer/JoinRoomModal"
 import LibraryPageToolbar from "../components/navigation/LibraryPageToolbar"
 import PageContentTransition from "../components/PageContentTransition"
+import ProfileImage from "../components/ProfileImage"
 import { countries, languages } from "../data/languages"
 import { useTheme } from "../theme/ThemeContext"
 
@@ -24,6 +26,14 @@ interface MockPlayer {
     countryCode: string
     isHost?: boolean
     ready?: boolean
+    profileImage?: string | null
+    profilePath?: string
+}
+
+type ProfileNavigationState = {
+    openedFrom: "multiplayer-players-panel"
+    returnTo: string
+    profileMode: "preview"
 }
 
 interface ReadyConfig {
@@ -54,8 +64,10 @@ function getCountryFlag(code: string) {
 
 export default function MultiplayerPage() {
     const navigate = useNavigate()
-    const { user, loading: authLoading } = useAuth()
-    const { palette } = useTheme()
+    const location = useLocation()
+    const { user, loading: authLoading, profileImage } = useAuth()
+    const { palette, theme } = useTheme()
+    const readySoundRef = useRef<HTMLAudioElement | null>(null)
     const [decks, setDecks] = useState<Deck[]>([])
     const [roomState, setRoomState] = useState<RoomState>("landing")
     const [roomCode, setRoomCode] = useState("")
@@ -63,6 +75,25 @@ export default function MultiplayerPage() {
     const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null)
     const [modalDeck, setModalDeck] = useState<Deck | null>(null)
     const [readyConfig, setReadyConfig] = useState<ReadyConfig | null>(null)
+
+    useEffect(() => {
+        const roomFromUrl = new URLSearchParams(location.search).get("room")
+        if (!roomFromUrl) return
+
+        setRoomCode(roomFromUrl)
+        setRoomState("lobby")
+    }, [location.search])
+
+    useEffect(() => {
+        const audio = new Audio(readySoundUrl)
+        audio.preload = "auto"
+        readySoundRef.current = audio
+
+        return () => {
+            audio.pause()
+            readySoundRef.current = null
+        }
+    }, [])
 
     useEffect(() => {
         if (authLoading) return
@@ -76,16 +107,18 @@ export default function MultiplayerPage() {
     }, [authLoading, navigate, user])
 
     const players = useMemo<MockPlayer[]>(() => [
-        { id: "host", name: user?.username ?? "Player 1", countryCode: "no", isHost: true, ready: Boolean(readyConfig) },
+        { id: "host", name: user?.username ?? "Player 1", countryCode: "no", isHost: true, ready: Boolean(readyConfig), profileImage, profilePath: "/profile" },
         { id: "player-2", name: "Player 2", countryCode: "es", ready: true },
         { id: "player-3", name: "Player 3", countryCode: "gb", ready: false }
-    ], [readyConfig, user?.username])
+    ], [profileImage, readyConfig, user?.username])
 
     const createRoom = () => {
-        setRoomCode(generateRoomCode())
+        const nextRoomCode = generateRoomCode()
+        setRoomCode(nextRoomCode)
         setRoomState("lobby")
         setSelectedDeck(null)
         setReadyConfig(null)
+        navigate(`/multiplayer?room=${encodeURIComponent(nextRoomCode)}`, { replace: true })
     }
 
     const joinRoom = (code: string) => {
@@ -94,6 +127,7 @@ export default function MultiplayerPage() {
         setJoinModalOpen(false)
         setSelectedDeck(null)
         setReadyConfig(null)
+        navigate(`/multiplayer?room=${encodeURIComponent(code)}`, { replace: true })
     }
 
     const openDeckSetup = (deck: Deck) => {
@@ -108,6 +142,14 @@ export default function MultiplayerPage() {
     }
 
     const handleReady = (direction: GameDirection, modifiers: ActiveGameModifier[], roundLimit: RoundLimit) => {
+        const readySound = readySoundRef.current
+        if (readySound && theme.audio.audioEnabled && theme.audio.uiVolume > 0) {
+            readySound.pause()
+            readySound.currentTime = 0
+            readySound.volume = Math.min(1, Math.max(0, theme.audio.uiVolume))
+            readySound.play().catch(() => undefined)
+        }
+
         setReadyConfig({ direction, modifiers, roundLimit })
         setModalDeck(null)
     }
@@ -389,12 +431,25 @@ function PlayerRow({ player, palette }: {
     player: MockPlayer
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
+    const navigate = useNavigate()
+    const location = useLocation()
+    const { playHoverSound } = useUISound()
     const flagUrl = getCountryFlag(player.countryCode)
-
-    return (
-        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/15 p-3">
-            <div className="relative grid h-12 w-12 place-items-center rounded-full bg-white/12 text-lg font-black text-white">
+    const canOpenProfile = Boolean(player.profilePath)
+    const rowClassName = `flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
+        player.ready
+            ? "border-emerald-300/30 bg-emerald-500/15 shadow-[0_0_22px_rgba(52,211,153,0.12)]"
+            : "border-white/10 bg-black/15"
+    } ${canOpenProfile ? "cursor-pointer hover:border-white/24 hover:bg-white/[0.08]" : ""}`
+    const rowContent = (
+        <>
+            <div className="relative grid h-12 w-12 place-items-center overflow-visible rounded-full bg-white/12 text-lg font-black text-white">
                 {player.name.slice(0, 1)}
+                <ProfileImage
+                    src={player.profileImage}
+                    alt={`${player.name} profile`}
+                    className="absolute inset-0 h-full w-full rounded-full object-cover"
+                />
                 {player.isHost && (
                     <Crown
                         size={20}
@@ -413,6 +468,34 @@ function PlayerRow({ player, palette }: {
             </div>
 
             {flagUrl && <img src={flagUrl} alt="" className="h-5 w-8 rounded-sm object-cover shadow-lg" />}
-        </div>
+        </>
+    )
+
+    return (
+        canOpenProfile ? (
+            <button
+                type="button"
+                className={rowClassName}
+                onClick={() => {
+                    if (!player.profilePath) return
+
+                    const state: ProfileNavigationState = {
+                        openedFrom: "multiplayer-players-panel",
+                        returnTo: `${location.pathname}${location.search}`,
+                        profileMode: "preview"
+                    }
+
+                    navigate(player.profilePath, { state })
+                }}
+                onMouseEnter={playHoverSound}
+                aria-label={`Open ${player.name} profile`}
+            >
+                {rowContent}
+            </button>
+        ) : (
+            <div className={rowClassName}>
+                {rowContent}
+            </div>
+        )
     )
 }

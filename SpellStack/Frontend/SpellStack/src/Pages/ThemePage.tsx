@@ -1,16 +1,14 @@
-import { Check, ChevronLeft, ImagePlus, Music2, Play, Trash2, Volume2 } from "lucide-react"
-import { useState, type ReactNode } from "react"
-import { useNavigate } from "react-router-dom"
+import { Check, ImagePlus, Trash2 } from "lucide-react"
+import { useState } from "react"
 
-import { hoverAudioPresets } from "../audio/audioPresets"
-import { useAudioPreview } from "../audio/useAudioPreview"
 import { useUISound } from "../audio/useUISound"
 import FadeIn from "../components/FadeIn"
 import AppPageShell from "../components/layout/AppPageShell"
 import PageContentTransition from "../components/PageContentTransition"
+import AudioThemePanel from "../components/theme/AudioThemePanel"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
-import { backgroundThemes, getOverlayOpacity, overlayStrengths, paletteThemes, type AudioPresetKey } from "../theme/themes"
+import { backgroundThemes, getOverlayOpacity, overlayStrengths, paletteThemes } from "../theme/themes"
 
 type ThemeMode = "visual" | "audio"
 type BackgroundMode = "color" | "image"
@@ -21,16 +19,8 @@ const maxPaletteOptionCount = Math.max(
 )
 
 export default function ThemePage() {
-    const navigate = useNavigate()
     const { t } = useI18n()
-    const {
-        theme,
-        palette,
-        setCustomBackgroundImage,
-        setAudioPreset
-    } = useTheme()
-    const { playPreset } = useAudioPreview()
-    const { playHoverSound } = useUISound()
+    const { theme, setCustomBackgroundImage } = useTheme()
     const [themeMode, setThemeMode] = useState<ThemeMode>("visual")
     const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(theme.customBackgroundImage ? "image" : "color")
     const [paletteView, setPaletteView] = useState<PaletteView>(() =>
@@ -56,17 +46,6 @@ export default function ThemePage() {
     return (
         <PageContentTransition>
             <AppPageShell contentClassName="max-w-[70rem] pb-8">
-                <FadeIn>
-                    <button
-                        onClick={() => navigate("/decks")}
-                        onMouseEnter={playHoverSound}
-                        className="mb-10 flex items-center gap-2 text-sm font-semibold text-white/70 transition hover:text-white"
-                    >
-                        <ChevronLeft size={18} />
-                        {t.themePage.backToDecks}
-                    </button>
-                </FadeIn>
-
                 <FadeIn className="mb-8">
                     <h1 className="text-5xl font-black">Themes</h1>
                     <div className="mt-6">
@@ -91,24 +70,10 @@ export default function ThemePage() {
                         getOverlayLabel={getOverlayLabel}
                     />
                 ) : (
-                    <AudioThemeSettings
-                        onPreview={playPreset}
-                        onHoverSoundChange={value => setAudioPreset("hoverSound", value)}
-                    />
+                    <FadeIn>
+                        <AudioThemePanel />
+                    </FadeIn>
                 )}
-
-                <FadeIn>
-                    <section className="mt-12 flex justify-end pb-8">
-                        <button
-                            type="button"
-                            onClick={() => navigate("/decks")}
-                            onMouseEnter={playHoverSound}
-                            className={`rounded-full px-10 py-3 text-base font-black ${palette.primaryButtonText} shadow-xl transition hover:-translate-y-0.5 ${palette.primaryButton}`}
-                        >
-                            {t.themePage.saveTheme}
-                        </button>
-                    </section>
-                </FadeIn>
             </AppPageShell>
         </PageContentTransition>
     )
@@ -299,84 +264,6 @@ function VisualThemeSettings({ backgroundMode, setBackgroundMode, paletteView, s
     )
 }
 
-function AudioThemeSettings({ onPreview, onHoverSoundChange }: {
-    onPreview: (presetKey: string | null | undefined) => void
-    onHoverSoundChange: (value: AudioPresetKey | null) => void
-}) {
-    const { theme, palette, setAudioEnabled, setUiVolume, setMusicVolume } = useTheme()
-    const { playHoverSound } = useUISound()
-
-    return (
-        <div className="space-y-8">
-            <FadeIn>
-                <AudioPanel title="Master" icon={<Volume2 size={22} strokeWidth={2.5} />}>
-                    <ToggleRow
-                        title="Enable audio"
-                        description="Controls audio previews and future UI/music playback."
-                        checked={theme.audio.audioEnabled}
-                        onChange={setAudioEnabled}
-                    />
-                    <VolumeRow title="UI volume" value={theme.audio.uiVolume} onChange={setUiVolume} />
-                    <VolumeRow title="Music volume" value={theme.audio.musicVolume} onChange={setMusicVolume} />
-                </AudioPanel>
-            </FadeIn>
-
-            <FadeIn>
-                <AudioPanel title="Interface sounds" icon={<Play size={22} strokeWidth={2.5} />}>
-                    <div>
-                        <p className="text-sm font-black uppercase tracking-[0.22em] text-white/50">Hover effect</p>
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                            {hoverAudioPresets.map(preset => {
-                                const selected = theme.audio.hoverSound === preset.key
-
-                                return (
-                                    <button
-                                        key={preset.key}
-                                        type="button"
-                                        onClick={() => onHoverSoundChange(preset.key)}
-                                        onMouseEnter={playHoverSound}
-                                        className={`rounded-2xl border p-4 text-left transition ${
-                                            selected ? `${palette.border} ${palette.card} ${palette.glow}` : "border-white/10 bg-white/[0.04] hover:border-white/35"
-                                        }`}
-                                    >
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div>
-                                                <p className="text-lg font-black text-white">{preset.displayName}</p>
-                                                <p className="mt-1 text-sm font-semibold text-white/50">Soft UI hover feedback.</p>
-                                            </div>
-                                            {selected && <Check size={20} strokeWidth={3} />}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={event => {
-                                                event.stopPropagation()
-                                                onPreview(preset.key)
-                                            }}
-                                            disabled={!theme.audio.audioEnabled || theme.audio.uiVolume <= 0}
-                                            onMouseEnter={playHoverSound}
-                                            className={`mt-5 rounded-full px-4 py-2 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-40 ${palette.primaryButton} ${palette.primaryButtonText}`}
-                                        >
-                                            Preview
-                                        </button>
-                                    </button>
-                                )
-                            })}
-                        </div>
-                    </div>
-
-                    <ComingSoonGrid items={["Click sound", "Success sound", "Error sound", "Sign-in sound"]} />
-                </AudioPanel>
-            </FadeIn>
-
-            <FadeIn>
-                <AudioPanel title="Music" icon={<Music2 size={22} strokeWidth={2.5} />}>
-                    <ComingSoonGrid items={["Background music", "In-game music", "Upload custom sound"]} />
-                </AudioPanel>
-            </FadeIn>
-        </div>
-    )
-}
-
 function ThemePreview() {
     const { t } = useI18n()
     const { palette } = useTheme()
@@ -443,92 +330,5 @@ function SegmentButton({ label, active, onClick }: { label: string; active: bool
         >
             {label}
         </button>
-    )
-}
-
-function AudioPanel({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
-    const { palette } = useTheme()
-
-    return (
-        <section className={`rounded-[2rem] border ${palette.border} ${palette.card} p-6 shadow-2xl backdrop-blur-xl`}>
-            <div className="mb-6 flex items-center gap-3">
-                <span className={`grid h-11 w-11 place-items-center rounded-2xl ${palette.primaryButton} ${palette.primaryButtonText}`}>
-                    {icon}
-                </span>
-                <h2 className="text-2xl font-black text-white">{title}</h2>
-            </div>
-            <div className="space-y-5">
-                {children}
-            </div>
-        </section>
-    )
-}
-
-function ToggleRow({ title, description, checked, onChange }: {
-    title: string
-    description: string
-    checked: boolean
-    onChange: (checked: boolean) => void
-}) {
-    const { palette } = useTheme()
-    const { playHoverSound } = useUISound()
-
-    return (
-        <div className="flex items-center justify-between gap-5 rounded-2xl border border-white/10 bg-black/15 p-4">
-            <div>
-                <p className="font-black text-white">{title}</p>
-                <p className="mt-1 text-sm font-semibold text-white/48">{description}</p>
-            </div>
-            <button
-                type="button"
-                onClick={() => onChange(!checked)}
-                onMouseEnter={playHoverSound}
-                className={`relative h-8 w-14 rounded-full transition ${checked ? palette.primaryButton : "bg-white/15"}`}
-                aria-pressed={checked}
-            >
-                <span className={`absolute top-1 h-6 w-6 rounded-full bg-white transition ${checked ? "left-7" : "left-1"}`} />
-            </button>
-        </div>
-    )
-}
-
-function VolumeRow({ title, value, onChange }: {
-    title: string
-    value: number
-    onChange: (value: number) => void
-}) {
-    const { palette } = useTheme()
-    const percent = Math.round(value * 100)
-
-    return (
-        <div className="rounded-2xl border border-white/10 bg-black/15 p-4">
-            <div className="mb-3 flex items-center justify-between gap-4">
-                <p className="font-black text-white">{title}</p>
-                <span className={`rounded-full px-3 py-1 text-sm font-black ${palette.primaryButton} ${palette.primaryButtonText}`}>
-                    {percent}%
-                </span>
-            </div>
-            <input
-                type="range"
-                min={0}
-                max={100}
-                value={percent}
-                onChange={event => onChange(Number(event.target.value) / 100)}
-                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/15 accent-current"
-            />
-        </div>
-    )
-}
-
-function ComingSoonGrid({ items }: { items: string[] }) {
-    return (
-        <div className="grid gap-3 sm:grid-cols-2">
-            {items.map(item => (
-                <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 opacity-65">
-                    <p className="font-black text-white">{item}</p>
-                    <p className="mt-1 text-sm font-semibold text-white/42">Coming soon</p>
-                </div>
-            ))}
-        </div>
     )
 }
