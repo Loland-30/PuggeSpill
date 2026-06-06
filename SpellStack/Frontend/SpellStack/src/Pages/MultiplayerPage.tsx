@@ -22,9 +22,10 @@ const minimumMultiplayerWords = 10
 
 interface MockPlayer {
     id: string
+    userId?: string
     name: string
     countryCode: string
-    isHost?: boolean
+    isRoomOwner?: boolean
     ready?: boolean
     profileImage?: string | null
     profilePath?: string
@@ -67,10 +68,13 @@ export default function MultiplayerPage() {
     const location = useLocation()
     const { user, loading: authLoading, profileImage } = useAuth()
     const { palette, theme } = useTheme()
+    const localPlayerId = user ? `user-${user.id}` : "local-player"
     const readySoundRef = useRef<HTMLAudioElement | null>(null)
     const [decks, setDecks] = useState<Deck[]>([])
     const [roomState, setRoomState] = useState<RoomState>("landing")
     const [roomCode, setRoomCode] = useState("")
+    const [roomOwnerId, setRoomOwnerId] = useState<string | null>(null)
+    const [currentHostId, setCurrentHostId] = useState<string | null>(null)
     const [joinModalOpen, setJoinModalOpen] = useState(false)
     const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null)
     const [modalDeck, setModalDeck] = useState<Deck | null>(null)
@@ -82,7 +86,9 @@ export default function MultiplayerPage() {
 
         setRoomCode(roomFromUrl)
         setRoomState("lobby")
-    }, [location.search])
+        setRoomOwnerId(currentOwner => currentOwner ?? localPlayerId)
+        setCurrentHostId(currentHost => currentHost ?? localPlayerId)
+    }, [localPlayerId, location.search])
 
     useEffect(() => {
         const audio = new Audio(readySoundUrl)
@@ -107,15 +113,19 @@ export default function MultiplayerPage() {
     }, [authLoading, navigate, user])
 
     const players = useMemo<MockPlayer[]>(() => [
-        { id: "host", name: user?.username ?? "Player 1", countryCode: "no", isHost: true, ready: Boolean(readyConfig), profileImage, profilePath: "/profile" },
+        { id: localPlayerId, userId: user ? String(user.id) : undefined, name: user?.username ?? "Player 1", countryCode: "no", isRoomOwner: roomOwnerId === localPlayerId, ready: Boolean(readyConfig), profileImage, profilePath: "/profile" },
         { id: "player-2", name: "Player 2", countryCode: "es", ready: true },
         { id: "player-3", name: "Player 3", countryCode: "gb", ready: false }
-    ], [profileImage, readyConfig, user?.username])
+    ], [localPlayerId, profileImage, readyConfig, roomOwnerId, user])
+
+    const isLocalHost = currentHostId === localPlayerId
 
     const createRoom = () => {
         const nextRoomCode = generateRoomCode()
         setRoomCode(nextRoomCode)
         setRoomState("lobby")
+        setRoomOwnerId(localPlayerId)
+        setCurrentHostId(localPlayerId)
         setSelectedDeck(null)
         setReadyConfig(null)
         navigate(`/multiplayer?room=${encodeURIComponent(nextRoomCode)}`, { replace: true })
@@ -124,6 +134,8 @@ export default function MultiplayerPage() {
     const joinRoom = (code: string) => {
         setRoomCode(code)
         setRoomState("lobby")
+        setRoomOwnerId("player-2")
+        setCurrentHostId("player-2")
         setJoinModalOpen(false)
         setSelectedDeck(null)
         setReadyConfig(null)
@@ -154,6 +166,17 @@ export default function MultiplayerPage() {
         setModalDeck(null)
     }
 
+    const shuffleHost = () => {
+        const playerIds = players.map(player => player.id)
+        if (playerIds.length <= 1) return
+
+        // Mock-only: real multiplayer host rotation must be server-authoritative.
+        setCurrentHostId(currentHost => {
+            const currentIndex = playerIds.findIndex(playerId => playerId === currentHost)
+            return playerIds[(currentIndex + 1) % playerIds.length]
+        })
+    }
+
     return (
         <>
             <JoinRoomModal
@@ -172,6 +195,8 @@ export default function MultiplayerPage() {
                     variant="multiplayer"
                     primaryLabel={readyConfig ? "Update ready" : "Ready"}
                     disabledModifiers={["zen"]}
+                    gameModeLocked={!isLocalHost}
+                    gameModeLockedMessage="Waiting for host to choose game mode"
                 />
             )}
 
@@ -190,7 +215,11 @@ export default function MultiplayerPage() {
                             decks={decks}
                             selectedDeck={selectedDeck}
                             readyConfig={readyConfig}
+                            roomOwnerId={roomOwnerId}
+                            currentHostId={currentHostId}
+                            isLocalHost={isLocalHost}
                             players={players}
+                            onShuffleHost={shuffleHost}
                             onDeckSelect={openDeckSetup}
                             palette={palette}
                         />
@@ -257,15 +286,21 @@ function LandingAction({ title, description, icon, onClick, palette }: {
     )
 }
 
-function MultiplayerLobby({ roomCode, decks, selectedDeck, readyConfig, players, onDeckSelect, palette }: {
+function MultiplayerLobby({ roomCode, decks, selectedDeck, readyConfig, currentHostId, isLocalHost, players, onShuffleHost, onDeckSelect, palette }: {
     roomCode: string
     decks: Deck[]
     selectedDeck: Deck | null
     readyConfig: ReadyConfig | null
+    roomOwnerId: string | null
+    currentHostId: string | null
+    isLocalHost: boolean
     players: MockPlayer[]
+    onShuffleHost: () => void
     onDeckSelect: (deck: Deck) => void
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
+    const currentHost = players.find(player => player.id === currentHostId)
+
     return (
         <FadeIn className="flex min-h-0 flex-1 flex-col gap-8">
             <header className="w-fit max-w-full rounded-[1.75rem] border border-white/10 bg-black/35 px-6 py-5 shadow-2xl shadow-black/35 backdrop-blur-md sm:px-7">
@@ -283,6 +318,11 @@ function MultiplayerLobby({ roomCode, decks, selectedDeck, readyConfig, players,
                             <h2 className="text-2xl font-black text-white">Choose deck</h2>
                             <p className="mt-1 text-sm font-semibold text-white/50">
                                 Multiplayer decks need at least {minimumMultiplayerWords} words.
+                            </p>
+                            <p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-white/42">
+                                {isLocalHost
+                                    ? "You are host: choose the shared game mode"
+                                    : `${currentHost?.name ?? "Host"} chooses game mode`}
                             </p>
                         </div>
 
@@ -309,7 +349,7 @@ function MultiplayerLobby({ roomCode, decks, selectedDeck, readyConfig, players,
                 </section>
 
                 <aside className="w-full xl:ml-[clamp(4rem,calc((100vw-72rem)/2-3rem),36rem)] xl:w-80 xl:self-center xl:justify-self-start">
-                    <PlayersPanel players={players} palette={palette} />
+                    <PlayersPanel players={players} currentHostId={currentHostId} onShuffleHost={onShuffleHost} palette={palette} />
                 </aside>
             </div>
         </FadeIn>
@@ -404,8 +444,10 @@ function LobbyFlag({ flagUrl, label, learning }: { flagUrl?: string; label: stri
     )
 }
 
-function PlayersPanel({ players, palette }: {
+function PlayersPanel({ players, currentHostId, onShuffleHost, palette }: {
     players: MockPlayer[]
+    currentHostId: string | null
+    onShuffleHost: () => void
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
     return (
@@ -420,15 +462,24 @@ function PlayersPanel({ players, palette }: {
 
             <div className="mt-6 space-y-4">
                 {players.map(player => (
-                    <PlayerRow key={player.id} player={player} palette={palette} />
+                    <PlayerRow key={player.id} player={player} isCurrentHost={player.id === currentHostId} palette={palette} />
                 ))}
             </div>
+
+            <button
+                type="button"
+                onClick={onShuffleHost}
+                className="mt-5 w-full rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-white/55 transition hover:bg-white/[0.09] hover:text-white"
+            >
+                Mock: shuffle host
+            </button>
         </div>
     )
 }
 
-function PlayerRow({ player, palette }: {
+function PlayerRow({ player, isCurrentHost, palette }: {
     player: MockPlayer
+    isCurrentHost: boolean
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
     const navigate = useNavigate()
@@ -450,7 +501,7 @@ function PlayerRow({ player, palette }: {
                     alt={`${player.name} profile`}
                     className="absolute inset-0 h-full w-full rounded-full object-cover"
                 />
-                {player.isHost && (
+                {isCurrentHost && (
                     <Crown
                         size={20}
                         strokeWidth={2.8}

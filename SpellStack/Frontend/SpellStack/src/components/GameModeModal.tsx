@@ -24,6 +24,8 @@ interface Props {
     variant?: "singleplayer" | "multiplayer"
     primaryLabel?: string
     disabledModifiers?: ActiveGameModifier[]
+    gameModeLocked?: boolean
+    gameModeLockedMessage?: string
 }
 
 interface ModeOption {
@@ -44,7 +46,9 @@ export default function GameModeModal({
     onSelect,
     onClose,
     primaryLabel = "Start game",
-    disabledModifiers = []
+    disabledModifiers = [],
+    gameModeLocked = false,
+    gameModeLockedMessage
 }: Props) {
     const [selectedDirection, setSelectedDirection] = useState<GameDirection>("original")
     const [modifiers, setModifiers] = useState<ActiveGameModifier[]>([])
@@ -177,7 +181,14 @@ export default function GameModeModal({
 
                     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
                         <section>
-                            <SectionHeading label={t.gameMode.chooseGameMode} />
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <SectionHeading label={t.gameMode.chooseGameMode} />
+                                {gameModeLocked && (
+                                    <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-black text-white/55">
+                                        {gameModeLockedMessage ?? "Waiting for host to choose game mode"}
+                                    </span>
+                                )}
+                            </div>
                             <div className="mt-3 grid gap-4 md:grid-cols-3">
                                 {modeOptions.map(option => (
                                     <ModeCard
@@ -185,6 +196,7 @@ export default function GameModeModal({
                                         option={option}
                                         selected={selectedDirection === option.direction}
                                         onSelect={setSelectedDirection}
+                                        disabled={gameModeLocked}
                                         palette={palette}
                                     />
                                 ))}
@@ -192,7 +204,14 @@ export default function GameModeModal({
                         </section>
 
                         <section>
-                            <SectionHeading label={t.gameMode.length} />
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <SectionHeading label={t.gameMode.length} />
+                                {gameModeLocked && (
+                                    <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-black text-white/55">
+                                        Host controlled
+                                    </span>
+                                )}
+                            </div>
                             <div className="mt-3 flex flex-col gap-3">
                                 {roundLimitOptions.map(option => (
                                     <LengthOption
@@ -200,6 +219,7 @@ export default function GameModeModal({
                                         option={option}
                                         selected={option.value === roundLimit}
                                         onSelect={setRoundLimit}
+                                        disabled={gameModeLocked}
                                         palette={palette}
                                     />
                                 ))}
@@ -279,10 +299,11 @@ function SectionHeading({ label }: { label: string }) {
     )
 }
 
-function ModeCard({ option, selected, onSelect, palette }: {
+function ModeCard({ option, selected, onSelect, disabled = false, palette }: {
     option: ModeOption
     selected: boolean
     onSelect: (direction: GameDirection) => void
+    disabled?: boolean
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
     const { playHoverSound } = useUISound()
@@ -292,10 +313,13 @@ function ModeCard({ option, selected, onSelect, palette }: {
             type="button"
             onClick={() => onSelect(option.direction)}
             onMouseEnter={playHoverSound}
-            className={`group relative min-h-[15rem] rounded-3xl border p-5 text-left transition duration-200 hover:bg-white/[0.07] ${
+            disabled={disabled}
+            className={`group relative min-h-[15rem] rounded-3xl border p-5 text-left transition duration-200 ${
+                disabled ? "cursor-not-allowed opacity-70" : "hover:bg-white/[0.07]"
+            } ${
                 selected
                     ? `${palette.border} ${palette.card} ${palette.glow}`
-                    : "border-white/10 bg-white/[0.035] hover:border-white/25"
+                    : `border-white/10 bg-white/[0.035] ${disabled ? "" : "hover:border-white/25"}`
             }`}
         >
             {selected && (
@@ -315,10 +339,11 @@ function ModeCard({ option, selected, onSelect, palette }: {
     )
 }
 
-function LengthOption({ option, selected, onSelect, palette }: {
+function LengthOption({ option, selected, onSelect, disabled = false, palette }: {
     option: RoundLimitOption
     selected: boolean
     onSelect: (value: RoundLimit) => void
+    disabled?: boolean
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
     const { playHoverSound } = useUISound()
@@ -328,10 +353,13 @@ function LengthOption({ option, selected, onSelect, palette }: {
             type="button"
             onClick={() => onSelect(option.value)}
             onMouseEnter={playHoverSound}
-            className={`flex items-center justify-between rounded-2xl border px-4 py-4 text-left transition hover:bg-white/[0.07] ${
+            disabled={disabled}
+            className={`flex items-center justify-between rounded-2xl border px-4 py-4 text-left transition ${
+                disabled ? "cursor-not-allowed opacity-70" : "hover:bg-white/[0.07]"
+            } ${
                 selected
                     ? `${palette.border} ${palette.card} ${palette.glow}`
-                    : "border-white/10 bg-white/[0.035] hover:border-white/25"
+                    : `border-white/10 bg-white/[0.035] ${disabled ? "" : "hover:border-white/25"}`
             }`}
         >
             <span className="text-base font-black text-white">{option.label}</span>

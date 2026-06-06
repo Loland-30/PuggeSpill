@@ -43,6 +43,7 @@ function App() {
                         <Route path="/login" element={<AuthPage />} />
                         <Route path="/reset-password" element={<ResetPasswordPage />} />
                         <Route path="/profile" element={<ProfileContainer />} />
+                        <Route path="/profile/:userId" element={<ProfileContainer />} />
                         <Route path="/theme" element={<ThemePage />} />
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="/multiplayer" element={<MultiplayerPage />} />
