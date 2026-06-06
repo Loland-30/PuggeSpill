@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { KeyRound, Save } from "lucide-react"
 
 import { changePassword } from "../api/auth"
@@ -73,13 +73,6 @@ export default function SettingsPage() {
         setCountryRegion,
         setUseRegionLanguage
     } = useI18n()
-    const sectionRefs = useRef<Record<SectionId, HTMLElement | null>>({
-        account: null,
-        gameplay: null,
-        audio: null,
-        comfort: null,
-        privacy: null
-    })
     const [activeTab, setActiveTab] = useState<SectionId>("account")
     const [savedMessage, setSavedMessage] = useState("")
     const [saveError, setSaveError] = useState("")
@@ -180,12 +173,6 @@ export default function SettingsPage() {
         updateSetting("largerText", value)
     }
 
-    const scrollToSection = (sectionId: string) => {
-        const id = sectionId as SectionId
-        setActiveTab(id)
-        sectionRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "start" })
-    }
-
     const handlePasswordSave = async (request: PasswordChangeRequest) => {
         const message = await changePassword(request.currentPassword, request.newPassword, request.confirmPassword)
         setSavedMessage(message || copy.passwordReadyMessage)
@@ -252,12 +239,14 @@ export default function SettingsPage() {
                     <SettingsTabs
                         tabs={tabs}
                         activeTab={activeTab}
-                        onSelect={scrollToSection}
+                        onSelect={sectionId => setActiveTab(sectionId as SectionId)}
                         palette={palette}
                     />
 
-                    <div className="space-y-8">
-                        <div ref={element => { sectionRefs.current.account = element }}>
+                    <FadeIn key={activeTab} delayMs={0} durationMs={220}>
+                        <div className="space-y-8">
+                            {activeTab === "account" && (
+                            <div>
                             <SettingsSection
                                 id="account"
                                 title={copy.account.title}
@@ -334,9 +323,11 @@ export default function SettingsPage() {
                                     )}
                                 </SettingRow>
                             </SettingsSection>
-                        </div>
+                            </div>
+                            )}
 
-                        <div ref={element => { sectionRefs.current.gameplay = element }}>
+                            {activeTab === "gameplay" && (
+                            <div>
                             <SettingsSection id="gameplay" title={copy.gameplay.title} description={copy.gameplay.description} palette={palette}>
                                 <SettingRow label={copy.gameplay.defaultRoundLength} description={copy.gameplay.defaultRoundLengthDescription}>
                                     <SettingsSelect value={settings.defaultRoundLength} onChange={value => updateSetting("defaultRoundLength", value as DefaultRoundLength)} options={roundLengthOptions} palette={palette} label={copy.gameplay.defaultRoundLength} />
@@ -357,15 +348,19 @@ export default function SettingsPage() {
                                     <SettingsSelect value={settings.accentHandling} onChange={value => updateSetting("accentHandling", value as AccentHandling)} options={accentHandlingOptions} palette={palette} label={copy.gameplay.accentHandling} />
                                 </SettingRow>
                             </SettingsSection>
-                        </div>
+                            </div>
+                            )}
 
-                        <div ref={element => { sectionRefs.current.audio = element }}>
+                            {activeTab === "audio" && (
+                            <div>
                             <SettingsSection id="audio" title={copy.audio.title} description={copy.audio.description} palette={palette}>
                                 <AudioSettingsPanel />
                             </SettingsSection>
-                        </div>
+                            </div>
+                            )}
 
-                        <div ref={element => { sectionRefs.current.comfort = element }}>
+                            {activeTab === "comfort" && (
+                            <div>
                             <SettingsSection id="comfort" title={copy.comfort.title} description={copy.comfort.description} palette={palette}>
                                 <SettingRow label={copy.comfort.reduceAnimations} description={copy.comfort.reduceAnimationsDescription}>
                                     <SettingsToggle checked={settings.reduceAnimations} onChange={value => updateSetting("reduceAnimations", value)} palette={palette} label={copy.comfort.reduceAnimations} />
@@ -383,9 +378,11 @@ export default function SettingsPage() {
                                     <SettingsToggle checked={settings.disableRushHourEffects} onChange={value => updateSetting("disableRushHourEffects", value)} palette={palette} label={copy.comfort.disableRushHourEffects} />
                                 </SettingRow>
                             </SettingsSection>
-                        </div>
+                            </div>
+                            )}
 
-                        <div ref={element => { sectionRefs.current.privacy = element }}>
+                            {activeTab === "privacy" && (
+                            <div>
                             <SettingsSection id="privacy" title={copy.privacy.title} description={copy.privacy.description} palette={palette}>
                                 <SettingRow label={copy.privacy.showOtherCustomThemes} description={copy.privacy.showOtherCustomThemesDescription} disabled>
                                     <SettingsToggle checked={settings.showOtherCustomThemes} onChange={value => updateSetting("showOtherCustomThemes", value)} palette={palette} label={copy.privacy.showOtherCustomThemes} disabled />
@@ -400,10 +397,12 @@ export default function SettingsPage() {
                                     <SettingsToggle checked={settings.allowLobbyFriendRequests} onChange={value => updateSetting("allowLobbyFriendRequests", value)} palette={palette} label={copy.privacy.allowLobbyFriendRequests} disabled />
                                 </SettingRow>
                             </SettingsSection>
+                            </div>
+                            )}
                         </div>
-                    </div>
+                    </FadeIn>
 
-                    <div className="sticky bottom-6 z-20 mt-8 flex items-center justify-end gap-4 rounded-3xl border border-white/10 bg-slate-950/80 px-5 py-4 shadow-2xl backdrop-blur-xl">
+                    <div className="mt-8 flex items-center justify-end gap-4 rounded-3xl border border-white/10 bg-slate-950/80 px-5 py-4 shadow-2xl backdrop-blur-xl">
                         {savedMessage && <p className="text-sm font-semibold text-white/62">{savedMessage}</p>}
                         {saveError && <p className="text-sm font-semibold text-red-300">{saveError}</p>}
                         <button
