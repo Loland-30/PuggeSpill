@@ -36,11 +36,14 @@ namespace LexiGo.Api.Controllers {
                 .Where(d => d.UserId == user.Id)
                 .Select(d => d.Id)
                 .ToListAsync();
-            var runsPlayed = await _context.GameSessions.CountAsync(s => deckIds.Contains(s.DeckId));
-            var longestStreak = await _context.GameSessions.AnyAsync(s => deckIds.Contains(s.DeckId))
-                ? await _context.GameSessions
-                    .Where(s => deckIds.Contains(s.DeckId))
-                    .MaxAsync(s => s.StreakCount)
+            var userRuns = _context.GameRunResults
+                .Where(result =>
+                    result.UserId == user.Id &&
+                    deckIds.Contains(result.DeckId) &&
+                    (result.EndReason == "completed" || result.EndReason == "gameOver"));
+            var runsPlayed = await userRuns.CountAsync();
+            var longestStreak = await userRuns.AnyAsync()
+                ? await userRuns.MaxAsync(result => result.BestStreak)
                 : 0;
             var wordsLearned = await _context.Words.CountAsync(w => deckIds.Contains(w.DeckId));
 
@@ -57,8 +60,11 @@ namespace LexiGo.Api.Controllers {
                 .Where(d => d.UserId == user.Id)
                 .ToListAsync();
             var languageDeckIds = decks.Select(d => d.Id).ToList();
-            var sessions = await _context.GameSessions
-                .Where(s => s.UserId == user.Id || languageDeckIds.Contains(s.DeckId))
+            var runResults = await _context.GameRunResults
+                .Where(result =>
+                    result.UserId == user.Id &&
+                    languageDeckIds.Contains(result.DeckId) &&
+                    (result.EndReason == "completed" || result.EndReason == "gameOver"))
                 .ToListAsync();
 
             var stats = decks
@@ -68,12 +74,12 @@ namespace LexiGo.Api.Controllers {
                 .Where(group => !string.IsNullOrWhiteSpace(group.Key))
                 .Select(group => {
                     var deckIds = group.Select(d => d.Id).ToHashSet();
-                    var languageSessions = sessions.Where(s => deckIds.Contains(s.DeckId)).ToList();
+                    var languageRuns = runResults.Where(result => deckIds.Contains(result.DeckId)).ToList();
 
                     return new LanguageStatsResponse(
                         group.Key,
-                        languageSessions.Count,
-                        languageSessions.Count == 0 ? 0 : languageSessions.Max(s => s.StreakCount),
+                        languageRuns.Count,
+                        languageRuns.Count == 0 ? 0 : languageRuns.Max(result => result.BestStreak),
                         group.SelectMany(d => d.Words).Select(w => w.Id).Distinct().Count()
                     );
                 })

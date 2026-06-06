@@ -197,7 +197,9 @@ namespace LexiGo.Api.Controllers {
             var query = _context.GameRunResults
                 .AsNoTracking()
                 .Include(run => run.Deck)
-                .Where(run => run.UserId == user.Id);
+                .Where(run =>
+                    run.UserId == user.Id &&
+                    (run.EndReason == "completed" || run.EndReason == "gameOver"));
 
             if (!string.IsNullOrWhiteSpace(normalizedLanguage)) {
                 query = query.Where(run => run.LanguageCode.ToLower() == normalizedLanguage);

@@ -1,2 +1,4 @@
-﻿export const API_URL = (import.meta.env.VITE_API_URL ?? "http://localhost:5084/api").replace(/\/+$/, "")
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim()
+
+export const API_URL = (configuredApiUrl || "/api").replace(/\/+$/, "")
 export const API_ORIGIN = API_URL.replace(/\/api\/?$/, "")
