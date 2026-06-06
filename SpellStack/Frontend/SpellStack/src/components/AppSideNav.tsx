@@ -1,4 +1,4 @@
-import type { ComponentType } from "react"
+import type { ComponentType, MouseEventHandler } from "react"
 import { FolderOpen, LogOut, Palette, Settings, UserRound } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
 
@@ -13,6 +13,48 @@ interface NavItem {
     path: string
     icon: ComponentType<{ size?: number; strokeWidth?: number; className?: string }>
     match: (pathname: string) => boolean
+}
+
+interface NavItemLinkProps {
+    item: NavItem
+    active: boolean
+    activeIndicatorClass: string
+    onHover: MouseEventHandler<HTMLElement>
+}
+
+function NavItemLink({ item, active, activeIndicatorClass, onHover }: NavItemLinkProps) {
+    const navigate = useNavigate()
+    const Icon = item.icon
+
+    return (
+        <div
+            role="link"
+            tabIndex={0}
+            aria-current={active ? "page" : undefined}
+            onMouseEnter={active ? undefined : onHover}
+            onClick={() => navigate(item.path)}
+            onKeyDown={event => {
+                if (event.key !== "Enter" && event.key !== " ") return
+                event.preventDefault()
+                navigate(item.path)
+            }}
+            className="group -my-3 flex w-full cursor-default items-center gap-3 rounded-lg py-4 pr-5 text-left text-lg font-medium text-white outline-none transition focus-visible:ring-2 focus-visible:ring-white/55"
+        >
+            <span
+                aria-hidden="true"
+                className={`pointer-events-none h-7 w-1 rounded-full transition-all duration-200 ${active ? activeIndicatorClass : "bg-transparent"}`}
+            />
+            <Icon
+                size={20}
+                strokeWidth={2.5}
+                aria-hidden="true"
+                className="pointer-events-none -ml-2 opacity-0 transition-all duration-200 group-hover:ml-0 group-hover:opacity-100 group-focus-visible:ml-0 group-focus-visible:opacity-100"
+            />
+            <span className={`pointer-events-none transition-all duration-200 group-hover:translate-x-1 group-focus-visible:translate-x-1 ${active ? "text-white" : "text-white/85 group-hover:text-white group-focus-visible:text-white"}`}>
+                {item.label}
+            </span>
+        </div>
+    )
 }
 
 export default function AppSideNav() {
@@ -79,30 +121,15 @@ export default function AppSideNav() {
             </button>
 
             <nav className="mt-auto flex flex-col gap-5 pb-28">
-                {navItems.map(item => {
-                    const Icon = item.icon
-                    const active = item.match(location.pathname)
-
-                    return (
-                        <button
-                            key={item.path}
-                            type="button"
-                            onClick={() => navigate(item.path)}
-                            onMouseEnter={playHoverSound}
-                            className="group flex items-center gap-3 text-left text-lg font-medium text-white transition"
-                        >
-                            <span className={`h-7 w-1 rounded-full transition-all duration-200 ${active ? palette.primaryButton : "bg-transparent"}`} />
-                            <Icon
-                                size={20}
-                                strokeWidth={2.5}
-                                className="-ml-2 opacity-0 transition-all duration-200 group-hover:ml-0 group-hover:opacity-100"
-                            />
-                            <span className={`transition-all duration-200 group-hover:translate-x-1 ${active ? "text-white" : "text-white/85 group-hover:text-white"}`}>
-                                {item.label}
-                            </span>
-                        </button>
-                    )
-                })}
+                {navItems.map(item => (
+                    <NavItemLink
+                        key={item.path}
+                        item={item}
+                        active={item.match(location.pathname)}
+                        activeIndicatorClass={palette.primaryButton}
+                        onHover={playHoverSound}
+                    />
+                ))}
             </nav>
 
             <button
