@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { Check, Play, X } from "lucide-react"
+import { useUISound } from "../audio/useUISound"
 import type { Deck } from "../api/decks"
 import type { ActiveGameModifier, GameDirection, RoundLimit } from "../api/gameSession"
 import { languages } from "../data/languages"
@@ -23,6 +24,8 @@ interface Props {
     variant?: "singleplayer" | "multiplayer"
     primaryLabel?: string
     disabledModifiers?: ActiveGameModifier[]
+    gameModeLocked?: boolean
+    gameModeLockedMessage?: string
 }
 
 interface ModeOption {
@@ -43,7 +46,9 @@ export default function GameModeModal({
     onSelect,
     onClose,
     primaryLabel = "Start game",
-    disabledModifiers = []
+    disabledModifiers = [],
+    gameModeLocked = false,
+    gameModeLockedMessage
 }: Props) {
     const [selectedDirection, setSelectedDirection] = useState<GameDirection>("original")
     const [modifiers, setModifiers] = useState<ActiveGameModifier[]>([])
@@ -52,6 +57,7 @@ export default function GameModeModal({
     const [displayDeck, setDisplayDeck] = useState<Deck | null>(deck ?? null)
     const { t } = useI18n()
     const { palette } = useTheme()
+    const { playHoverSound } = useUISound()
 
     useEffect(() => {
         if (isOpen && deck) {
@@ -165,6 +171,7 @@ export default function GameModeModal({
                         <button
                             type="button"
                             onClick={onClose}
+                            onMouseEnter={playHoverSound}
                             className={`grid h-11 w-11 shrink-0 place-items-center rounded-full border ${palette.border} bg-white/5 text-white/80 transition hover:bg-white/10 hover:text-white`}
                             aria-label={t.gameMode.closeLabel}
                         >
@@ -174,7 +181,14 @@ export default function GameModeModal({
 
                     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
                         <section>
-                            <SectionHeading label={t.gameMode.chooseGameMode} />
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <SectionHeading label={t.gameMode.chooseGameMode} />
+                                {gameModeLocked && (
+                                    <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-black text-white/55">
+                                        {gameModeLockedMessage ?? "Waiting for host to choose game mode"}
+                                    </span>
+                                )}
+                            </div>
                             <div className="mt-3 grid gap-4 md:grid-cols-3">
                                 {modeOptions.map(option => (
                                     <ModeCard
@@ -182,6 +196,7 @@ export default function GameModeModal({
                                         option={option}
                                         selected={selectedDirection === option.direction}
                                         onSelect={setSelectedDirection}
+                                        disabled={gameModeLocked}
                                         palette={palette}
                                     />
                                 ))}
@@ -189,7 +204,14 @@ export default function GameModeModal({
                         </section>
 
                         <section>
-                            <SectionHeading label={t.gameMode.length} />
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <SectionHeading label={t.gameMode.length} />
+                                {gameModeLocked && (
+                                    <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-black text-white/55">
+                                        Host controlled
+                                    </span>
+                                )}
+                            </div>
                             <div className="mt-3 flex flex-col gap-3">
                                 {roundLimitOptions.map(option => (
                                     <LengthOption
@@ -197,6 +219,7 @@ export default function GameModeModal({
                                         option={option}
                                         selected={option.value === roundLimit}
                                         onSelect={setRoundLimit}
+                                        disabled={gameModeLocked}
                                         palette={palette}
                                     />
                                 ))}
@@ -217,6 +240,7 @@ export default function GameModeModal({
                                 <button
                                     type="button"
                                     onClick={() => setModifiers([])}
+                                    onMouseEnter={playHoverSound}
                                     className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-sm font-bold text-white/70 transition hover:bg-white/[0.09] hover:text-white"
                                 >
                                     Clear mods
@@ -251,6 +275,7 @@ export default function GameModeModal({
                         <button
                             type="button"
                             onClick={() => onSelect(selectedDirection, activeModifiers, roundLimit)}
+                            onMouseEnter={playHoverSound}
                             className={`inline-flex items-center justify-center gap-3 rounded-2xl px-8 py-4 text-base font-black uppercase tracking-[0.18em] shadow-xl transition hover:-translate-y-0.5 ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`}
                         >
                             {primaryActionLabel}
@@ -274,20 +299,27 @@ function SectionHeading({ label }: { label: string }) {
     )
 }
 
-function ModeCard({ option, selected, onSelect, palette }: {
+function ModeCard({ option, selected, onSelect, disabled = false, palette }: {
     option: ModeOption
     selected: boolean
     onSelect: (direction: GameDirection) => void
+    disabled?: boolean
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
+    const { playHoverSound } = useUISound()
+
     return (
         <button
             type="button"
             onClick={() => onSelect(option.direction)}
-            className={`group relative min-h-[15rem] rounded-3xl border p-5 text-left transition duration-200 hover:bg-white/[0.07] ${
+            onMouseEnter={playHoverSound}
+            disabled={disabled}
+            className={`group relative min-h-[15rem] rounded-3xl border p-5 text-left transition duration-200 ${
+                disabled ? "cursor-not-allowed opacity-70" : "hover:bg-white/[0.07]"
+            } ${
                 selected
                     ? `${palette.border} ${palette.card} ${palette.glow}`
-                    : "border-white/10 bg-white/[0.035] hover:border-white/25"
+                    : `border-white/10 bg-white/[0.035] ${disabled ? "" : "hover:border-white/25"}`
             }`}
         >
             {selected && (
@@ -307,20 +339,27 @@ function ModeCard({ option, selected, onSelect, palette }: {
     )
 }
 
-function LengthOption({ option, selected, onSelect, palette }: {
+function LengthOption({ option, selected, onSelect, disabled = false, palette }: {
     option: RoundLimitOption
     selected: boolean
     onSelect: (value: RoundLimit) => void
+    disabled?: boolean
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
+    const { playHoverSound } = useUISound()
+
     return (
         <button
             type="button"
             onClick={() => onSelect(option.value)}
-            className={`flex items-center justify-between rounded-2xl border px-4 py-4 text-left transition hover:bg-white/[0.07] ${
+            onMouseEnter={playHoverSound}
+            disabled={disabled}
+            className={`flex items-center justify-between rounded-2xl border px-4 py-4 text-left transition ${
+                disabled ? "cursor-not-allowed opacity-70" : "hover:bg-white/[0.07]"
+            } ${
                 selected
                     ? `${palette.border} ${palette.card} ${palette.glow}`
-                    : "border-white/10 bg-white/[0.035] hover:border-white/25"
+                    : `border-white/10 bg-white/[0.035] ${disabled ? "" : "hover:border-white/25"}`
             }`}
         >
             <span className="text-base font-black text-white">{option.label}</span>
@@ -337,6 +376,7 @@ function ModifierCategorySwitch({ activeCategory, onChange, palette }: {
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
     const { t } = useI18n()
+    const { playHoverSound } = useUISound()
     const options: Array<{ label: string; value: ModifierCategory }> = [
         { label: t.gameMode.easier, value: "easier" },
         { label: t.gameMode.harder, value: "harder" }
@@ -352,6 +392,7 @@ function ModifierCategorySwitch({ activeCategory, onChange, palette }: {
                         key={option.value}
                         type="button"
                         onClick={() => onChange(option.value)}
+                        onMouseEnter={playHoverSound}
                         className={`flex h-9 min-w-[6rem] items-center justify-center rounded-full px-4 text-sm font-black transition ${
                             isActive
                                 ? `${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`
@@ -398,10 +439,13 @@ function ModifierChip({ modifier, selected, onToggle, disabled, palette }: {
     disabled: boolean
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
+    const { playHoverSound } = useUISound()
+
     return (
         <button
             type="button"
             onClick={() => onToggle(modifier.id)}
+            onMouseEnter={playHoverSound}
             disabled={disabled}
             className={`min-h-24 rounded-2xl border p-4 text-left transition ${
                 disabled

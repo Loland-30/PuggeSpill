@@ -18,11 +18,11 @@ import {
 import FadeIn from "../components/FadeIn"
 import PageContentTransition from "../components/PageContentTransition"
 import AppPageShell from "../components/layout/AppPageShell"
+import AudioSettingsPanel from "../components/settings/AudioSettingsPanel"
 import ChangePasswordModal, { type PasswordChangeRequest } from "../components/settings/ChangePasswordModal"
 import SettingRow from "../components/settings/SettingRow"
 import SettingsSection from "../components/settings/SettingsSection"
 import SettingsSelect, { type SettingsSelectOption } from "../components/settings/SettingsSelect"
-import SettingsSlider from "../components/settings/SettingsSlider"
 import SettingsTabs, { type SettingsTab } from "../components/settings/SettingsTabs"
 import SettingsToggle from "../components/settings/SettingsToggle"
 
@@ -37,12 +37,6 @@ interface SettingsState {
     autoFocusAnswerInput: boolean
     rushHourAutoSubmit: boolean
     accentHandling: AccentHandling
-    masterVolume: number
-    bgmVolume: number
-    sfxVolume: number
-    muteAll: boolean
-    interfaceSounds: boolean
-    loginProfileLoadSound: boolean
     reduceAnimations: boolean
     reduceScreenFlashes: boolean
     reduceGlowEffects: boolean
@@ -103,12 +97,6 @@ export default function SettingsPage() {
             autoFocusAnswerInput: storedGameplay.autoFocusAnswerInput ?? true,
             rushHourAutoSubmit: storedGameplay.rushHourAutoSubmit ?? true,
             accentHandling: storedGameplay.accentHandling ?? "forgiving",
-            masterVolume: 80,
-            bgmVolume: 70,
-            sfxVolume: 85,
-            muteAll: false,
-            interfaceSounds: true,
-            loginProfileLoadSound: true,
             reduceAnimations: false,
             reduceScreenFlashes: true,
             reduceGlowEffects: false,
@@ -373,24 +361,7 @@ export default function SettingsPage() {
 
                         <div ref={element => { sectionRefs.current.audio = element }}>
                             <SettingsSection id="audio" title={copy.audio.title} description={copy.audio.description} palette={palette}>
-                                <SettingRow label={copy.audio.masterVolume} description={copy.audio.masterVolumeDescription}>
-                                    <SettingsSlider value={settings.masterVolume} onChange={value => updateSetting("masterVolume", value)} palette={palette} label={copy.audio.masterVolume} />
-                                </SettingRow>
-                                <SettingRow label={copy.audio.bgmVolume} description={copy.audio.bgmVolumeDescription}>
-                                    <SettingsSlider value={settings.bgmVolume} onChange={value => updateSetting("bgmVolume", value)} palette={palette} label={copy.audio.bgmVolume} />
-                                </SettingRow>
-                                <SettingRow label={copy.audio.sfxVolume} description={copy.audio.sfxVolumeDescription}>
-                                    <SettingsSlider value={settings.sfxVolume} onChange={value => updateSetting("sfxVolume", value)} palette={palette} label={copy.audio.sfxVolume} />
-                                </SettingRow>
-                                <SettingRow label={copy.audio.muteAll} description={copy.audio.muteAllDescription}>
-                                    <SettingsToggle checked={settings.muteAll} onChange={value => updateSetting("muteAll", value)} palette={palette} label={copy.audio.muteAll} />
-                                </SettingRow>
-                                <SettingRow label={copy.audio.interfaceSounds} description={copy.audio.interfaceSoundsDescription}>
-                                    <SettingsToggle checked={settings.interfaceSounds} onChange={value => updateSetting("interfaceSounds", value)} palette={palette} label={copy.audio.interfaceSounds} />
-                                </SettingRow>
-                                <SettingRow label={copy.audio.loginProfileLoadSound} description={copy.audio.loginProfileLoadSoundDescription}>
-                                    <SettingsToggle checked={settings.loginProfileLoadSound} onChange={value => updateSetting("loginProfileLoadSound", value)} palette={palette} label={copy.audio.loginProfileLoadSound} />
-                                </SettingRow>
+                                <AudioSettingsPanel />
                             </SettingsSection>
                         </div>
 

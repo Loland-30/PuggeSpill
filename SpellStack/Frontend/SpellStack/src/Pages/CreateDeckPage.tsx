@@ -275,15 +275,6 @@ export default function CreateDeckPage() {
             <AppPageShell contentClassName="max-w-[82rem]">
                 <div className="mx-auto w-full max-w-2xl">
                     <FadeIn>
-                        <button
-                            onClick={() => navigate("/decks")}
-                            className="mb-8 text-sm font-semibold text-white/70 transition hover:text-white"
-                        >
-                            Back to decks
-                        </button>
-                    </FadeIn>
-
-                    <FadeIn>
                         <h1 className={`mb-8 text-3xl font-bold ${palette.accentText}`}>
                             {isEditing ? "Edit Deck" : "Create Deck"}
                         </h1>

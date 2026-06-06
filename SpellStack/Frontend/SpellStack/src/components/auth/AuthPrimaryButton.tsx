@@ -1,5 +1,7 @@
 ﻿import { ArrowRight } from "lucide-react"
 
+import { useUISound } from "../../audio/useUISound"
+
 interface AuthPrimaryButtonProps {
     text: string
     ariaLabel: string
@@ -13,11 +15,14 @@ interface AuthPrimaryButtonProps {
 const smoothEase = "cubic-bezier(0.22, 1, 0.36, 1)"
 
 export default function AuthPrimaryButton({ text, ariaLabel, onClick, type = "button", disabled = false, loading = false, variant = "circle" }: AuthPrimaryButtonProps) {
+    const { playHoverSound } = useUISound()
+
     if (variant === "pill") {
         return (
             <button
                 type={type}
                 onClick={onClick}
+                onMouseEnter={playHoverSound}
                 disabled={disabled || loading}
                 aria-label={ariaLabel}
                 className="inline-flex min-h-14 items-center justify-center rounded-full bg-white px-9 text-base font-black text-slate-950 shadow-[0_0_32px_rgba(255,255,255,0.18)] transition hover:-translate-y-0.5 hover:bg-white/92 disabled:cursor-not-allowed disabled:opacity-45"
@@ -31,6 +36,7 @@ export default function AuthPrimaryButton({ text, ariaLabel, onClick, type = "bu
         <button
             type={type}
             onClick={onClick}
+            onMouseEnter={playHoverSound}
             disabled={disabled || loading}
             aria-label={ariaLabel}
             className="group inline-flex h-14 w-14 items-center justify-center gap-0 overflow-hidden rounded-full bg-white text-slate-950 shadow-[0_0_32px_rgba(255,255,255,0.18)] transition-[width,gap,transform,box-shadow,background-color] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:w-[8.25rem] hover:gap-2.5 focus-visible:w-[8.25rem] focus-visible:gap-2.5 disabled:cursor-not-allowed disabled:opacity-45 max-sm:w-[8.25rem] max-sm:gap-2.5"

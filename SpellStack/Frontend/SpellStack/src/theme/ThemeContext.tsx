@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
 import { getStoredToken } from "../api/auth"
 import { getUserTheme, saveUserTheme } from "../api/theme"
-import { defaultTheme, getBackgroundTheme, getPaletteTheme, getTextTone, type AppTheme, type BackgroundThemeId, type OverlayStrength, type PaletteThemeId, type TextTone } from "./themes"
+import { defaultTheme, getBackgroundTheme, getPaletteTheme, getTextTone, normalizeTheme, type AppTheme, type AudioSettings, type BackgroundThemeId, type OverlayStrength, type PaletteThemeId, type TextTone } from "./themes"
 
 interface ThemeContextValue {
     theme: AppTheme
@@ -13,6 +13,10 @@ interface ThemeContextValue {
     setCustomBackgroundImage: (image: string | null) => void
     setOverlayStrength: (strength: OverlayStrength) => void
     setTextTone: (tone: TextTone) => void
+    setAudioEnabled: (enabled: boolean) => void
+    setUiVolume: (volume: number) => void
+    setMusicVolume: (volume: number) => void
+    setAudioPreset: <Key extends keyof AudioSettings>(key: Key, value: AudioSettings[Key]) => void
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
@@ -32,7 +36,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
             setRemoteThemeReady(false)
             try {
                 const userTheme = await getUserTheme()
-                if (userTheme) setTheme({ ...defaultTheme, ...userTheme })
+                if (userTheme) setTheme(normalizeTheme(userTheme))
                 else {
                     setTheme(defaultTheme)
                     await saveUserTheme(defaultTheme)
@@ -49,6 +53,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         return () => window.removeEventListener("spellstack-auth-changed", loadRemoteTheme)
     }, [])
 
+    const updateAudio = (nextAudio: Partial<AudioSettings>) => {
+        setTheme(current => ({
+            ...current,
+            audio: {
+                ...current.audio,
+                ...nextAudio
+            }
+        }))
+    }
+
+    const clampVolume = (volume: number) => Math.min(1, Math.max(0, volume))
+
     useEffect(() => {
         if (getStoredToken() && remoteThemeReady) {
             saveUserTheme(theme).catch(error => console.error("Kunne ikke lagre theme", error))
@@ -64,7 +80,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         setPalette: paletteId => setTheme(current => ({ ...current, paletteId })),
         setCustomBackgroundImage: customBackgroundImage => setTheme(current => ({ ...current, customBackgroundImage })),
         setOverlayStrength: overlayStrength => setTheme(current => ({ ...current, overlayStrength })),
-        setTextTone: textTone => setTheme(current => ({ ...current, textTone }))
+        setTextTone: textTone => setTheme(current => ({ ...current, textTone })),
+        setAudioEnabled: audioEnabled => updateAudio({ audioEnabled }),
+        setUiVolume: uiVolume => updateAudio({ uiVolume: clampVolume(uiVolume) }),
+        setMusicVolume: musicVolume => updateAudio({ musicVolume: clampVolume(musicVolume) }),
+        setAudioPreset: (key, value) => updateAudio({ [key]: value } as Partial<AudioSettings>)
     }), [theme])
 
     return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>

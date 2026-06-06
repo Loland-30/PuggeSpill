@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type WheelEvent } from "react"
 import { motion } from "framer-motion"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 import { getLanguageStats, type LanguageStats } from "../api/auth"
 import AppPageShell from "../components/layout/AppPageShell"
 import { useAuth } from "../auth/AuthContext"
@@ -9,6 +9,7 @@ import PerformancePage from "../components/ProfileComponents/PerformancePage"
 import ProfilePage from "../components/ProfileComponents/ProfilePage"
 import type { ProfileLanguage } from "../components/ProfileComponents/types"
 import { countries, languages } from "../data/languages"
+import { useTheme } from "../theme/ThemeContext"
 
 const profilePages = ["Profile", "Performance", "Achievements"] as const
 const PROFILE_REGION_STORAGE_KEY = "spellstack_profile_region"
@@ -40,7 +41,9 @@ function getLanguageFromCode(code: string) {
 
 export default function ProfileContainer() {
     const navigate = useNavigate()
+    const { userId } = useParams()
     const { user, loading, profileImage, setProfileImage } = useAuth()
+    const { palette } = useTheme()
     const [languageStats, setLanguageStats] = useState<LanguageStats[]>([])
     const [selectedLanguageCode, setSelectedLanguageCode] = useState<string | null>(null)
     const [pageIndex, setPageIndex] = useState(0)
@@ -53,9 +56,12 @@ export default function ProfileContainer() {
         if (!loading && !user) navigate("/login")
     }, [loading, user, navigate])
 
+    const isOwnProfile = !userId || (user ? userId === String(user.id) : false)
+    const isPublicProfile = Boolean(userId && !isOwnProfile)
+
     useEffect(() => {
-        if (user) getLanguageStats().then(setLanguageStats)
-    }, [user])
+        if (user && isOwnProfile) getLanguageStats().then(setLanguageStats)
+    }, [isOwnProfile, user])
 
     useEffect(() => {
         if (!selectedLanguageCode && languageStats.length > 0) {
@@ -85,6 +91,27 @@ export default function ProfileContainer() {
 
     if (loading || !user) {
         return <div className="relative z-10 mt-20 text-center text-gray-400">Loading...</div>
+    }
+
+    if (isPublicProfile) {
+        return (
+            <AppPageShell contentClassName="max-w-4xl">
+                <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+                    <section className={`rounded-[2rem] border ${palette.border} ${palette.card} p-8 text-center shadow-2xl backdrop-blur-xl`}>
+                        <p className={`text-xs font-black uppercase tracking-[0.24em] ${palette.accentText}`}>
+                            Public profile
+                        </p>
+                        <h1 className="mt-3 text-4xl font-black text-white">Player profile preview</h1>
+                        <p className="mx-auto mt-4 max-w-xl text-base font-semibold leading-7 text-white/62">
+                            Public player profiles are wired at the route level now, but the backend endpoint for reading another user's profile is not implemented yet.
+                        </p>
+                        <p className="mt-5 text-sm font-bold text-white/42">
+                            Requested user id: {userId}
+                        </p>
+                    </section>
+                </div>
+            </AppPageShell>
+        )
     }
 
     const currentLanguage = profileLanguages.find(language => language.code === selectedLanguageCode) ?? profileLanguages[0]

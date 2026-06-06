@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { ChevronDown, Search } from "lucide-react"
 
+import { useUISound } from "../../audio/useUISound"
 import { useI18n } from "../../i18n/I18nContext"
 import type { PaletteTheme } from "../../theme/themes"
 
@@ -30,6 +31,7 @@ interface MenuPosition {
 
 export default function SettingsSelect({ value, onChange, options, palette, disabled = false, label, searchable = false }: SettingsSelectProps) {
     const { t } = useI18n()
+    const { playHoverSound } = useUISound()
     const [open, setOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
     const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null)
@@ -129,6 +131,7 @@ export default function SettingsSelect({ value, onChange, options, palette, disa
                     <button
                         type="button"
                         onClick={closeMenu}
+                        onMouseEnter={playHoverSound}
                         className="grid h-5 w-5 shrink-0 place-items-center text-white"
                         aria-label={t.common.close}
                     >
@@ -139,6 +142,7 @@ export default function SettingsSelect({ value, onChange, options, palette, disa
                 <button
                     type="button"
                     onClick={open ? closeMenu : openMenu}
+                    onMouseEnter={playHoverSound}
                     disabled={disabled}
                     aria-label={label}
                     aria-expanded={open}
@@ -178,6 +182,7 @@ export default function SettingsSelect({ value, onChange, options, palette, disa
                                     onChange(option.value)
                                     closeMenu()
                                 }}
+                                onMouseEnter={playHoverSound}
                                 className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold transition ${isSelected ? `${palette.primaryButton} ${palette.primaryButtonText}` : "text-white hover:bg-white/[0.06]"}`}
                             >
                                 {option.flagUrl ? (

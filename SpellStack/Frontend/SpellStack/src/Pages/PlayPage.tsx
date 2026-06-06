@@ -14,6 +14,7 @@ import { cacheGameImages } from "../utils/gameImageCache"
 import { isAnswerAccepted, splitAcceptedAnswers } from "../utils/answerUtils"
 import correctSoundUrl from "../assets/SFX/correct_sound.mp3"
 import correctSoundTwoUrl from "../assets/SFX/correct_2.mp3"
+import gameStartCountdownUrl from "../assets/SFX/game_start_countdown.mp3"
 import gameOverMusicUrl from "../assets/SFX/game_over_music.mp3"
 import incorrectSoundOneUrl from "../assets/SFX/incorrect_1.mp3"
 import incorrectSoundTwoUrl from "../assets/SFX/incorrect_2.mp3"
@@ -95,6 +96,34 @@ function playSound(audio: HTMLAudioElement, volume = 1) {
     audio.play().catch(() => undefined)
 }
 
+function preloadAudio(audio: HTMLAudioElement) {
+    if (audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) return Promise.resolve()
+
+    audio.preload = "auto"
+
+    return new Promise<void>(resolve => {
+        const cleanup = () => {
+            audio.removeEventListener("loadeddata", handleReady)
+            audio.removeEventListener("canplaythrough", handleReady)
+            audio.removeEventListener("error", handleReady)
+        }
+
+        const handleReady = () => {
+            cleanup()
+            resolve()
+        }
+
+        audio.addEventListener("loadeddata", handleReady, { once: true })
+        audio.addEventListener("canplaythrough", handleReady, { once: true })
+        audio.addEventListener("error", handleReady, { once: true })
+        audio.load()
+    })
+}
+
+function preloadAudioElements(audioElements: Array<HTMLAudioElement | null | undefined>) {
+    return Promise.all(audioElements.filter((audio): audio is HTMLAudioElement => Boolean(audio)).map(preloadAudio)).then(() => undefined)
+}
+
 
 export default function PlayPage() {
     const { id } = useParams()
@@ -143,6 +172,8 @@ export default function PlayPage() {
     const rushScoreStartRef = useRef(0)
     const correctSoundRefs = useRef<HTMLAudioElement[] | null>(null)
     const incorrectSoundRefs = useRef<HTMLAudioElement[] | null>(null)
+    const countdownSoundRef = useRef<HTMLAudioElement | null>(null)
+    const countdownSoundStartedRef = useRef(false)
     const gameOverMusicRef = useRef<HTMLAudioElement | null>(null)
 
     if (correctSoundRefs.current === null) {
@@ -163,13 +194,19 @@ export default function PlayPage() {
         gameOverMusicRef.current = new Audio(gameOverMusicUrl)
     }
 
+    if (countdownSoundRef.current === null) {
+        countdownSoundRef.current = new Audio(gameStartCountdownUrl)
+    }
+
     useEffect(() => {
         const gameOverMusic = gameOverMusicRef.current
+        const countdownSound = countdownSoundRef.current
         const correctSounds = correctSoundRefs.current
         const incorrectSounds = incorrectSoundRefs.current
 
         return () => {
             gameOverMusic?.pause()
+            countdownSound?.pause()
             correctSounds?.forEach(sound => sound.pause())
             incorrectSounds?.forEach(sound => sound.pause())
         }
@@ -180,7 +217,15 @@ export default function PlayPage() {
 
         setStageAssetsReady(false)
 
-        cacheGameImages().then(() => {
+        Promise.all([
+            cacheGameImages(),
+            preloadAudioElements([
+                countdownSoundRef.current,
+                gameOverMusicRef.current,
+                ...(correctSoundRefs.current ?? []),
+                ...(incorrectSoundRefs.current ?? [])
+            ])
+        ]).then(() => {
             if (!cancelled) setStageAssetsReady(true)
         })
 
@@ -193,6 +238,7 @@ export default function PlayPage() {
             setSession(s)
             setHighScore(s.finalScore)
             setScoreDelta(null)
+            countdownSoundStartedRef.current = false
             setStartCountdown(3)
             setCurrentDirection(resolveDirection(selectedDirection))
         })
@@ -201,16 +247,39 @@ export default function PlayPage() {
 
     useEffect(() => {
         if (!session || !stageAssetsReady || gameOver || runComplete || startCountdown === null) return
+        if (countdownSoundStartedRef.current) return
 
-        const timeout = window.setTimeout(() => {
-            setStartCountdown(current => {
-                if (current === null) return null
-                return current <= 1 ? null : current - 1
-            })
-        }, 1000)
+        countdownSoundStartedRef.current = true
 
-        return () => window.clearTimeout(timeout)
-    }, [session, stageAssetsReady, gameOver, runComplete, startCountdown])
+        const countdownSound = countdownSoundRef.current
+        const playCountdownTick = () => {
+            if (countdownSound) playSound(countdownSound, 0.75)
+        }
+
+        setStartCountdown(3)
+        playCountdownTick()
+
+        const timers = [
+            window.setTimeout(() => {
+                setStartCountdown(2)
+                playCountdownTick()
+            }, 1000),
+            window.setTimeout(() => {
+                setStartCountdown(1)
+                playCountdownTick()
+            }, 2000),
+            window.setTimeout(() => {
+                setStartCountdown(null)
+                countdownSoundStartedRef.current = false
+            }, 3000)
+        ]
+
+        return () => {
+            timers.forEach(timer => window.clearTimeout(timer))
+            countdownSound?.pause()
+            countdownSoundStartedRef.current = false
+        }
+    }, [session?.id, stageAssetsReady, gameOver, runComplete])
     useEffect(() => {
         if (!session || !stageAssetsReady || startCountdown !== null || gameOver || runComplete) return
         setCurrentDirection(resolveDirection(selectedDirection))
@@ -397,6 +466,7 @@ export default function PlayPage() {
         setRunComplete(false)
         setIsNewHighScore(false)
         setScoreDelta(null)
+        countdownSoundStartedRef.current = false
         setStartCountdown(3)
         setStats({ totalAnswers: 0, correctAnswers: 0, bestStreak: 0 })
         setFastCorrectCount(0)

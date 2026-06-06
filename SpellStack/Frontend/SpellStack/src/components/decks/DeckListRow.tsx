@@ -1,6 +1,7 @@
 import { Pencil, Trash2 } from "lucide-react"
 
 import type { Deck } from "../../api/decks"
+import { useUISound } from "../../audio/useUISound"
 import { languages } from "../../data/languages"
 import { useI18n } from "../../i18n/I18nContext"
 import type { PaletteTheme } from "../../theme/themes"
@@ -20,6 +21,7 @@ function getLanguageFlag(code: string) {
 
 export default function DeckListRow({ deck, onPlay, onEdit, onDelete, palette }: DeckListRowProps) {
     const { t } = useI18n()
+    const { playHoverSound } = useUISound()
 
     return (
         <div className="mx-auto w-full max-w-2xl overflow-visible lg:w-[52rem] lg:max-w-none">
@@ -56,6 +58,7 @@ export default function DeckListRow({ deck, onPlay, onEdit, onDelete, palette }:
 
                     <button
                         onClick={onPlay}
+                        onMouseEnter={playHoverSound}
                         className={`rounded-full px-5 py-2 text-sm font-black ${palette.primaryButtonText} opacity-100 shadow-lg transition ${palette.primaryButton}`}
                     >
                         {t.common.play}
@@ -65,6 +68,7 @@ export default function DeckListRow({ deck, onPlay, onEdit, onDelete, palette }:
                 <div className="pointer-events-none absolute right-5 top-1/2 flex w-40 -translate-y-1/2 items-center gap-3 opacity-0 transition-opacity duration-300 group-hover:pointer-events-auto group-hover:opacity-100">
                     <button
                         onClick={onEdit}
+                        onMouseEnter={playHoverSound}
                         className="flex h-14 w-16 flex-col items-center justify-center rounded-lg text-white transition hover:bg-white/10"
                         aria-label={`${t.common.edit} ${deck.name}`}
                     >
@@ -74,6 +78,7 @@ export default function DeckListRow({ deck, onPlay, onEdit, onDelete, palette }:
 
                     <button
                         onClick={onDelete}
+                        onMouseEnter={playHoverSound}
                         className="flex h-14 w-16 flex-col items-center justify-center rounded-lg text-white transition hover:bg-red-500/30"
                         aria-label={`${t.common.delete} ${deck.name}`}
                     >

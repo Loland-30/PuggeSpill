@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { BookOpen, Trophy, UsersRound, type LucideIcon } from "lucide-react"
+import { useUISound } from "../audio/useUISound"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
 
@@ -20,6 +21,7 @@ const views: Array<{ id: LibraryView; icon: LucideIcon }> = [
 export default function LibraryViewPicker({ activeView, onChange }: LibraryViewPickerProps) {
     const { t } = useI18n()
     const { palette } = useTheme()
+    const { playHoverSound } = useUISound()
     const [visualActiveView, setVisualActiveView] = useState(activeView)
 
     useEffect(() => {
@@ -48,6 +50,7 @@ export default function LibraryViewPicker({ activeView, onChange }: LibraryViewP
                         <button
                             type="button"
                             onClick={() => handleChange(id)}
+                            onMouseEnter={playHoverSound}
                             className={`relative flex h-9 min-w-[5.5rem] items-center justify-center gap-2 overflow-hidden rounded-full px-4 text-sm font-black transition-colors duration-200 ${
                                 active
                                     ? palette.primaryButtonText

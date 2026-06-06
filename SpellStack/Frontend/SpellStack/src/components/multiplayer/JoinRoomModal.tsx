@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { ArrowRight, X } from "lucide-react"
 
+import { useUISound } from "../../audio/useUISound"
 import type { PaletteTheme } from "../../theme/themes"
 
 interface JoinRoomModalProps {
@@ -13,6 +14,7 @@ interface JoinRoomModalProps {
 
 export default function JoinRoomModal({ isOpen, onClose, onJoin, palette }: JoinRoomModalProps) {
     const [roomCode, setRoomCode] = useState("")
+    const { playHoverSound } = useUISound()
 
     useEffect(() => {
         if (!isOpen) return
@@ -61,6 +63,7 @@ export default function JoinRoomModal({ isOpen, onClose, onJoin, palette }: Join
                         <button
                             type="button"
                             onClick={onClose}
+                            onMouseEnter={playHoverSound}
                             className="absolute right-6 top-6 grid h-10 w-10 place-items-center rounded-full text-white/75 transition hover:bg-white/10 hover:text-white"
                             aria-label="Close join room modal"
                         >
@@ -80,6 +83,7 @@ export default function JoinRoomModal({ isOpen, onClose, onJoin, palette }: Join
                             <button
                                 type="submit"
                                 disabled={!roomCode.trim()}
+                                onMouseEnter={playHoverSound}
                                 className={`grid h-10 w-10 shrink-0 place-items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-35 ${palette.primaryButton} ${palette.primaryButtonText}`}
                                 aria-label="Join room"
                             >

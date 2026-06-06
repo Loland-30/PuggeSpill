@@ -1,5 +1,7 @@
-﻿import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ChevronDown } from "lucide-react"
+
+import { useUISound } from "../../audio/useUISound"
 import type { AuthCountryOption } from "./SignupStepProfile"
 
 interface AuthCountrySelectProps {
@@ -10,6 +12,7 @@ interface AuthCountrySelectProps {
 
 export default function AuthCountrySelect({ value, countries, onChange }: AuthCountrySelectProps) {
     const [open, setOpen] = useState(false)
+    const { playHoverSound } = useUISound()
     const menuRef = useRef<HTMLDivElement>(null)
     const selectedCountry = countries.find(country => country.code === value) ?? countries[0]
 
@@ -35,6 +38,7 @@ export default function AuthCountrySelect({ value, countries, onChange }: AuthCo
             <button
                 type="button"
                 onClick={() => setOpen(current => !current)}
+                onMouseEnter={playHoverSound}
                 aria-haspopup="listbox"
                 aria-expanded={open}
                 className="flex min-h-16 w-full items-center gap-4 rounded-[1.35rem] bg-white px-5 text-left text-slate-950 shadow-xl ring-1 ring-white/20 transition focus:outline-none focus:ring-2 focus:ring-white/70"
@@ -62,6 +66,7 @@ export default function AuthCountrySelect({ value, countries, onChange }: AuthCo
                                     onChange(country.code)
                                     setOpen(false)
                                 }}
+                                onMouseEnter={playHoverSound}
                                 className={`flex w-full items-center gap-4 rounded-2xl px-4 py-3 text-left text-base font-semibold transition ${selected ? "bg-white text-slate-950" : "text-white hover:bg-white/10"}`}
                             >
                                 <span className="text-2xl leading-none">{country.flag}</span>
