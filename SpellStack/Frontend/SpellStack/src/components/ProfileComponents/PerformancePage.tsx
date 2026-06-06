@@ -458,7 +458,7 @@ function RankRing({
         <div className="relative grid h-[clamp(22rem,30vw,32rem)] w-[clamp(22rem,30vw,32rem)] place-items-center">
             <svg
                 viewBox="0 0 360 360"
-                className="absolute inset-0 h-full w-full -rotate-90"
+                className="absolute inset-0 h-full w-full overflow-visible"
             >
                 <defs>
                     <linearGradient
@@ -473,27 +473,29 @@ function RankRing({
                     </linearGradient>
                 </defs>
 
-                <circle
-                    cx="180"
-                    cy="180"
-                    r={radius}
-                    fill="none"
-                    stroke="rgba(255,255,255,0.08)"
-                    strokeWidth="18"
-                />
+                <g transform="rotate(-90 180 180)">
+                    <circle
+                        cx="180"
+                        cy="180"
+                        r={radius}
+                        fill="none"
+                        stroke="rgba(255,255,255,0.08)"
+                        strokeWidth="18"
+                    />
 
-                <circle
-                    cx="180"
-                    cy="180"
-                    r={radius}
-                    fill="none"
-                    stroke={`url(#rank-ring-${paletteId})`}
-                    strokeLinecap="round"
-                    strokeWidth="18"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={circumference - progress}
-                    style={{ transition: "stroke-dashoffset 900ms ease-out" }}
-                />
+                    <circle
+                        cx="180"
+                        cy="180"
+                        r={radius}
+                        fill="none"
+                        stroke={`url(#rank-ring-${paletteId})`}
+                        strokeLinecap="round"
+                        strokeWidth="18"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={circumference - progress}
+                        style={{ transition: "stroke-dashoffset 900ms ease-out" }}
+                    />
+                </g>
 
                 {visibleRankMarkers.map(threshold => (
                     <RankTick
@@ -501,9 +503,7 @@ function RankRing({
                         accuracy={threshold.minAccuracy}
                     />
                 ))}
-            </svg>
 
-            <div className="pointer-events-none absolute inset-0">
                 {visibleRankMarkers.map(threshold => (
                     <RankLabelMarker
                         key={threshold.label}
@@ -512,7 +512,7 @@ function RankRing({
                         active={threshold.label === rank}
                     />
                 ))}
-            </div>
+            </svg>
 
             <p className="text-9xl font-black text-white">
                 {rank}
@@ -547,29 +547,24 @@ function RankLabelMarker({
     accuracy: number
     active: boolean
 }) {
+    const tickEndRadius = 170
+    const labelOffset = 18
+    const position = polarToSvgPoint(180, 180, tickEndRadius + labelOffset, accuracy)
+
     return (
-        <span
-            className={`absolute text-3xl transition ${active ? "font-black text-white" : "text-white/75"}`}
-            style={getRankLabelPosition(accuracy)}
+        <text
+            x={position.x}
+            y={position.y}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fill={active ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.75)"}
+            fontSize="24"
+            fontWeight={active ? 900 : 400}
+            className="pointer-events-none transition"
         >
             {label}
-        </span>
+        </text>
     )
-}
-
-function getRankLabelPosition(accuracy: number) {
-    const center = 50
-    const radius = 55
-    const angleRadians = getAccuracyAngleRadians(accuracy)
-
-    const x = center + radius * Math.cos(angleRadians)
-    const y = center + radius * Math.sin(angleRadians)
-
-    return {
-        left: `${x}%`,
-        top: `${y}%`,
-        transform: "translate(-50%, -50%)"
-    }
 }
 
 function polarToSvgPoint(centerX: number, centerY: number, radius: number, accuracy: number) {
