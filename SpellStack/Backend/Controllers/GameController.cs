@@ -348,6 +348,7 @@ namespace LexiGo.Api.Controllers {
             if (modifiers.Contains("extraheart")) multiplier *= 0.75;
             if (modifiers.Contains("hardcore")) multiplier *= 1.5;
             if (modifiers.Contains("momentum")) multiplier *= 1.25;
+            if (modifiers.Contains("hidden")) multiplier *= 1.3;
 
             return multiplier;
         }
@@ -384,6 +385,7 @@ namespace LexiGo.Api.Controllers {
                 "extraheart" => "extraheart",
                 "hardcore" => "hardcore",
                 "momentum" => "momentum",
+                "hidden" => "hidden",
                 _ => "normal"
             };
         }

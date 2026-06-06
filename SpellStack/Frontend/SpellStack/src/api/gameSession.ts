@@ -5,7 +5,7 @@ import { authHeaders } from "./auth"
 export type GameDirection = "original" | "translation" | "mixed"
 export type ResolvedDirection = "original" | "translation"
 
-export type GameModifier = "normal" | "zen" | "extraHeart" | "hardcore" | "momentum"
+export type GameModifier = "normal" | "zen" | "extraHeart" | "hardcore" | "momentum" | "hidden"
 export type ActiveGameModifier = Exclude<GameModifier, "normal">
 
 export type RoundLimit = 10 | 25 | 50 | 100 | null

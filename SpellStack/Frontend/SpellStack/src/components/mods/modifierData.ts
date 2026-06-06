@@ -48,5 +48,14 @@ export const MODIFIER_DEFINITIONS: ModifierDefinition[] = [
         shortDescription: "Correct answers only restore a small amount of time.",
         longDescription: "Correct answers only restore a small amount of time instead of fully resetting the timer.",
         scoreMultiplier: 1.25
+    },
+    {
+        id: "hidden",
+        name: "Hidden",
+        category: "harder",
+        icon: "eye-off",
+        shortDescription: "The question fades after a short delay.",
+        longDescription: "The question fades after a short delay. Answer from memory.",
+        scoreMultiplier: 1.3
     }
 ]

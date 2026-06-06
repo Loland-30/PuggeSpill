@@ -46,7 +46,7 @@ function resolveDirection(direction: GameDirection): ResolvedDirection {
 function resolveModifiers(mods: string | null, legacyModifier: string | null): ActiveGameModifier[] {
     const rawMods = mods ? mods.split(",") : legacyModifier ? [legacyModifier] : []
     const parsedMods = rawMods.filter((modifier): modifier is ActiveGameModifier =>
-        modifier === "zen" || modifier === "extraHeart" || modifier === "hardcore" || modifier === "momentum"
+        modifier === "zen" || modifier === "extraHeart" || modifier === "hardcore" || modifier === "momentum" || modifier === "hidden"
     )
 
     return Array.from(new Set(parsedMods))
@@ -591,6 +591,7 @@ export default function PlayPage() {
                         revealedAnswer={revealedAnswer}
                         result={result}
                         resetKey={`${session.currentWordId}-${session.questionsAnswered}`}
+                        hiddenModifierActive={selectedModifiers.includes("hidden")}
                         inputRef={inputRef}
                         timerDuration={timerDuration}
                         timerInitialTimeLeft={timeLeftRef.current}

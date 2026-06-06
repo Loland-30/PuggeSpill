@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { ArrowLeft, Check, Heart, Leaf, RotateCcw, ShieldAlert, X, Zap, type LucideIcon } from "lucide-react"
+import { ArrowLeft, Check, EyeOff, Heart, Leaf, RotateCcw, ShieldAlert, X, Zap, type LucideIcon } from "lucide-react"
 import type { ActiveGameModifier } from "../../api/gameSession"
 import { useTheme } from "../../theme/ThemeContext"
 import type { ModifierCategory, ModifierDefinition } from "./modifierData"
@@ -16,7 +16,8 @@ const modifierIcons: Record<string, LucideIcon> = {
     extraHeart: Heart,
     zen: Leaf,
     hardcore: ShieldAlert,
-    momentum: Zap
+    momentum: Zap,
+    hidden: EyeOff
 }
 
 export default function ModifierPicker({ selectedModifiers, onChange, onClose }: Props) {

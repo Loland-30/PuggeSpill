@@ -5,6 +5,7 @@ interface AnswerPanelProps {
     revealedAnswer: string
     result: "correct" | "incorrect" | null
     resetKey: string | number
+    hiddenModifierActive: boolean
     inputRef: RefObject<HTMLInputElement | null>
     timerDuration: number
     timerInitialTimeLeft: number
@@ -22,6 +23,7 @@ export default function AnswerPanel({
     revealedAnswer,
     result,
     resetKey,
+    hiddenModifierActive,
     inputRef,
     timerDuration,
     timerInitialTimeLeft,
@@ -36,6 +38,7 @@ export default function AnswerPanel({
 
     const [input, setInput] = useState("")
     const [timeLeft, setTimeLeft] = useState(timerInitialTimeLeft)
+    const [promptHidden, setPromptHidden] = useState(false)
     const onTimerTickRef = useRef(onTimerTick)
     const onTimeoutRef = useRef(onTimeout)
     const timedOutRef = useRef(false)
@@ -52,7 +55,21 @@ export default function AnswerPanel({
 
     useEffect(() => {
         setInput("")
+        setPromptHidden(false)
     }, [resetKey])
+
+    useEffect(() => {
+        if (!hiddenModifierActive || !timerRunning || result) {
+            setPromptHidden(false)
+            return
+        }
+
+        const timeout = window.setTimeout(() => {
+            setPromptHidden(true)
+        }, 1400)
+
+        return () => window.clearTimeout(timeout)
+    }, [hiddenModifierActive, resetKey, result, timerRunning])
 
     useEffect(() => {
         const nextTimeLeft = timerInitialTimeLeft
@@ -93,10 +110,17 @@ export default function AnswerPanel({
         <section className="mx-auto flex w-full max-w-3xl flex-col items-center gap-5 text-center">
             <h1 className={`text-5xl font-black transition-all duration-300 sm:text-7xl ${
                 result === "correct" ? "text-green-400" :
-                result === "incorrect" ? "text-red-400" : "text-white"
+                result === "incorrect" ? "text-red-400" :
+                promptHidden ? "select-none text-transparent opacity-0 blur-md" : "text-white"
             }`}>
                 {promptWord}
             </h1>
+
+            {hiddenModifierActive && !result && (
+                <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-white/45">
+                    Hidden {promptHidden ? "- recall the question" : "- memorize"}
+                </span>
+            )}
 
             <div className="flex h-1.5 w-full max-w-xl justify-center rounded-full bg-white/20">
                 <div
