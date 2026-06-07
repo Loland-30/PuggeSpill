@@ -9,7 +9,6 @@ import GameModeModal from "../components/GameModeModal"
 import { useAuth } from "../auth/AuthContext"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
-import PageContentTransition from "../components/PageContentTransition"
 import GradientFrame from "../components/GradientFrame"
 import AppPageShell from "../components/layout/AppPageShell"
 import LibraryPageToolbar from "../components/navigation/LibraryPageToolbar"
@@ -186,7 +185,7 @@ export default function DeckPage() {
                         />
                     </div>
 
-                    <PageContentTransition className="relative z-0">
+                    <div className="relative z-0">
                         {filteredDecks.length === 0 ? (
                         <FadeIn>
                             <GradientFrame
@@ -227,7 +226,7 @@ export default function DeckPage() {
                         <FadeIn className="mt-auto pb-16 pt-10 text-center text-lg text-white/80">
                             {t.deckPage.deckCount}: {filteredDecks.length}
                         </FadeIn>
-                    </PageContentTransition>
+                    </div>
             </AppPageShell>
         </>
     )
