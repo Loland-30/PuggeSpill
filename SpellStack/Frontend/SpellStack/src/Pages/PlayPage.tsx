@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 
-import { completeRushHour, endGame, answerWord, startGame, type ActiveGameModifier, type GameDirection, type GameSession, type ResolvedDirection, type RoundLimit } from "../api/gameSession"
+import { completeRushHour, endGame, answerWord, recordRushHourStart, startGame, type ActiveGameModifier, type GameDirection, type GameSession, type ResolvedDirection, type RoundLimit } from "../api/gameSession"
 import FadeIn from "../components/FadeIn"
 import AnswerPanel from "../components/game/AnswerPanel"
 import EnemyStage from "../components/game/EnemyStage"
@@ -170,6 +170,7 @@ export default function PlayPage() {
     const wordStartedAtRef = useRef(Date.now())
     const rushActiveRef = useRef(false)
     const rushScoreStartRef = useRef(0)
+    const rushStartedAtRef = useRef<number | null>(null)
     const correctSoundRefs = useRef<HTMLAudioElement[] | null>(null)
     const incorrectSoundRefs = useRef<HTMLAudioElement[] | null>(null)
     const countdownSoundRef = useRef<HTMLAudioElement | null>(null)
@@ -345,6 +346,10 @@ export default function PlayPage() {
         const answer = timedOut ? "" : submittedAnswer
         const localCorrect = !timedOut && isLocallyCorrect(answer)
         const answerTimeMs = Date.now() - wordStartedAtRef.current
+        const responseTimeSeconds = answerTimeMs / 1000
+        const rushHourElapsedSeconds = isRushActive && rushStartedAtRef.current !== null
+            ? (Date.now() - rushStartedAtRef.current) / 1000
+            : undefined
 
         stopTimer()
         setScoreDelta(null)
@@ -364,7 +369,16 @@ export default function PlayPage() {
         }
 
         setTimeout(async () => {
-            const response = await answerWord(session.id, answer, currentDirection, submittedTimeLeft, selectedModifiers, isRushActive)
+            const response = await answerWord(
+                session.id,
+                answer,
+                currentDirection,
+                submittedTimeLeft,
+                selectedModifiers,
+                isRushActive,
+                responseTimeSeconds,
+                rushHourElapsedSeconds
+            )
             const wasCorrect = response.correct
             const nextStreak = wasCorrect ? streak + 1 : 0
             const hasMomentum = selectedModifiers.includes("momentum")
@@ -398,7 +412,11 @@ export default function PlayPage() {
 
                 if (!response.gameComplete && nextTimeLeft >= timerDuration) {
                     const bonusScore = Math.round(rushScore * (RUSH_BONUS_MULTIPLIER - 1))
-                    const bonusSession = await completeRushHour(response.session.id, bonusScore)
+                    const bonusSession = await completeRushHour(
+                        response.session.id,
+                        bonusScore,
+                        rushHourElapsedSeconds
+                    )
                     nextSession = { ...response.session, finalScore: bonusSession.finalScore }
                     setRushBonusFlash(true)
                     setTimeout(() => setRushBonusFlash(false), 1500)
@@ -416,7 +434,7 @@ export default function PlayPage() {
                     : 0
 
                 if (nextFastCorrectCount >= RUSH_TRIGGER_COUNT) {
-                    startRushHour(response.session.finalScore)
+                    startRushHour(response.session.id, response.session.finalScore)
                     shouldResetTimerRef.current = false
                     timeLeftRef.current = Math.min(timerDuration, RUSH_START_SECONDS)
                     setFastCorrectCount(0)
@@ -481,16 +499,21 @@ export default function PlayPage() {
         setTimeout(() => inputRef.current?.focus(), 50)
     }
 
-    const startRushHour = (scoreStart: number) => {
+    const startRushHour = (sessionId: number, scoreStart: number) => {
         rushActiveRef.current = true
         rushScoreStartRef.current = scoreStart
+        rushStartedAtRef.current = Date.now()
         setRushAnswers(0)
         setRushActive(true)
+        void recordRushHourStart(sessionId).catch(error => {
+            console.error("Kunne ikke lagre Rush Hour-start", error)
+        })
     }
 
     const endRushHour = () => {
         rushActiveRef.current = false
         rushScoreStartRef.current = 0
+        rushStartedAtRef.current = null
         setRushActive(false)
         setRushAnswers(0)
     }

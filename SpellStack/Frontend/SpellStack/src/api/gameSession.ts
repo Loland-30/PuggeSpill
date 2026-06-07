@@ -26,6 +26,9 @@ export interface GameSession {
     wrongAnswers: number
     bestStreak: number
     totalResponseTimeSeconds: number | null
+    rushHoursTriggered: number
+    rushHoursCompleted: number
+    longestRushHourDurationSeconds: number | null
     resultSaved: boolean
     modifiersJson: string
 }
@@ -51,6 +54,9 @@ export interface GameRunHistory {
     bestStreak: number
     highestCombo: number
     averageResponseTimeSeconds: number | null
+    rushHoursTriggered: number
+    rushHoursCompleted: number
+    longestRushHourDurationSeconds: number | null
     roundLimit: RoundLimit
     completedAt: string
     endReason: string
@@ -79,12 +85,22 @@ export async function answerWord(
     direction: ResolvedDirection,
     timeLeft: number,
     modifiers: ActiveGameModifier[] = [],
-    protectLife = false
+    protectLife = false,
+    responseTimeSeconds?: number,
+    rushHourElapsedSeconds?: number
 ): Promise<AnswerResponse> {
     const response = await fetch(`${API_URL}/game/answer/${id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ answer, direction, timeLeft, modifiers, protectLife })
+        body: JSON.stringify({
+            answer,
+            direction,
+            timeLeft,
+            modifiers,
+            protectLife,
+            responseTimeSeconds,
+            rushHourElapsedSeconds
+        })
     })
 
     if (!response.ok) throw new Error("Failed to fetch word")
@@ -92,11 +108,24 @@ export async function answerWord(
     return response.json()
 }
 
-export async function completeRushHour(id: number, bonusScore: number): Promise<GameSession> {
+export async function recordRushHourStart(id: number): Promise<void> {
+    const response = await fetch(`${API_URL}/game/rush-hour/${id}/start`, {
+        method: "POST",
+        headers: authHeaders()
+    })
+
+    if (!response.ok) throw new Error("Failed to record rush hour start")
+}
+
+export async function completeRushHour(
+    id: number,
+    bonusScore: number,
+    durationSeconds?: number
+): Promise<GameSession> {
     const response = await fetch(`${API_URL}/game/rush-hour/${id}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ bonusScore })
+        body: JSON.stringify({ bonusScore, durationSeconds })
     })
 
     if (!response.ok) throw new Error("Failed to complete rush hour")

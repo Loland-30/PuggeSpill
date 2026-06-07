@@ -48,6 +48,8 @@ namespace LexiGo.Api.Controllers {
                 CorrectAnswers = 0,
                 WrongAnswers = 0,
                 BestStreak = 0,
+                RushHoursTriggered = 0,
+                RushHoursCompleted = 0,
                 ResultSaved = false,
                 ModifiersJson = JsonSerializer.Serialize(modifiers)
             };
@@ -76,6 +78,19 @@ namespace LexiGo.Api.Controllers {
 
             var modifiers = NormalizeModifiers(request.Modifiers, request.Modifier);
             var correct = IsAnswerCorrect(session.CurrentWord, request.Answer, direction);
+            var responseTimeSeconds = ClampDuration(request.ResponseTimeSeconds);
+
+            if (responseTimeSeconds.HasValue) {
+                session.TotalResponseTimeSeconds =
+                    (session.TotalResponseTimeSeconds ?? 0) + responseTimeSeconds.Value;
+            }
+
+            var rushHourElapsedSeconds = ClampDuration(request.RushHourElapsedSeconds);
+            if (rushHourElapsedSeconds.HasValue) {
+                session.LongestRushHourDurationSeconds = Math.Max(
+                    session.LongestRushHourDurationSeconds ?? 0,
+                    rushHourElapsedSeconds.Value);
+            }
 
             if (correct) {
                 var nextStreak = session.StreakCount + 1;
@@ -222,6 +237,9 @@ namespace LexiGo.Api.Controllers {
                     run.BestStreak,
                     run.HighestCombo,
                     run.AverageResponseTimeSeconds,
+                    run.RushHoursTriggered,
+                    run.RushHoursCompleted,
+                    run.LongestRushHourDurationSeconds,
                     run.RoundLimit,
                     run.CompletedAt,
                     run.EndReason,
@@ -230,6 +248,23 @@ namespace LexiGo.Api.Controllers {
                 .ToListAsync();
 
             return Ok(runs);
+        }
+
+        [HttpPost("rush-hour/{id}/start")]
+        public async Task<IActionResult> StartRushHour(int id) {
+            var user = await GetCurrentUser();
+            if (user == null) return Unauthorized();
+
+            var session = await _context.GameSessions
+                .FirstOrDefaultAsync(s => s.Id == id && s.UserId == user.Id);
+
+            if (session == null) return NotFound();
+            if (!session.IsActive) return BadRequest("Session er ikke aktiv");
+
+            session.RushHoursTriggered++;
+            await _context.SaveChangesAsync();
+
+            return NoContent();
         }
 
         [HttpPost("rush-hour/{id}/complete")]
@@ -245,6 +280,14 @@ namespace LexiGo.Api.Controllers {
             if (!session.IsActive) return BadRequest("Session er ikke aktiv");
 
             session.FinalScore += Math.Max(0, request.BonusScore);
+            session.RushHoursCompleted++;
+
+            var durationSeconds = ClampDuration(request.DurationSeconds);
+            if (durationSeconds.HasValue) {
+                session.LongestRushHourDurationSeconds = Math.Max(
+                    session.LongestRushHourDurationSeconds ?? 0,
+                    durationSeconds.Value);
+            }
 
             await _context.SaveChangesAsync();
 
@@ -273,6 +316,10 @@ namespace LexiGo.Api.Controllers {
                 var accuracyPercent = totalAnswers == 0
                     ? 0
                     : Math.Round(session.CorrectAnswers * 100.0 / totalAnswers, 2);
+                var averageResponseTimeSeconds =
+                    totalAnswers > 0 && session.TotalResponseTimeSeconds.HasValue
+                        ? Math.Round(session.TotalResponseTimeSeconds.Value / totalAnswers, 3)
+                        : (double?)null;
 
                 _context.GameRunResults.Add(new GameRunResult {
                     UserId = session.UserId,
@@ -286,7 +333,10 @@ namespace LexiGo.Api.Controllers {
                     AccuracyPercent = accuracyPercent,
                     BestStreak = session.BestStreak,
                     HighestCombo = session.BestStreak,
-                    AverageResponseTimeSeconds = null,
+                    AverageResponseTimeSeconds = averageResponseTimeSeconds,
+                    RushHoursTriggered = session.RushHoursTriggered,
+                    RushHoursCompleted = session.RushHoursCompleted,
+                    LongestRushHourDurationSeconds = session.LongestRushHourDurationSeconds,
                     RoundLimit = session.RoundLimit,
                     CompletedAt = DateTime.UtcNow,
                     EndReason = endReason,
@@ -303,6 +353,15 @@ namespace LexiGo.Api.Controllers {
             if (!string.IsNullOrWhiteSpace(deck.LearningLanguage)) return deck.LearningLanguage;
             if (!string.IsNullOrWhiteSpace(deck.TranslationLanguage)) return deck.TranslationLanguage;
             return deck.Language;
+        }
+
+        private static double? ClampDuration(double? durationSeconds) {
+            if (!durationSeconds.HasValue || double.IsNaN(durationSeconds.Value) ||
+                double.IsInfinity(durationSeconds.Value)) {
+                return null;
+            }
+
+            return Math.Clamp(durationSeconds.Value, 0, 300);
         }
 
         private static bool IsAnswerCorrect(Word word, string answer, string direction) {
@@ -426,9 +485,11 @@ namespace LexiGo.Api.Controllers {
         int? TimeLeft,
         string? Modifier,
         string[]? Modifiers,
-        bool ProtectLife
+        bool ProtectLife,
+        double? ResponseTimeSeconds,
+        double? RushHourElapsedSeconds
     );
 
-    public record RushHourCompleteRequest(int BonusScore);
+    public record RushHourCompleteRequest(int BonusScore, double? DurationSeconds);
     public record FinishSessionResult(int HighScore, bool IsNewHighScore);
 }

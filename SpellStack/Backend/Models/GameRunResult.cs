@@ -13,6 +13,9 @@ namespace LexiGo.Api.Models {
         public int BestStreak { get; set; }
         public int HighestCombo { get; set; }
         public double? AverageResponseTimeSeconds { get; set; }
+        public int RushHoursTriggered { get; set; }
+        public int RushHoursCompleted { get; set; }
+        public double? LongestRushHourDurationSeconds { get; set; }
         public int? RoundLimit { get; set; }
         public DateTime CompletedAt { get; set; } = DateTime.UtcNow;
         public string EndReason { get; set; } = "";

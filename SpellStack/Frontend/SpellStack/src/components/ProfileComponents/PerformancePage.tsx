@@ -30,7 +30,8 @@ interface PerformanceSnapshot {
     recentAccuracyRuns: number[]
     recentScoreRuns: number[]
     rushHoursTriggered: number
-    longestRushHourDuration: number
+    rushHoursCompleted: number
+    longestRushHourDuration: number | null
     trialsAttempted: number
     averageTrialWinRate: number
     recentTrialScore: number
@@ -286,8 +287,15 @@ function RushHourPanel({ performance }: { performance: PerformanceSnapshot }) {
             />
 
             <PerformanceStat
+                label="Rush Hours completed"
+                value={performance.rushHoursCompleted.toString()}
+            />
+
+            <PerformanceStat
                 label="Longest Rush Hour duration"
-                value={`${performance.longestRushHourDuration} seconds`}
+                value={performance.longestRushHourDuration === null
+                    ? "—"
+                    : `${performance.longestRushHourDuration.toFixed(1)} seconds`}
             />
         </div>
     )
@@ -343,10 +351,22 @@ function RecentRunsChart({
     loading: boolean
     onChartModeChange: (mode: ChartMode) => void
 }) {
-    const { palette } = useTheme()
+    const { theme } = useTheme()
+    const [barsVisible, setBarsVisible] = useState(false)
     const chartLabel = chartMode === "accuracy" ? "Accuracy" : "Score"
     const sourceValues = chartMode === "accuracy" ? accuracyValues : scoreValues
     const values = getChartValues(sourceValues, chartMode)
+    const barPalette = getRingPalette(theme.paletteId)
+
+    useEffect(() => {
+        setBarsVisible(false)
+
+        const frame = window.requestAnimationFrame(() => {
+            setBarsVisible(true)
+        })
+
+        return () => window.cancelAnimationFrame(frame)
+    }, [chartMode, sourceValues])
 
     return (
         <div className="mt-16">
@@ -376,14 +396,40 @@ function RecentRunsChart({
 
                     {!loading && values.length > 0 && (
                         <div className="flex h-full items-end gap-7">
-                            {values.map((value, index) => (
-                                <div
-                                    key={`${chartMode}-${sourceValues[index]}-${index}`}
-                                    title={`${chartLabel}: ${Math.round(sourceValues[index])}${chartMode === "accuracy" ? "%" : ""}`}
-                                    className={`w-7 rounded-t-sm transition ${palette.preview}`}
-                                    style={{ height: `${value}%` }}
-                                />
-                            ))}
+                            {values.map((value, index) => {
+                                const exactValue = sourceValues[index]
+                                const displayValue = chartMode === "accuracy"
+                                    ? `${Math.round(exactValue)}%`
+                                    : Math.round(exactValue).toLocaleString()
+                                const ariaLabel = `${chartLabel}: ${displayValue}`
+
+                                return (
+                                    <div
+                                        key={`${chartMode}-${exactValue}-${index}`}
+                                        className="group relative flex h-full w-10 items-end justify-center"
+                                        tabIndex={0}
+                                        role="img"
+                                        aria-label={ariaLabel}
+                                    >
+                                        <div
+                                            className="pointer-events-none absolute left-1/2 z-10 -translate-x-1/2 rounded-md border border-white/15 bg-slate-950/95 px-3 py-1.5 text-xs font-bold whitespace-nowrap text-white opacity-0 shadow-xl transition duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+                                            style={{ bottom: `calc(${value}% + 0.75rem)` }}
+                                        >
+                                            {chartLabel}: {displayValue}
+                                        </div>
+
+                                        <div
+                                            className="w-7 origin-bottom rounded-t-sm shadow-lg transition-[transform,filter] duration-500 ease-out group-hover:brightness-125 group-focus-visible:brightness-125"
+                                            style={{
+                                                height: `${value}%`,
+                                                transform: barsVisible ? "scaleY(1)" : "scaleY(0)",
+                                                background: `linear-gradient(to top, ${barPalette.from}, ${barPalette.to})`,
+                                                transitionDelay: `${index * 45}ms`
+                                            }}
+                                        />
+                                    </div>
+                                )
+                            })}
                         </div>
                     )}
                 </div>
@@ -631,7 +677,7 @@ function getPerformanceSnapshot(runs: GameRunHistory[]): PerformanceSnapshot {
     const completedRuns = [...runs].reverse()
     const responseTimes = runs
         .map(run => run.averageResponseTimeSeconds)
-        .filter((value): value is number => typeof value === "number")
+        .filter((value): value is number => typeof value === "number" && Number.isFinite(value))
 
     const averageResponseTime = responseTimes.length === 0
         ? "0.0"
@@ -644,13 +690,22 @@ function getPerformanceSnapshot(runs: GameRunHistory[]): PerformanceSnapshot {
         highestCombo: Math.max(0, ...runs.map(run => run.highestCombo)),
         recentAccuracyRuns: completedRuns.map(run => Math.round(clamp(run.accuracyPercent, 0, 100))),
         recentScoreRuns: completedRuns.map(run => run.finalScore),
-        rushHoursTriggered: 0,
-        longestRushHourDuration: 0,
+        rushHoursTriggered: runs.reduce((sum, run) => sum + (run.rushHoursTriggered ?? 0), 0),
+        rushHoursCompleted: runs.reduce((sum, run) => sum + (run.rushHoursCompleted ?? 0), 0),
+        longestRushHourDuration: getLongestRushHourDuration(runs),
         trialsAttempted: 0,
         averageTrialWinRate: 0,
         recentTrialScore: 0,
         bestTrialScore: 0
     }
+}
+
+function getLongestRushHourDuration(runs: GameRunHistory[]) {
+    const durations = runs
+        .map(run => run.longestRushHourDurationSeconds)
+        .filter((value): value is number => typeof value === "number" && Number.isFinite(value))
+
+    return durations.length === 0 ? null : Math.max(...durations)
 }
 
 function getChartValues(values: number[], chartMode: ChartMode) {

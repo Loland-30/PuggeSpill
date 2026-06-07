@@ -15,6 +15,9 @@ namespace LexiGo.Api.Models {
         public int WrongAnswers { get; set; }
         public int BestStreak { get; set; }
         public double? TotalResponseTimeSeconds { get; set; }
+        public int RushHoursTriggered { get; set; }
+        public int RushHoursCompleted { get; set; }
+        public double? LongestRushHourDurationSeconds { get; set; }
         public bool ResultSaved { get; set; }
         public string ModifiersJson { get; set; } = "";
         
