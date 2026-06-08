@@ -10,11 +10,34 @@ export interface Achievement {
     unlockedAt: string | null
 }
 
-export async function getAchievements(): Promise<Achievement[]> {
+export interface AchievementUnlock {
+    id: string
+    category: string
+    name: string
+    description: string
+    unlockedAt: string
+}
+
+export interface AchievementListResponse {
+    achievements: Achievement[]
+    newlyUnlockedAchievements: AchievementUnlock[]
+}
+
+export async function getAchievements(): Promise<AchievementListResponse> {
     const response = await fetch(`${API_URL}/achievements`, {
         headers: authHeaders()
     })
 
     if (!response.ok) throw new Error("Kunne ikke hente achievements")
+    return response.json()
+}
+
+export async function checkAchievementUnlocks(): Promise<AchievementUnlock[]> {
+    const response = await fetch(`${API_URL}/achievements/check`, {
+        method: "POST",
+        headers: authHeaders()
+    })
+
+    if (!response.ok) throw new Error("Kunne ikke sjekke achievements")
     return response.json()
 }

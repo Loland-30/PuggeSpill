@@ -16,6 +16,7 @@ import ThemedPage from "./components/ThemedPage"
 import AppSideNav from "./components/AppSideNav"
 import AppStartupGate from "./components/startup/AppStartupGate"
 import MainMenuAudio from "./components/audio/MainMenuAudio"
+import { AchievementNotificationProvider } from "./achievements/AchievementNotificationContext"
 
 function App() {
     const location = useLocation()
@@ -24,48 +25,46 @@ function App() {
     const showSideNav = !isGameplay && location.pathname !== "/login" && location.pathname !== "/reset-password"
     const lockPageScroll = location.pathname === "/trials" || location.pathname === "/multiplayer"
 
-    if (isGameplay) {
-        return (
-            <AppStartupGate>
+    return (
+        <AppStartupGate>
+            <AchievementNotificationProvider>
+                {isGameplay ? (
                 <Routes location={location}>
                     <Route path="/decks/:id/play" element={<PlayPage />} />
                     <Route path="/trials/:trialId" element={<TrialPage />} />
                 </Routes>
-            </AppStartupGate>
-        )
-    }
-
-    return (
-        <AppStartupGate>
-            <ThemedPage className={`px-6 py-8 text-white ${lockPageScroll ? "h-screen overflow-hidden" : ""}`}>
-                <MainMenuAudio />
-                {showSideNav && <AppSideNav />}
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={location.pathname}
-                        initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 }}
-                        transition={{ duration: prefersReducedMotion ? 0 : 0.22, ease: "easeOut" }}
-                        className="relative z-10 min-h-[calc(100vh-4rem)] w-full"
-                    >
-                        <Routes location={location}>
-                            <Route path="/" element={<DeckPage />} />
-                            <Route path="/login" element={<AuthPage />} />
-                            <Route path="/reset-password" element={<ResetPasswordPage />} />
-                            <Route path="/profile" element={<ProfileContainer />} />
-                            <Route path="/profile/:userId" element={<ProfileContainer />} />
-                            <Route path="/theme" element={<ThemePage />} />
-                            <Route path="/settings" element={<SettingsPage />} />
-                            <Route path="/multiplayer" element={<MultiplayerPage />} />
-                            <Route path="/trials" element={<TrialsMenuPage />} />
-                            <Route path="/decks" element={<DeckPage />} />
-                            <Route path="/decks/create" element={<CreateDeckPage />} />
-                            <Route path="/decks/:id/edit" element={<CreateDeckPage />} />
-                        </Routes>
-                    </motion.div>
-                </AnimatePresence>
-            </ThemedPage>
+                ) : (
+                    <ThemedPage className={`px-6 py-8 text-white ${lockPageScroll ? "h-screen overflow-hidden" : ""}`}>
+                        <MainMenuAudio />
+                        {showSideNav && <AppSideNav />}
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={location.pathname}
+                                initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 }}
+                                transition={{ duration: prefersReducedMotion ? 0 : 0.22, ease: "easeOut" }}
+                                className="relative z-10 min-h-[calc(100vh-4rem)] w-full"
+                            >
+                                <Routes location={location}>
+                                    <Route path="/" element={<DeckPage />} />
+                                    <Route path="/login" element={<AuthPage />} />
+                                    <Route path="/reset-password" element={<ResetPasswordPage />} />
+                                    <Route path="/profile" element={<ProfileContainer />} />
+                                    <Route path="/profile/:userId" element={<ProfileContainer />} />
+                                    <Route path="/theme" element={<ThemePage />} />
+                                    <Route path="/settings" element={<SettingsPage />} />
+                                    <Route path="/multiplayer" element={<MultiplayerPage />} />
+                                    <Route path="/trials" element={<TrialsMenuPage />} />
+                                    <Route path="/decks" element={<DeckPage />} />
+                                    <Route path="/decks/create" element={<CreateDeckPage />} />
+                                    <Route path="/decks/:id/edit" element={<CreateDeckPage />} />
+                                </Routes>
+                            </motion.div>
+                        </AnimatePresence>
+                    </ThemedPage>
+                )}
+            </AchievementNotificationProvider>
         </AppStartupGate>
     )
 }

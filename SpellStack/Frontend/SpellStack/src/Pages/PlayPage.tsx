@@ -18,6 +18,7 @@ import gameStartCountdownUrl from "../assets/SFX/game_start_countdown.mp3"
 import gameOverMusicUrl from "../assets/SFX/game_over_music.mp3"
 import incorrectSoundOneUrl from "../assets/SFX/incorrect_1.mp3"
 import incorrectSoundTwoUrl from "../assets/SFX/incorrect_2.mp3"
+import { useAchievementNotifications } from "../achievements/AchievementNotificationContext"
 
 const TIMER_DURATION = 10
 const BOSS_TIMER_DURATION = 20
@@ -128,6 +129,7 @@ function preloadAudioElements(audioElements: Array<HTMLAudioElement | null | und
 export default function PlayPage() {
     const { id } = useParams()
     const navigate = useNavigate()
+    const { showAchievements } = useAchievementNotifications()
     const [searchParams] = useSearchParams()
     const selectedDirection = (searchParams.get("direction") ?? "original") as GameDirection
     const selectedModifiers = resolveModifiers(searchParams.get("mods"), searchParams.get("modifier"))
@@ -303,6 +305,7 @@ export default function PlayPage() {
             const result = await endGame(finishedSession.id)
             setHighScore(result.highScore)
             setIsNewHighScore(result.isNewHighScore)
+            showAchievements(result.newlyUnlockedAchievements)
         } catch (error) {
             console.error("Kunne ikke oppdatere high score", error)
         }
@@ -316,6 +319,7 @@ export default function PlayPage() {
             const result = await endGame(finishedSession.id)
             setHighScore(result.highScore)
             setIsNewHighScore(result.isNewHighScore)
+            showAchievements(result.newlyUnlockedAchievements)
         } catch (error) {
             console.error("Kunne ikke oppdatere high score", error)
         }
@@ -459,6 +463,8 @@ export default function PlayPage() {
 
             if (wasCorrect) onCorrectAnswer()
             else onWrongAnswer()
+
+            showAchievements(response.newlyUnlockedAchievements)
 
             if (response.gameOver) {
                 await handleGameOver(response.session)

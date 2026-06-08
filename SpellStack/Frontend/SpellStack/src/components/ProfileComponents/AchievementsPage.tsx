@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react"
 import { Check, Clock3, Flame, Languages, Lock, ShieldCheck, Swords, Trophy } from "lucide-react"
 import { getAchievements, type Achievement } from "../../api/achievements"
+import {
+    achievementsUpdatedEvent,
+    useAchievementNotifications
+} from "../../achievements/AchievementNotificationContext"
 import { useTheme } from "../../theme/ThemeContext"
 
 const achievementCategories = [
@@ -41,7 +45,9 @@ const fallbackAchievements: Achievement[] = [
     { id: "language_specialist", category: "Languages", name: "Language Specialist", description: "Add 50 words in one language.", unlocked: false, unlockedAt: null },
     { id: "challenge_rush_initiate", category: "Challenges", name: "Rush Initiate", description: "Reach a score of 1,000.", unlocked: false, unlockedAt: null },
     { id: "challenge_trial_runner", category: "Challenges", name: "Trial Runner", description: "Play 5 runs.", unlocked: false, unlockedAt: null },
-    { id: "challenge_hardcore_victory", category: "Challenges", name: "Hardcore Victory", description: "Reach a score of 2,000.", unlocked: false, unlockedAt: null }
+    { id: "challenge_hardcore_victory", category: "Challenges", name: "Hardcore Victory", description: "Reach a score of 2,000.", unlocked: false, unlockedAt: null },
+    { id: "challenge_hardcore_first_run", category: "Challenges", name: "Hardcore Initiate", description: "Complete one run with Hardcore active.", unlocked: false, unlockedAt: null },
+    { id: "challenge_hardcore_10000", category: "Challenges", name: "Hardcore Master", description: "Reach a score of at least 10,000 with Hardcore active.", unlocked: false, unlockedAt: null }
 ]
 
 type AchievementCategory = typeof achievementCategories[number]["title"]
@@ -49,6 +55,7 @@ type AchievementFilter = "All" | AchievementCategory
 
 export default function AchievementsPage() {
     const { palette } = useTheme()
+    const { showAchievements } = useAchievementNotifications()
     const [activeFilter, setActiveFilter] = useState<AchievementFilter>("All")
     const [achievements, setAchievements] = useState<Achievement[]>(fallbackAchievements)
     const [loading, setLoading] = useState(true)
@@ -58,16 +65,34 @@ export default function AchievementsPage() {
     const progressPercent = totalAchievements === 0 ? 0 : Math.round((unlockedCount / totalAchievements) * 100)
 
     useEffect(() => {
-        getAchievements()
-            .then(data => {
-                setAchievements(data)
-                setError("")
-            })
-            .catch(error => {
-                setError(error instanceof Error ? error.message : "Kunne ikke hente achievements")
-            })
-            .finally(() => setLoading(false))
-    }, [])
+        let cancelled = false
+
+        const loadAchievements = () => {
+            setLoading(true)
+            getAchievements()
+                .then(data => {
+                    if (cancelled) return
+                    setAchievements(mergeAchievements(data.achievements))
+                    showAchievements(data.newlyUnlockedAchievements)
+                    setError("")
+                })
+                .catch(error => {
+                    if (cancelled) return
+                    setError(error instanceof Error ? error.message : "Kunne ikke hente achievements")
+                })
+                .finally(() => {
+                    if (!cancelled) setLoading(false)
+                })
+        }
+
+        loadAchievements()
+        window.addEventListener(achievementsUpdatedEvent, loadAchievements)
+
+        return () => {
+            cancelled = true
+            window.removeEventListener(achievementsUpdatedEvent, loadAchievements)
+        }
+    }, [showAchievements])
 
     const visibleAchievements = useMemo(() => {
         return achievements.filter(achievement => {
@@ -200,6 +225,22 @@ function AchievementCard({
 
 function getCategoryIcon(category: string) {
     return achievementCategories.find(item => item.title === category)?.icon ?? Trophy
+}
+
+function mergeAchievements(remoteAchievements: Achievement[]) {
+    const remoteById = new Map(
+        remoteAchievements.map(achievement => [achievement.id, achievement])
+    )
+    const fallbackIds = new Set(
+        fallbackAchievements.map(achievement => achievement.id)
+    )
+
+    return [
+        ...fallbackAchievements.map(achievement =>
+            remoteById.get(achievement.id) ?? achievement
+        ),
+        ...remoteAchievements.filter(achievement => !fallbackIds.has(achievement.id))
+    ]
 }
 
 function formatUnlockedDate(unlockedAt: string | null) {

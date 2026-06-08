@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using LexiGo.Api.Data;
+using LexiGo.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 var databasePath = Path.Combine(builder.Environment.ContentRootPath, "lexigo.db");
@@ -25,6 +26,7 @@ builder.Services.AddCors(options => {
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<AchievementService>();
 
 var app = builder.Build();
 

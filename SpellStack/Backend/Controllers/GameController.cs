@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LexiGo.Api.Data;
 using LexiGo.Api.Models;
+using LexiGo.Api.Services;
 
 namespace LexiGo.Api.Controllers {
 
@@ -11,9 +12,11 @@ namespace LexiGo.Api.Controllers {
     public class GameController : ControllerBase {
 
         private readonly AppDbContext _context;
+        private readonly AchievementService _achievementService;
 
-        public GameController(AppDbContext context) {
+        public GameController(AppDbContext context, AchievementService achievementService) {
             _context = context;
+            _achievementService = achievementService;
         }
 
         [HttpPost("start/{deckId}")]
@@ -120,24 +123,28 @@ namespace LexiGo.Api.Controllers {
             if (session.Lives <= 0) {
                 await FinishSession(session, "gameOver");
                 await _context.SaveChangesAsync();
+                var newlyUnlockedAchievements = await _achievementService.UnlockNewAchievements(user.Id);
 
                 return Ok(new {
                     correct,
                     session,
                     gameOver = true,
-                    gameComplete = false
+                    gameComplete = false,
+                    newlyUnlockedAchievements
                 });
             }
 
             if (session.RoundLimit.HasValue && session.QuestionsAnswered >= session.RoundLimit.Value) {
                 await FinishSession(session, "completed");
                 await _context.SaveChangesAsync();
+                var newlyUnlockedAchievements = await _achievementService.UnlockNewAchievements(user.Id);
 
                 return Ok(new {
                     correct,
                     session,
                     gameOver = false,
-                    gameComplete = true
+                    gameComplete = true,
+                    newlyUnlockedAchievements
                 });
             }
 
@@ -194,10 +201,12 @@ namespace LexiGo.Api.Controllers {
 
             var result = await FinishSession(session, "endedByUser");
             await _context.SaveChangesAsync();
+            var newlyUnlockedAchievements = await _achievementService.UnlockNewAchievements(user.Id);
 
             return Ok(new {
                 highScore = result.HighScore,
-                isNewHighScore = result.IsNewHighScore
+                isNewHighScore = result.IsNewHighScore,
+                newlyUnlockedAchievements
             });
         }
 

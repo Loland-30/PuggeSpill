@@ -1,6 +1,7 @@
 import { API_URL } from "./config"
 import type { Word } from "./decks"
 import { authHeaders } from "./auth"
+import type { AchievementUnlock } from "./achievements"
 
 export type GameDirection = "original" | "translation" | "mixed"
 export type ResolvedDirection = "original" | "translation"
@@ -38,6 +39,13 @@ export interface AnswerResponse {
     session: GameSession
     gameOver: boolean
     gameComplete: boolean
+    newlyUnlockedAchievements?: AchievementUnlock[]
+}
+
+export interface EndGameResponse {
+    highScore: number
+    isNewHighScore: boolean
+    newlyUnlockedAchievements?: AchievementUnlock[]
 }
 
 export interface GameRunHistory {
@@ -148,7 +156,7 @@ export async function getGameHistory(language?: string, limit = 10): Promise<Gam
     return response.json()
 }
 
-export async function endGame(id: number) {
+export async function endGame(id: number): Promise<EndGameResponse> {
     const response = await fetch(`${API_URL}/game/end/${id}`, {
         method: "POST",
         headers: authHeaders()
