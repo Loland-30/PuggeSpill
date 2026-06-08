@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
 import { clearStoredToken, getMe, getStoredToken, login, logout, register, storeToken, updateAccountProfile as updateAccountProfileRequest, type AuthUser } from "../api/auth"
 import { deleteProfileImage as deleteProfileImageRequest, uploadProfileImage as uploadProfileImageRequest } from "../api/profileImage"
+import { deleteCustomAudio, uploadCustomAudio } from "../api/profileAudio"
 import { resolveAssetUrl } from "../utils/assetUrl"
 
 interface AuthContextValue {
@@ -11,6 +12,10 @@ interface AuthContextValue {
     uploadProfileImage: (image: File) => Promise<AuthUser>
     deleteProfileImage: () => Promise<AuthUser | null>
     updateAccountProfile: (username: string, email: string) => Promise<AuthUser>
+    uploadLoginSplashSound: (file: File) => Promise<AuthUser>
+    deleteLoginSplashSound: () => Promise<AuthUser | null>
+    uploadMainMenuMusic: (file: File) => Promise<AuthUser>
+    deleteMainMenuMusic: () => Promise<AuthUser | null>
     loginUser: (email: string, password: string) => Promise<AuthUser>
     registerUser: (username: string, email: string, password: string, favoriteLanguage: string) => Promise<AuthUser>
     logoutUser: () => Promise<void>
@@ -68,6 +73,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return updatedUser
     }, [])
 
+    const updateCustomAudio = useCallback(async (
+        operation: () => Promise<AuthUser>
+    ) => {
+        const updatedUser = await operation()
+        setUser(updatedUser)
+        window.dispatchEvent(new Event("spellstack-auth-changed"))
+        return updatedUser
+    }, [])
+
+    const uploadLoginSplashSound = useCallback((file: File) => {
+        return updateCustomAudio(() => uploadCustomAudio("login-splash", file))
+    }, [updateCustomAudio])
+
+    const deleteLoginSplashSound = useCallback(async () => {
+        if (!user) return null
+        return updateCustomAudio(() => deleteCustomAudio("login-splash"))
+    }, [updateCustomAudio, user])
+
+    const uploadMainMenuMusic = useCallback((file: File) => {
+        return updateCustomAudio(() => uploadCustomAudio("main-menu", file))
+    }, [updateCustomAudio])
+
+    const deleteMainMenuMusic = useCallback(async () => {
+        if (!user) return null
+        return updateCustomAudio(() => deleteCustomAudio("main-menu"))
+    }, [updateCustomAudio, user])
+
     const value = useMemo<AuthContextValue>(() => ({
         user,
         loading,
@@ -76,6 +108,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         uploadProfileImage,
         deleteProfileImage,
         updateAccountProfile,
+        uploadLoginSplashSound,
+        deleteLoginSplashSound,
+        uploadMainMenuMusic,
+        deleteMainMenuMusic,
         loginUser: async (email, password) => {
             const result = await login(email, password)
             storeToken(result.token)
@@ -95,7 +131,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null)
             window.dispatchEvent(new Event("spellstack-auth-changed"))
         }
-    }), [deleteProfileImage, loading, profileImage, setProfileImage, updateAccountProfile, uploadProfileImage, user])
+    }), [
+        deleteLoginSplashSound,
+        deleteMainMenuMusic,
+        deleteProfileImage,
+        loading,
+        profileImage,
+        setProfileImage,
+        updateAccountProfile,
+        uploadLoginSplashSound,
+        uploadMainMenuMusic,
+        uploadProfileImage,
+        user
+    ])
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

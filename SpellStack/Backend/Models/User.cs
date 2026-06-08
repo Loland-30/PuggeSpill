@@ -8,6 +8,8 @@ namespace LexiGo.Api.Models {
         public string FavoriteLanguage { get; set; } = "Spanish";
         public string ThemeJson { get; set; } = "";
         public string? ProfileImageUrl { get; set; }
+        public string? CustomLoginSplashSoundUrl { get; set; }
+        public string? CustomMainMenuMusicUrl { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public ICollection<Deck> Decks { get; set; } = new List<Deck>();

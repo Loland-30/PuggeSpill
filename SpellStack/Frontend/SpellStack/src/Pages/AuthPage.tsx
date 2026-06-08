@@ -50,7 +50,12 @@ export default function AuthPage() {
     const [error, setError] = useState("")
     const [message, setMessage] = useState("")
     const [submitting, setSubmitting] = useState(false)
-    const [welcome, setWelcome] = useState<{ variant: "login" | "register"; username: string; avatarUrl: string | null } | null>(null)
+    const [welcome, setWelcome] = useState<{
+        variant: "login" | "register"
+        username: string
+        avatarUrl: string | null
+        soundUrl: string | null
+    } | null>(null)
 
     const changeMode = (nextMode: "login" | "signup") => {
         setError("")
@@ -59,8 +64,13 @@ export default function AuthPage() {
         if (nextMode === "signup") setSignupStep(1)
     }
 
-    const finishWithSplash = (variant: "login" | "register", name: string, avatarUrl: string | null) => {
-        setWelcome({ variant, username: name, avatarUrl })
+    const finishWithSplash = (
+        variant: "login" | "register",
+        name: string,
+        avatarUrl: string | null,
+        soundUrl: string | null
+    ) => {
+        setWelcome({ variant, username: name, avatarUrl, soundUrl })
         window.setTimeout(() => {
             setWelcome(null)
             window.setTimeout(() => navigate("/decks"), welcomeExitMs)
@@ -105,7 +115,12 @@ export default function AuthPage() {
 
         try {
             const user = await loginUser(email, password)
-            finishWithSplash("login", user.username, resolveAssetUrl(user.profileImageUrl))
+            finishWithSplash(
+                "login",
+                user.username,
+                resolveAssetUrl(user.profileImageUrl),
+                resolveAssetUrl(user.customLoginSplashSoundUrl)
+            )
         } catch (error) {
             setError(error instanceof Error ? error.message : "Something went wrong")
         } finally {
@@ -130,7 +145,12 @@ export default function AuthPage() {
                 ? await uploadProfileImage(profileImageFile)
                 : user
 
-            finishWithSplash("register", userWithImage.username, resolveAssetUrl(userWithImage.profileImageUrl))
+            finishWithSplash(
+                "register",
+                userWithImage.username,
+                resolveAssetUrl(userWithImage.profileImageUrl),
+                resolveAssetUrl(userWithImage.customLoginSplashSoundUrl)
+            )
         } catch (error) {
             setError(error instanceof Error ? error.message : "Something went wrong")
         } finally {
@@ -213,7 +233,14 @@ export default function AuthPage() {
                 </AnimatePresence>
             </AuthShell>
             <AnimatePresence>
-                {welcome && <AuthWelcomeSplash variant={welcome.variant} username={welcome.username} avatarUrl={welcome.avatarUrl} />}
+                {welcome && (
+                    <AuthWelcomeSplash
+                        variant={welcome.variant}
+                        username={welcome.username}
+                        avatarUrl={welcome.avatarUrl}
+                        soundUrl={welcome.soundUrl}
+                    />
+                )}
             </AnimatePresence>
         </>
     )

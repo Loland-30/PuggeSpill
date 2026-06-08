@@ -11,7 +11,7 @@ export default function AudioSettingsPanel() {
         <AudioPanel title="Master" icon={<Volume2 size={22} strokeWidth={2.5} />}>
             <ToggleRow
                 title="Enable audio"
-                description="Controls audio previews and future UI/music playback."
+                description="Controls interface sounds, splash audio and music."
                 checked={theme.audio.audioEnabled}
                 onChange={setAudioEnabled}
             />
@@ -32,9 +32,7 @@ function AudioPanel({ title, icon, children }: { title: string; icon: ReactNode;
                 </span>
                 <h2 className="text-2xl font-black text-white">{title}</h2>
             </div>
-            <div className="space-y-5">
-                {children}
-            </div>
+            <div className="space-y-5">{children}</div>
         </section>
     )
 }

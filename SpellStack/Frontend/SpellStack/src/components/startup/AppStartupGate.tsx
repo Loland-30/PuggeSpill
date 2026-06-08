@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useAuth } from "../../auth/AuthContext"
+import { resolveAssetUrl } from "../../utils/assetUrl"
 import WelcomeBackSplash from "../auth/WelcomeBackSplash"
 
 const startupTipSeenKey = "spellstack_startup_tip_seen"
@@ -36,6 +37,7 @@ export default function AppStartupGate({ children }: AppStartupGateProps) {
     const shouldShowWelcomeBack = Boolean(user?.username) && !hasSessionFlag(welcomeBackSeenKey)
     const [startupTipElapsed, setStartupTipElapsed] = useState(!shouldShowStartupTip)
     const [step, setStep] = useState<StartupGateStep>(shouldShowStartupTip ? "startup-tip" : "ready")
+    const initialAuthDecisionHandled = useRef(false)
 
     useEffect(() => {
         if (!shouldShowStartupTip) return
@@ -64,10 +66,13 @@ export default function AppStartupGate({ children }: AppStartupGateProps) {
     useEffect(() => {
         if (step !== "ready") return
         if (loading) return
-        if (!shouldShowWelcomeBack) return
+        if (initialAuthDecisionHandled.current) return
 
-        setSessionFlag(welcomeBackSeenKey)
-        setStep("welcome-back")
+        initialAuthDecisionHandled.current = true
+        if (shouldShowWelcomeBack) {
+            setSessionFlag(welcomeBackSeenKey)
+            setStep("welcome-back")
+        }
     }, [loading, shouldShowWelcomeBack, step])
 
     useEffect(() => {
@@ -106,6 +111,7 @@ export default function AppStartupGate({ children }: AppStartupGateProps) {
                                     key="welcome-back"
                                     username={user.username}
                                     profileImage={profileImage}
+                                    soundUrl={resolveAssetUrl(user.customLoginSplashSoundUrl)}
                                 />
                             )}
                         </AnimatePresence>

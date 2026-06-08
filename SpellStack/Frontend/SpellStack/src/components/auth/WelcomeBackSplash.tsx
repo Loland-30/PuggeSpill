@@ -1,19 +1,33 @@
 import { motion } from "framer-motion"
 
+import { getAudioPreset } from "../../audio/audioPresets"
+import { useOneShotAudio } from "../../audio/useOneShotAudio"
+import { useTheme } from "../../theme/ThemeContext"
 import ProfileImage from "../ProfileImage"
 
 interface WelcomeBackSplashProps {
     username: string
     profileImage?: string | null
+    soundUrl?: string | null
     title?: string
 }
 
 export default function WelcomeBackSplash({
     username,
     profileImage,
+    soundUrl,
     title = "Welcome back"
 }: WelcomeBackSplashProps) {
+    const { theme } = useTheme()
     const initial = username.slice(0, 1).toUpperCase()
+    const fallbackSound = getAudioPreset(theme.audio.signInSound)?.file ?? null
+
+    useOneShotAudio({
+        source: soundUrl,
+        fallbackSource: fallbackSound,
+        enabled: theme.audio.audioEnabled,
+        volume: theme.audio.uiVolume
+    })
 
     return (
         <motion.div

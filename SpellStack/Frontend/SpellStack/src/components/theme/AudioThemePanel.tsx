@@ -6,6 +6,7 @@ import { useAudioPreview } from "../../audio/useAudioPreview"
 import { useUISound } from "../../audio/useUISound"
 import { useTheme } from "../../theme/ThemeContext"
 import type { AudioPresetKey } from "../../theme/themes"
+import CustomAudioThemePanel from "./CustomAudioThemePanel"
 
 export default function AudioThemePanel() {
     const { theme, palette, setAudioPreset } = useTheme()
@@ -60,12 +61,14 @@ export default function AudioThemePanel() {
                     </div>
                 </div>
 
-                <ComingSoonGrid items={["Click sound", "Success sound", "Error sound", "Sign-in sound"]} />
+                <ComingSoonGrid items={["Click sound", "Success sound", "Error sound"]} />
             </AudioPanel>
 
             <AudioPanel title="Music" icon={<Music2 size={22} strokeWidth={2.5} />}>
-                <ComingSoonGrid items={["Background music", "In-game music", "Upload custom sound"]} />
+                <ComingSoonGrid items={["In-game music"]} />
             </AudioPanel>
+
+            <CustomAudioThemePanel />
         </div>
     )
 }

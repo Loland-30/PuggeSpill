@@ -15,6 +15,7 @@ import MultiplayerPage from "./Pages/MultiplayerPage"
 import ThemedPage from "./components/ThemedPage"
 import AppSideNav from "./components/AppSideNav"
 import AppStartupGate from "./components/startup/AppStartupGate"
+import MainMenuAudio from "./components/audio/MainMenuAudio"
 
 function App() {
     const location = useLocation()
@@ -37,6 +38,7 @@ function App() {
     return (
         <AppStartupGate>
             <ThemedPage className={`px-6 py-8 text-white ${lockPageScroll ? "h-screen overflow-hidden" : ""}`}>
+                <MainMenuAudio />
                 {showSideNav && <AppSideNav />}
                 <AnimatePresence mode="wait">
                     <motion.div

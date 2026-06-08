@@ -270,7 +270,9 @@ namespace LexiGo.Api.Controllers {
                 user.Email,
                 user.FavoriteLanguage,
                 user.CreatedAt,
-                user.ProfileImageUrl
+                user.ProfileImageUrl,
+                user.CustomLoginSplashSoundUrl,
+                user.CustomMainMenuMusicUrl
             );
         }
     }

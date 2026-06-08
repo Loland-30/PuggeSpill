@@ -215,7 +215,9 @@ namespace LexiGo.Api.Controllers {
                 user.Email,
                 user.FavoriteLanguage,
                 user.CreatedAt,
-                user.ProfileImageUrl
+                user.ProfileImageUrl,
+                user.CustomLoginSplashSoundUrl,
+                user.CustomMainMenuMusicUrl
             );
         }
     }
@@ -225,5 +227,14 @@ namespace LexiGo.Api.Controllers {
     public record ForgotPasswordRequest(string Email);
     public record ResetPasswordRequest(string Token, string NewPassword);
     public record AuthResponse(string Token, UserResponse User);
-    public record UserResponse(int Id, string Username, string Email, string FavoriteLanguage, DateTime CreatedAt, string? ProfileImageUrl);
+    public record UserResponse(
+        int Id,
+        string Username,
+        string Email,
+        string FavoriteLanguage,
+        DateTime CreatedAt,
+        string? ProfileImageUrl,
+        string? CustomLoginSplashSoundUrl,
+        string? CustomMainMenuMusicUrl
+    );
 }

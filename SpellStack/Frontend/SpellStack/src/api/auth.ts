@@ -8,6 +8,8 @@ export interface AuthUser {
     favoriteLanguage: string
     createdAt: string
     profileImageUrl?: string | null
+    customLoginSplashSoundUrl?: string | null
+    customMainMenuMusicUrl?: string | null
 }
 
 export interface AuthResponse {

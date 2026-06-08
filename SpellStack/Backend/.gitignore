@@ -32,3 +32,9 @@ Thumbs.db
 # Uploaded profile images
 **/wwwroot/uploads/profile-images/*
 !**/wwwroot/uploads/profile-images/.gitkeep
+
+# Uploaded custom audio
+**/wwwroot/uploads/audio/login-splash/*
+!**/wwwroot/uploads/audio/login-splash/.gitkeep
+**/wwwroot/uploads/audio/main-menu/*
+!**/wwwroot/uploads/audio/main-menu/.gitkeep
