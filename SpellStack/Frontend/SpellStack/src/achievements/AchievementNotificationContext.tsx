@@ -14,7 +14,7 @@ import { useLocation } from "react-router-dom"
 
 import { checkAchievementUnlocks, type AchievementUnlock } from "../api/achievements"
 import achievementUnlockedSoundUrl from "../assets/SFX/achievement_unlocked_sfx.mp3"
-import { useOneShotAudio } from "../audio/useOneShotAudio"
+import { preloadOneShotAudio, useOneShotAudio } from "../audio/useOneShotAudio"
 import { useAuth } from "../auth/AuthContext"
 import { useTheme } from "../theme/ThemeContext"
 
@@ -34,6 +34,10 @@ export function AchievementNotificationProvider({ children }: { children: ReactN
     const seenIds = useRef(new Set<string>())
     const checkInFlight = useRef<Promise<void> | null>(null)
     const activeAchievement = queue[0] ?? null
+
+    useEffect(() => {
+        preloadOneShotAudio(achievementUnlockedSoundUrl)
+    }, [])
 
     const dismissCurrent = useCallback(() => {
         setQueue(current => current.slice(1))
