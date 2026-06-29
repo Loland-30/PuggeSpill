@@ -201,8 +201,8 @@ export default function MultiplayerPage() {
             )}
 
             <AppPageShell
-                className="!min-h-[calc(100vh-4rem)] overflow-hidden lg:!px-40 xl:!px-24 2xl:!px-32"
-                contentClassName="mt-14 flex h-[calc(100vh-8rem)] min-h-0 flex-col !max-w-[92rem]"
+                className="!min-h-[calc(100vh-4rem)] overflow-hidden"
+                contentClassName="mt-14 flex h-[calc(100vh-8rem)] min-h-0 flex-col"
             >
                 <LibraryPageToolbar reserveActionsSlot />
 
@@ -302,7 +302,7 @@ function MultiplayerLobby({ roomCode, decks, selectedDeck, readyConfig, currentH
     const currentHost = players.find(player => player.id === currentHostId)
 
     return (
-        <FadeIn className="flex min-h-0 flex-1 flex-col gap-8">
+        <FadeIn className="relative flex min-h-0 flex-1 flex-col gap-8">
             <header className="w-fit max-w-full rounded-[1.75rem] border border-white/10 bg-black/35 px-6 py-5 shadow-2xl shadow-black/35 backdrop-blur-md sm:px-7">
                 <p className={`text-sm font-black uppercase tracking-[0.28em] ${palette.accentText}`}>Multiplayer room</p>
                 <h1 className="mt-3 text-5xl font-black text-white">Room code: {roomCode}</h1>
@@ -311,47 +311,45 @@ function MultiplayerLobby({ roomCode, decks, selectedDeck, readyConfig, currentH
                 </p>
             </header>
 
-            <div className="grid min-h-0 flex-1 gap-y-8 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,21rem)] xl:items-start xl:gap-x-[clamp(3rem,7vw,9rem)]">
-                <section className="min-w-0 self-start">
-                    <div className="mb-4 flex items-end justify-between gap-4">
-                        <div>
-                            <h2 className="text-2xl font-black text-white">Choose deck</h2>
-                            <p className="mt-1 text-sm font-semibold text-white/50">
-                                Multiplayer decks need at least {minimumMultiplayerWords} words.
-                            </p>
-                            <p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-white/42">
-                                {isLocalHost
-                                    ? "You are host: choose the shared game mode"
-                                    : `${currentHost?.name ?? "Host"} chooses game mode`}
-                            </p>
+            <section className="min-w-0 self-start">
+                <div className="mb-4 flex items-end justify-between gap-4">
+                    <div>
+                        <h2 className="text-2xl font-black text-white">Choose deck</h2>
+                        <p className="mt-1 text-sm font-semibold text-white/50">
+                            Multiplayer decks need at least {minimumMultiplayerWords} words.
+                        </p>
+                        <p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-white/42">
+                            {isLocalHost
+                                ? "You are host: choose the shared game mode"
+                                : `${currentHost?.name ?? "Host"} chooses game mode`}
+                        </p>
+                    </div>
+
+                    {readyConfig && selectedDeck && (
+                        <div className={`rounded-full border ${palette.border} ${palette.card} px-4 py-2 text-sm font-black text-white shadow-xl`}>
+                            Ready with {selectedDeck.name}
                         </div>
+                    )}
+                </div>
 
-                        {readyConfig && selectedDeck && (
-                            <div className={`rounded-full border ${palette.border} ${palette.card} px-4 py-2 text-sm font-black text-white shadow-xl`}>
-                                Ready with {selectedDeck.name}
-                            </div>
-                        )}
-                    </div>
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">
+                    {decks.map(deck => (
+                        <MultiplayerDeckCard
+                            key={deck.id}
+                            deck={deck}
+                            selected={selectedDeck?.id === deck.id}
+                            ready={selectedDeck?.id === deck.id && Boolean(readyConfig)}
+                            disabled={deck.words.length < minimumMultiplayerWords}
+                            onSelect={() => onDeckSelect(deck)}
+                            palette={palette}
+                        />
+                    ))}
+                </div>
+            </section>
 
-                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">
-                        {decks.map(deck => (
-                            <MultiplayerDeckCard
-                                key={deck.id}
-                                deck={deck}
-                                selected={selectedDeck?.id === deck.id}
-                                ready={selectedDeck?.id === deck.id && Boolean(readyConfig)}
-                                disabled={deck.words.length < minimumMultiplayerWords}
-                                onSelect={() => onDeckSelect(deck)}
-                                palette={palette}
-                            />
-                        ))}
-                    </div>
-                </section>
-
-                <aside className="w-full xl:mt-[clamp(3.5rem,8vh,6rem)] xl:w-80 xl:justify-self-end 2xl:w-[21rem]">
-                    <PlayersPanel players={players} currentHostId={currentHostId} onShuffleHost={onShuffleHost} palette={palette} />
-                </aside>
-            </div>
+            <aside className="w-full xl:absolute xl:right-[clamp(-20rem,-16vw,-8rem)] xl:top-[clamp(12rem,24vh,17rem)] xl:w-80 2xl:w-[21rem]">
+                <PlayersPanel players={players} currentHostId={currentHostId} onShuffleHost={onShuffleHost} palette={palette} />
+            </aside>
         </FadeIn>
     )
 }
