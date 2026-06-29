@@ -226,6 +226,17 @@ export default function MultiplayerPage() {
                     )}
                 </PageContentTransition>
             </AppPageShell>
+
+            {roomState === "lobby" && (
+                <aside className="fixed right-9 top-[calc(50%+0.75rem)] z-30 hidden w-80 -translate-y-1/2 xl:block 2xl:w-[21rem]">
+                    <PlayersPanel
+                        players={players}
+                        currentHostId={currentHostId}
+                        onShuffleHost={shuffleHost}
+                        palette={palette}
+                    />
+                </aside>
+            )}
         </>
     )
 }
@@ -347,7 +358,7 @@ function MultiplayerLobby({ roomCode, decks, selectedDeck, readyConfig, currentH
                 </div>
             </section>
 
-            <aside className="w-full xl:absolute xl:right-[clamp(-20rem,-16vw,-8rem)] xl:top-[clamp(12rem,24vh,17rem)] xl:w-80 2xl:w-[21rem]">
+            <aside className="mt-8 w-full xl:hidden">
                 <PlayersPanel players={players} currentHostId={currentHostId} onShuffleHost={onShuffleHost} palette={palette} />
             </aside>
         </FadeIn>
