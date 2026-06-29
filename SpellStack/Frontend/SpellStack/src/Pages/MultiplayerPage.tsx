@@ -201,8 +201,8 @@ export default function MultiplayerPage() {
             )}
 
             <AppPageShell
-                className="!min-h-[calc(100vh-4rem)] overflow-hidden"
-                contentClassName="mt-14 flex h-[calc(100vh-8rem)] min-h-0 flex-col"
+                className="!min-h-[calc(100vh-4rem)] overflow-hidden lg:!px-40 xl:!px-24 2xl:!px-32"
+                contentClassName="mt-14 flex h-[calc(100vh-8rem)] min-h-0 flex-col !max-w-[92rem]"
             >
                 <LibraryPageToolbar reserveActionsSlot />
 
@@ -311,8 +311,8 @@ function MultiplayerLobby({ roomCode, decks, selectedDeck, readyConfig, currentH
                 </p>
             </header>
 
-            <div className="grid min-h-0 flex-1 items-start gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
-                <section className="min-w-0">
+            <div className="grid min-h-0 flex-1 gap-y-8 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,21rem)] xl:items-start xl:gap-x-[clamp(3rem,7vw,9rem)]">
+                <section className="min-w-0 self-start">
                     <div className="mb-4 flex items-end justify-between gap-4">
                         <div>
                             <h2 className="text-2xl font-black text-white">Choose deck</h2>
@@ -333,7 +333,7 @@ function MultiplayerLobby({ roomCode, decks, selectedDeck, readyConfig, currentH
                         )}
                     </div>
 
-                    <div className="grid justify-start gap-5 [grid-template-columns:repeat(auto-fill,minmax(18rem,22rem))]">
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">
                         {decks.map(deck => (
                             <MultiplayerDeckCard
                                 key={deck.id}
@@ -348,7 +348,7 @@ function MultiplayerLobby({ roomCode, decks, selectedDeck, readyConfig, currentH
                     </div>
                 </section>
 
-                <aside className="w-full xl:ml-[clamp(4rem,calc((100vw-72rem)/2-3rem),36rem)] xl:w-80 xl:self-center xl:justify-self-start">
+                <aside className="w-full xl:mt-[clamp(3.5rem,8vh,6rem)] xl:w-80 xl:justify-self-end 2xl:w-[21rem]">
                     <PlayersPanel players={players} currentHostId={currentHostId} onShuffleHost={onShuffleHost} palette={palette} />
                 </aside>
             </div>
@@ -454,8 +454,7 @@ function PlayersPanel({ players, currentHostId, onShuffleHost, palette }: {
         <div className={`h-fit w-full rounded-[2rem] border ${palette.border} ${palette.card} p-5 shadow-2xl backdrop-blur-xl`}>
             <div className="flex items-center justify-between gap-4">
                 <div>
-                    <p className={`text-xs font-black uppercase tracking-[0.22em] ${palette.accentText}`}>Players</p>
-                    <h2 className="mt-1 text-2xl font-black text-white">Players {players.length}/4</h2>
+                    <h2 className="text-2xl font-black text-white">Players {players.length}/4</h2>
                 </div>
                 <UsersRound size={26} strokeWidth={2.5} className="text-white/50" />
             </div>
@@ -471,7 +470,7 @@ function PlayersPanel({ players, currentHostId, onShuffleHost, palette }: {
                 onClick={onShuffleHost}
                 className="mt-5 w-full rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-white/55 transition hover:bg-white/[0.09] hover:text-white"
             >
-                Mock: shuffle host
+                Shuffle host
             </button>
         </div>
     )
