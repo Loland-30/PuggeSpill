@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTheme } from "../../theme/ThemeContext"
 import type { PaletteThemeId } from "../../theme/themes"
-import { clamp, polarToSvgPoint, visibleRankMarkers, type RankLabel } from "../../utils/rankUtils"
+import { clamp, getRankFromAccuracy, polarToSvgPoint, visibleRankMarkers, type RankLabel } from "../../utils/rankUtils"
 
 interface GradeRingProps {
     accuracy: number
@@ -29,6 +29,9 @@ export default function GradeRing({
     const { theme } = useTheme()
     const targetAccuracy = fillVisible ? accuracy : 0
     const [animatedAccuracy, setAnimatedAccuracy] = useState(() => animate && fillVisible ? 0 : targetAccuracy)
+    const displayRank = animate || !fillVisible ? getRankFromAccuracy(animatedAccuracy) : rank
+    const previousDisplayRank = useRef(displayRank)
+    const [rankPop, setRankPop] = useState(false)
 
     const ring = getRingPalette(theme.paletteId)
     const radius = 142
@@ -48,19 +51,48 @@ export default function GradeRing({
 
         setAnimatedAccuracy(0)
 
-        const frame = window.requestAnimationFrame(() => {
-            setAnimatedAccuracy(accuracy)
-        })
+        const startTime = window.performance.now()
+        let frame = 0
 
-        const completeTimer = window.setTimeout(() => {
+        const tick = (now: number) => {
+            const elapsed = now - startTime
+            const progressRatio = clamp(elapsed / animationDurationMs, 0, 1)
+            const easedProgress = 1 - Math.pow(1 - progressRatio, 3)
+
+            setAnimatedAccuracy(accuracy * easedProgress)
+
+            if (progressRatio < 1) {
+                frame = window.requestAnimationFrame(tick)
+                return
+            }
+
+            setAnimatedAccuracy(accuracy)
             onAnimationComplete?.()
-        }, animationDurationMs)
+        }
+
+        frame = window.requestAnimationFrame(tick)
 
         return () => {
             window.cancelAnimationFrame(frame)
-            window.clearTimeout(completeTimer)
         }
     }, [accuracy, animate, animationDurationMs, fillVisible, onAnimationComplete, theme.paletteId])
+
+    useEffect(() => {
+        if (previousDisplayRank.current === displayRank) {
+            return
+        }
+
+        previousDisplayRank.current = displayRank
+        setRankPop(true)
+
+        const timer = window.setTimeout(() => {
+            setRankPop(false)
+        }, 180)
+
+        return () => {
+            window.clearTimeout(timer)
+        }
+    }, [displayRank])
 
     return (
         <div className={`relative grid place-items-center ${sizeClassName} ${className}`}>
@@ -101,7 +133,6 @@ export default function GradeRing({
                         strokeWidth="18"
                         strokeDasharray={circumference}
                         strokeDashoffset={circumference - progress}
-                        style={animate ? { transition: `stroke-dashoffset ${animationDurationMs}ms ease-out` } : undefined}
                     />
                 </g>
 
@@ -122,8 +153,8 @@ export default function GradeRing({
                 ))}
             </svg>
 
-            <p className="text-8xl font-black text-white drop-shadow-[0_0_24px_rgba(255,255,255,0.2)] md:text-9xl">
-                {rank}
+            <p className={`text-8xl font-black text-white drop-shadow-[0_0_24px_rgba(255,255,255,0.2)] transition-transform duration-200 ease-out md:text-9xl ${rankPop ? "scale-110" : "scale-100"}`}>
+                {displayRank}
             </p>
         </div>
     )
