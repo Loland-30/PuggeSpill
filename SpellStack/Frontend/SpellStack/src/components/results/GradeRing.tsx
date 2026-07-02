@@ -7,7 +7,10 @@ interface GradeRingProps {
     accuracy: number
     rank: RankLabel
     animate?: boolean
+    animationDurationMs?: number
     className?: string
+    fillVisible?: boolean
+    onAnimationComplete?: () => void
     showMarkers?: boolean
     sizeClassName?: string
 }
@@ -16,12 +19,16 @@ export default function GradeRing({
     accuracy,
     rank,
     animate = false,
+    animationDurationMs = 900,
     className = "",
+    fillVisible = true,
+    onAnimationComplete,
     showMarkers = true,
     sizeClassName = "h-[clamp(22rem,30vw,32rem)] w-[clamp(22rem,30vw,32rem)]"
 }: GradeRingProps) {
     const { theme } = useTheme()
-    const [animatedAccuracy, setAnimatedAccuracy] = useState(() => animate ? 0 : accuracy)
+    const targetAccuracy = fillVisible ? accuracy : 0
+    const [animatedAccuracy, setAnimatedAccuracy] = useState(() => animate && fillVisible ? 0 : targetAccuracy)
 
     const ring = getRingPalette(theme.paletteId)
     const radius = 142
@@ -29,6 +36,11 @@ export default function GradeRing({
     const progress = circumference * (clamp(animatedAccuracy, 0, 100) / 100)
 
     useEffect(() => {
+        if (!fillVisible) {
+            setAnimatedAccuracy(0)
+            return
+        }
+
         if (!animate) {
             setAnimatedAccuracy(accuracy)
             return
@@ -40,8 +52,15 @@ export default function GradeRing({
             setAnimatedAccuracy(accuracy)
         })
 
-        return () => window.cancelAnimationFrame(frame)
-    }, [accuracy, animate, theme.paletteId])
+        const completeTimer = window.setTimeout(() => {
+            onAnimationComplete?.()
+        }, animationDurationMs)
+
+        return () => {
+            window.cancelAnimationFrame(frame)
+            window.clearTimeout(completeTimer)
+        }
+    }, [accuracy, animate, animationDurationMs, fillVisible, onAnimationComplete, theme.paletteId])
 
     return (
         <div className={`relative grid place-items-center ${sizeClassName} ${className}`}>
@@ -82,7 +101,7 @@ export default function GradeRing({
                         strokeWidth="18"
                         strokeDasharray={circumference}
                         strokeDashoffset={circumference - progress}
-                        style={animate ? { transition: "stroke-dashoffset 900ms ease-out" } : undefined}
+                        style={animate ? { transition: `stroke-dashoffset ${animationDurationMs}ms ease-out` } : undefined}
                     />
                 </g>
 

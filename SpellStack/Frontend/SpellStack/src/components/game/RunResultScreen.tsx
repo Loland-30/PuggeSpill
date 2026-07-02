@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { Award, Box, Clock, Library, Play, Settings2 } from "lucide-react"
 import type { Deck } from "../../api/decks"
 import type { ActiveGameModifier, GameDirection, RoundLimit } from "../../api/gameSession"
@@ -62,6 +62,9 @@ type RunResultScreenProps = LegacyRunResultScreenProps | GameRunResultScreenProp
 type ResultTab = "general" | "rushHour"
 type ResultAction = "play" | "setup" | "decks"
 
+const STAT_REVEAL_DELAY_MS = 750
+const RING_FILL_DURATION_MS = 1050
+
 export default function RunResultScreen(props: RunResultScreenProps) {
     if ("modeLabel" in props) return <LegacyRunResultScreen {...props} />
 
@@ -89,6 +92,7 @@ function GameRunResultScreen({
     const [activeTab, setActiveTab] = useState<ResultTab>("general")
     const [actionsOpen, setActionsOpen] = useState(false)
     const [activeAction, setActiveAction] = useState<ResultAction | null>(null)
+    const [revealStep, setRevealStep] = useState(0)
     const overlayRef = useRef<HTMLDivElement>(null)
     const accuracy = totalAnswers === 0 ? 0 : Math.round((correctAnswers / totalAnswers) * 100)
     const rank = getRankFromAccuracy(accuracy)
@@ -97,19 +101,21 @@ function GameRunResultScreen({
     const languageMeta = useMemo(() => {
         const sourceLanguage = languages.find(language => language.code === deck?.language)
         const targetLanguage = languages.find(language => language.code === deck?.translationLanguage)
-        const learningLanguage = languages.find(language => language.code === deck?.learningLanguage)
-
         return {
             source: sourceLanguage?.label ?? deck?.language ?? "Source",
             sourceFlag: sourceLanguage?.flagUrl,
             target: targetLanguage?.label ?? deck?.translationLanguage ?? "Target",
-            targetFlag: targetLanguage?.flagUrl,
-            learning: learningLanguage?.label ?? deck?.learningLanguage ?? "Learning"
+            targetFlag: targetLanguage?.flagUrl
         }
     }, [deck])
 
     const directionLabel = getDirectionLabel(direction, languageMeta.source, languageMeta.target)
     const lengthLabel = roundLimit === null ? "Endless" : `${roundLimit} questions`
+    const showRingFill = revealStep >= 6
+    const showContinue = revealStep >= 7
+    const handleRingAnimationComplete = useCallback(() => {
+        setRevealStep(step => Math.max(step, 7))
+    }, [])
 
     useEffect(() => {
         if (!actionsOpen) return
@@ -126,6 +132,30 @@ function GameRunResultScreen({
         return () => window.removeEventListener("keydown", handleKeyDown)
     }, [actionsOpen])
 
+    useEffect(() => {
+        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+
+        if (prefersReducedMotion) {
+            setRevealStep(7)
+            return
+        }
+
+        setRevealStep(0)
+
+        const timers = [
+            window.setTimeout(() => setRevealStep(1), STAT_REVEAL_DELAY_MS),
+            window.setTimeout(() => setRevealStep(2), STAT_REVEAL_DELAY_MS * 2),
+            window.setTimeout(() => setRevealStep(3), STAT_REVEAL_DELAY_MS * 3),
+            window.setTimeout(() => setRevealStep(4), STAT_REVEAL_DELAY_MS * 4),
+            window.setTimeout(() => setRevealStep(5), STAT_REVEAL_DELAY_MS * 5),
+            window.setTimeout(() => setRevealStep(6), STAT_REVEAL_DELAY_MS * 6)
+        ]
+
+        return () => {
+            timers.forEach(timer => window.clearTimeout(timer))
+        }
+    }, [finalScore, correctAnswers, wrongAnswers, bestCombo, accuracy])
+
     return (
         <div className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
             <img
@@ -137,12 +167,12 @@ function GameRunResultScreen({
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.72)_0%,rgba(0,0,0,0.34)_45%,rgba(0,0,0,0.58)_100%)]" />
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.18)_0%,rgba(0,0,0,0.12)_42%,rgba(0,0,0,0.62)_100%)]" />
 
-            <main className="relative z-10 mx-auto grid min-h-screen w-full max-w-[92rem] grid-rows-[auto_1fr] px-6 py-8 md:px-12 lg:px-16">
+            <main className="relative z-10 mx-auto grid min-h-screen w-[min(92vw,96rem)] grid-rows-[auto_1fr] py-8">
                 <h1 className="text-center text-4xl font-black tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.45)] md:text-5xl">
                     Results
                 </h1>
 
-                <section className="grid min-h-0 items-center gap-10 py-8 lg:grid-cols-[minmax(0,1fr)_minmax(24rem,36rem)] lg:gap-16">
+                <section className="grid min-h-0 items-center gap-10 py-8 lg:grid-cols-[minmax(0,1fr)_minmax(25rem,34rem)] lg:gap-20 xl:grid-cols-[minmax(46rem,1fr)_clamp(30rem,34vw,38rem)] xl:gap-28 2xl:gap-32">
                     <div className="flex min-h-0 flex-col justify-center gap-20 lg:gap-28">
                         <div className="max-w-3xl text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.45)]">
                             <div className="flex flex-wrap items-end gap-4">
@@ -150,9 +180,9 @@ function GameRunResultScreen({
                                     {deck?.name ?? "Deck name"}
                                 </h2>
 
-                                <div className="flex items-end gap-3">
-                                    <FlagStack flagUrl={languageMeta.sourceFlag} label="Source" />
-                                    <FlagStack flagUrl={languageMeta.targetFlag} label={languageMeta.learning} />
+                                <div className="flex items-start gap-3 pt-1">
+                                    <FlagStack flagUrl={languageMeta.sourceFlag} />
+                                    <FlagStack flagUrl={languageMeta.targetFlag} label="Learning" />
                                 </div>
                             </div>
 
@@ -162,18 +192,18 @@ function GameRunResultScreen({
                             </div>
                         </div>
 
-                        <div className="max-w-[58rem]">
+                        <div className="max-w-[64rem]">
                             <div className="mb-5 flex items-center gap-10">
                                 <TabButton label="General" active={activeTab === "general"} onClick={() => setActiveTab("general")} />
                                 <TabButton label="Rush hour" active={activeTab === "rushHour"} onClick={() => setActiveTab("rushHour")} />
                             </div>
 
                             {activeTab === "general" ? (
-                                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                                    <StatCard label="Answered correctly" value={correctAnswers} />
-                                    <StatCard label="Answered incorrectly" value={wrongAnswers} />
-                                    <StatCard label="Highest Combo" value={bestCombo} />
-                                    <StatCard label="Accuracy" value={`${accuracy}%`} />
+                                <div className="grid gap-4 sm:grid-cols-2 xl:[grid-template-columns:repeat(4,minmax(13rem,1fr))]">
+                                    <StatCard label="Answered correctly" value={correctAnswers} revealed={revealStep >= 1} />
+                                    <StatCard label="Answered incorrectly" value={wrongAnswers} revealed={revealStep >= 2} />
+                                    <StatCard label="Highest Combo" value={bestCombo} revealed={revealStep >= 3} />
+                                    <StatCard label="Accuracy" value={`${accuracy}%`} revealed={revealStep >= 4} />
                                 </div>
                             ) : (
                                 <div className="rounded-2xl border border-white/10 bg-black/30 px-5 py-6 text-white shadow-[0_18px_45px_rgba(0,0,0,0.28)] backdrop-blur-md">
@@ -188,28 +218,35 @@ function GameRunResultScreen({
 
                             <button
                                 type="button"
-                                onClick={() => setActionsOpen(true)}
-                                className={`mt-10 rounded-full px-10 py-3 text-lg font-bold shadow-[0_18px_45px_rgba(0,0,0,0.26)] transition hover:-translate-y-0.5 ${palette.primaryButton} ${palette.primaryButtonText}`}
+                                disabled={!showContinue}
+                                tabIndex={showContinue ? 0 : -1}
+                                onClick={() => {
+                                    if (showContinue) setActionsOpen(true)
+                                }}
+                                className={`mt-10 rounded-full px-10 py-3 text-lg font-bold shadow-[0_18px_45px_rgba(0,0,0,0.26)] transition-all duration-300 ease-out ${showContinue ? `translate-y-0 opacity-100 hover:-translate-y-0.5 ${palette.primaryButton} ${palette.primaryButtonText}` : "pointer-events-none translate-y-2 bg-white/20 text-white/40 opacity-0"}`}
                             >
                                 Continue
                             </button>
                         </div>
                     </div>
 
-                    <aside className="flex flex-col items-center justify-center text-center">
+                    <aside className="flex flex-col items-center justify-center gap-10 text-center">
                         <GradeRing
                             rank={rank}
                             accuracy={accuracy}
-                            animate={false}
-                            sizeClassName="h-[min(78vw,34rem)] w-[min(78vw,34rem)]"
+                            animate={revealStep === 6}
+                            animationDurationMs={RING_FILL_DURATION_MS}
+                            fillVisible={showRingFill}
+                            onAnimationComplete={handleRingAnimationComplete}
+                            sizeClassName="h-[clamp(24rem,34vw,36rem)] w-[clamp(24rem,34vw,36rem)]"
                         />
 
-                        <div className="-mt-3 text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.48)]">
-                            <p className="text-2xl font-medium">Final Score</p>
-                            <p className="mt-2 text-5xl font-black tracking-wide md:text-6xl">
+                        <div className="text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.48)]">
+                            <p className="text-3xl font-medium">Final Score</p>
+                            <p className={`mt-3 text-6xl font-black tracking-wide transition-all duration-300 ease-out md:text-7xl ${revealStep >= 5 ? "translate-y-0 scale-100 opacity-100" : "translate-y-1 scale-90 opacity-0"}`}>
                                 {formatResultNumber(finalScore)}
                             </p>
-                            <p className="mt-6 flex items-center justify-center gap-4 text-2xl font-semibold text-white/90">
+                            <p className={`mt-7 flex items-center justify-center gap-4 text-2xl font-semibold text-white/85 transition-all duration-300 ease-out ${revealStep >= 5 ? "translate-y-0 scale-100 opacity-100" : "translate-y-1 scale-90 opacity-0"}`}>
                                 <Award size={30} strokeWidth={2.2} />
                                 <span>{formatResultNumber(highScoreValue)}</span>
                             </p>
@@ -343,11 +380,11 @@ function LegacyRunResultScreen({
     )
 }
 
-function FlagStack({ flagUrl, label }: { flagUrl?: string; label: string }) {
+function FlagStack({ flagUrl, label }: { flagUrl?: string; label?: string }) {
     return (
-        <span className="grid justify-items-center gap-1 text-xs font-semibold text-white/90">
-            {flagUrl && <img src={flagUrl} alt="" className="h-8 w-14 rounded-md object-cover shadow-[0_8px_18px_rgba(0,0,0,0.32)]" />}
-            <span>{label}</span>
+        <span className="grid min-w-[4.25rem] justify-items-center gap-1 text-xs font-semibold text-white/90">
+            {flagUrl && <img src={flagUrl} alt="" className="h-11 w-[4.25rem] rounded-md object-cover shadow-[0_8px_18px_rgba(0,0,0,0.32)]" />}
+            {label && <span>{label}</span>}
         </span>
     )
 }
@@ -375,11 +412,13 @@ function TabButton({ label, active, onClick }: { label: string; active: boolean;
     )
 }
 
-function StatCard({ label, value }: { label: string; value: number | string }) {
+function StatCard({ label, value, revealed }: { label: string; value: number | string; revealed: boolean }) {
     return (
-        <div className="min-h-32 rounded-xl border border-white/5 bg-black/32 px-6 py-5 text-center shadow-[0_18px_45px_rgba(0,0,0,0.24)] backdrop-blur-md">
-            <p className="text-base font-medium leading-snug text-white/90 md:text-lg">{label}</p>
-            <p className="mt-4 text-5xl font-black text-white md:text-6xl">{value}</p>
+        <div className="min-h-32 min-w-52 rounded-xl border border-white/5 bg-black/32 px-6 py-5 text-center shadow-[0_18px_45px_rgba(0,0,0,0.24)] backdrop-blur-md">
+            <p className="whitespace-nowrap text-base font-medium leading-snug text-white/90 md:text-lg">{label}</p>
+            <p className={`mt-4 text-5xl font-black text-white transition-all duration-300 ease-out md:text-6xl ${revealed ? "translate-y-0 scale-100 opacity-100" : "translate-y-1 scale-90 opacity-0"}`}>
+                {value}
+            </p>
         </div>
     )
 }
