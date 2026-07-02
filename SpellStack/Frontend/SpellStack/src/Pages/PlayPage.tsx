@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 
+import { getDeck, type Deck } from "../api/decks"
 import { completeRushHour, endGame, answerWord, recordRushHourStart, startGame, type ActiveGameModifier, type GameDirection, type GameSession, type ResolvedDirection, type RoundLimit } from "../api/gameSession"
-import FadeIn from "../components/FadeIn"
 import AnswerPanel from "../components/game/AnswerPanel"
 import EnemyStage from "../components/game/EnemyStage"
 import GameHud from "../components/game/GameHud"
 import PlayLoadingScreen from "../components/game/PlayLoadingScreen"
 import RunResultScreen from "../components/game/RunResultScreen"
 import RushHourNotice from "../components/game/RushHourNotice"
+import GameModeModal from "../components/GameModeModal"
 import { useZoneRun } from "../hooks/useZoneRun"
 import { cacheGameImages } from "../utils/gameImageCache"
 import { isAnswerAccepted, splitAcceptedAnswers } from "../utils/answerUtils"
@@ -79,16 +80,6 @@ function getMaxLives(modifiers: ActiveGameModifier[]) {
     return lives
 }
 
-
-function getRank(stats: RunStats, score: number) {
-    const accuracy = stats.totalAnswers === 0 ? 0 : stats.correctAnswers / stats.totalAnswers
-
-    if (accuracy >= 0.95 && stats.bestStreak >= 10) return { rank: "S", label: "Legendary run", color: "text-yellow-400" }
-    if (accuracy >= 0.85 && score >= 1000) return { rank: "A", label: "Sharp spellwork", color: "text-green-400" }
-    if (accuracy >= 0.7) return { rank: "B", label: "Solid control", color: "text-sky-400" }
-    if (accuracy >= 0.5) return { rank: "C", label: "Getting warmer", color: "text-orange-400" }
-    return { rank: "D", label: "Needs practice", color: "text-red-400" }
-}
 
 function playSound(audio: HTMLAudioElement, volume = 1) {
     audio.pause()
@@ -165,6 +156,8 @@ export default function PlayPage() {
     const [scoreDelta, setScoreDelta] = useState<number | null>(null)
     const [stageAssetsReady, setStageAssetsReady] = useState(false)
     const [startCountdown, setStartCountdown] = useState<number | null>(3)
+    const [deck, setDeck] = useState<Deck | null>(null)
+    const [setupModalOpen, setSetupModalOpen] = useState(false)
 
     const inputRef = useRef<HTMLInputElement>(null)
     const shouldResetTimerRef = useRef(true)
@@ -237,14 +230,57 @@ export default function PlayPage() {
         }
     }, [])
     useEffect(() => {
+        if (!id) return
+
+        let cancelled = false
+
+        getDeck(Number(id))
+            .then(nextDeck => {
+                if (!cancelled) setDeck(nextDeck)
+            })
+            .catch(error => {
+                console.error("Kunne ikke hente deck for resultatvisning", error)
+            })
+
+        return () => {
+            cancelled = true
+        }
+    }, [id])
+
+    useEffect(() => {
+        let cancelled = false
+
         startGame(Number(id), selectedModifiers, selectedRoundLimit).then(s => {
+            if (cancelled) return
+
+            resetZoneRun()
+            endRushHour()
             setSession(s)
             setHighScore(s.finalScore)
+            setResult(null)
+            setGameOver(false)
+            setRunComplete(false)
+            setIsNewHighScore(false)
             setScoreDelta(null)
             countdownSoundStartedRef.current = false
             setStartCountdown(3)
+            setStats({ totalAnswers: 0, correctAnswers: 0, bestStreak: 0 })
+            setFastCorrectCount(0)
             setCurrentDirection(resolveDirection(selectedDirection))
+            shouldResetTimerRef.current = true
+            timeLeftRef.current = timerDuration
+            const gameOverMusic = gameOverMusicRef.current
+            if (gameOverMusic) {
+                gameOverMusic.pause()
+                gameOverMusic.currentTime = 0
+            }
+        }).catch(error => {
+            console.error("Kunne ikke starte spill", error)
         })
+
+        return () => {
+            cancelled = true
+        }
     }, [id, selectedDirection, selectedModifierKey, selectedRoundLimitKey])
 
 
@@ -524,11 +560,22 @@ export default function PlayPage() {
         setRushAnswers(0)
     }
 
+    const handleSetupSelect = (direction: GameDirection, modifiers: ActiveGameModifier[], roundLimit: RoundLimit) => {
+        const params = new URLSearchParams({ direction })
+
+        if (modifiers.length > 0) {
+            params.set("mods", modifiers.join(","))
+        }
+
+        params.set("roundLimit", roundLimit === null ? "endless" : String(roundLimit))
+        setSetupModalOpen(false)
+        navigate(`/decks/${id}/play?${params.toString()}`)
+    }
+
     if (!session || !stageAssetsReady) return <PlayLoadingScreen backgroundImageUrl={currentZone.backgroundUrl} />
 
     const hpPercent = (currentEnemy.hp / currentEnemy.maxHp) * 100
     const accuracy = stats.totalAnswers === 0 ? 0 : Math.round((stats.correctAnswers / stats.totalAnswers) * 100)
-    const rank = getRank(stats, session.finalScore)
     const promptWord = currentDirection === "original" ? session.currentWord.original : session.currentWord.translation
     const revealedAnswer = currentDirection === "original" ? session.currentWord.translation : session.currentWord.original
     const stageLabel = isBossEncounter
@@ -536,34 +583,35 @@ export default function PlayPage() {
         : `${currentZone.name} - ${currentEncounterIndex} / ${currentZone.encountersBeforeBoss}`
 
     if (gameOver || runComplete) return (
-        <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gray-50 px-6">
-            <FadeIn>
-                <RunResultScreen
-                    outcome={runComplete ? "complete" : "gameOver"}
-                    modeLabel={runComplete
-                        ? selectedModifiers.includes("zen") ? "Practice complete" : "Run complete"
-                        : selectedModifiers.includes("zen") ? "Practice ended" : "Run ended"}
-                    rank={rank}
-                    title={runComplete ? "Deck cleared" : rank.label}
-                    subtitle={runComplete
-                        ? session.roundLimit ? `${session.questionsAnswered} / ${session.roundLimit} questions answered` : "Run complete"
-                        : undefined}
-                    stats={[
-                        { label: "Score", value: session.finalScore },
-                        { label: "Accuracy", value: `${accuracy}%` },
-                        { label: "Best combo", value: `x${stats.bestStreak}` },
-                        { label: "Defeated", value: enemiesKilled }
-                    ]}
-                    highlight={{
-                        label: "High score",
-                        value: highScore,
-                        badge: isNewHighScore ? "New high score" : undefined
-                    }}
-                    onPrimaryAction={restartGame}
-                    onSecondaryAction={() => navigate("/")}
+        <>
+            {deck && (
+                <GameModeModal
+                    isOpen={setupModalOpen}
+                    deck={deck}
+                    onSelect={handleSetupSelect}
+                    onClose={() => setSetupModalOpen(false)}
                 />
-            </FadeIn>
-        </div>
+            )}
+            <RunResultScreen
+                outcome={runComplete ? "complete" : "gameOver"}
+                deck={deck}
+                direction={selectedDirection}
+                modifiers={selectedModifiers}
+                roundLimit={session.roundLimit}
+                backgroundImageUrl={currentZone.backgroundUrl}
+                finalScore={session.finalScore}
+                highScore={highScore}
+                isNewHighScore={isNewHighScore}
+                correctAnswers={stats.correctAnswers}
+                wrongAnswers={session.wrongAnswers}
+                totalAnswers={stats.totalAnswers}
+                bestCombo={stats.bestStreak}
+                enemiesDefeated={enemiesKilled}
+                onPlayAgain={restartGame}
+                onChangeSetup={() => setSetupModalOpen(true)}
+                onReturnToDecks={() => navigate("/decks")}
+            />
+        </>
     )
 
     return (

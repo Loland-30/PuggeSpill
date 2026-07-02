@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { getGameHistory, type GameRunHistory } from "../../api/gameSession"
+import GradeRing, { getRingPalette } from "../results/GradeRing"
 import { useTheme } from "../../theme/ThemeContext"
-import type { PaletteThemeId } from "../../theme/themes"
+import { getNextRankText, getRankFromAccuracy, type RankLabel } from "../../utils/rankUtils"
 import type { ProfileComponentProps } from "./types"
 
 const performanceTabs = ["General", "Rush Hour", "Trials"] as const
@@ -9,18 +10,6 @@ type PerformanceTab = typeof performanceTabs[number]
 
 const chartModes = ["accuracy", "score"] as const
 type ChartMode = typeof chartModes[number]
-
-const rankThresholds = [
-    { label: "D", minAccuracy: 0 },
-    { label: "C", minAccuracy: 45 },
-    { label: "B", minAccuracy: 65 },
-    { label: "A", minAccuracy: 80 },
-    { label: "S", minAccuracy: 90 }
-] as const
-
-const visibleRankMarkers = rankThresholds.filter(rank => rank.label !== "D")
-
-type RankLabel = typeof rankThresholds[number]["label"]
 
 interface PerformanceSnapshot {
     averageAccuracy: number
@@ -43,8 +32,6 @@ export default function PerformancePage({
     currentLanguage,
     onSelectLanguage
 }: ProfileComponentProps) {
-    const { theme } = useTheme()
-
     const [activeTab, setActiveTab] = useState<PerformanceTab>("General")
     const [chartMode, setChartMode] = useState<ChartMode>("accuracy")
     const [languageMenuOpen, setLanguageMenuOpen] = useState(false)
@@ -125,10 +112,9 @@ export default function PerformancePage({
             </div>
 
             <div className="flex min-w-0 flex-col items-center justify-center justify-self-center lg:justify-self-end">
-                <RankRing
+                <GradeRing
                     rank={performance.rank}
                     accuracy={performance.averageAccuracy}
-                    paletteId={theme.paletteId}
                 />
 
                 <div className="mt-8 max-w-full text-center">
@@ -472,199 +458,6 @@ function ChartModeButton({
             {label}
         </button>
     )
-}
-
-function RankRing({
-    rank,
-    accuracy,
-    paletteId
-}: {
-    rank: RankLabel
-    accuracy: number
-    paletteId: PaletteThemeId
-}) {
-    const [animatedAccuracy, setAnimatedAccuracy] = useState(0)
-
-    const ring = getRingPalette(paletteId)
-    const radius = 142
-    const circumference = 2 * Math.PI * radius
-    const progress = circumference * (animatedAccuracy / 100)
-
-    useEffect(() => {
-        setAnimatedAccuracy(0)
-
-        const frame = window.requestAnimationFrame(() => {
-            setAnimatedAccuracy(accuracy)
-        })
-
-        return () => window.cancelAnimationFrame(frame)
-    }, [accuracy, paletteId])
-
-    return (
-        <div className="relative grid h-[clamp(22rem,30vw,32rem)] w-[clamp(22rem,30vw,32rem)] place-items-center">
-            <svg
-                viewBox="0 0 360 360"
-                className="absolute inset-0 h-full w-full overflow-visible"
-            >
-                <defs>
-                    <linearGradient
-                        id={`rank-ring-${paletteId}`}
-                        x1="0%"
-                        y1="0%"
-                        x2="100%"
-                        y2="100%"
-                    >
-                        <stop offset="0%" stopColor={ring.from} />
-                        <stop offset="100%" stopColor={ring.to} />
-                    </linearGradient>
-                </defs>
-
-                <g transform="rotate(-90 180 180)">
-                    <circle
-                        cx="180"
-                        cy="180"
-                        r={radius}
-                        fill="none"
-                        stroke="rgba(255,255,255,0.08)"
-                        strokeWidth="18"
-                    />
-
-                    <circle
-                        cx="180"
-                        cy="180"
-                        r={radius}
-                        fill="none"
-                        stroke={`url(#rank-ring-${paletteId})`}
-                        strokeLinecap="round"
-                        strokeWidth="18"
-                        strokeDasharray={circumference}
-                        strokeDashoffset={circumference - progress}
-                        style={{ transition: "stroke-dashoffset 900ms ease-out" }}
-                    />
-                </g>
-
-                {visibleRankMarkers.map(threshold => (
-                    <RankTick
-                        key={threshold.label}
-                        accuracy={threshold.minAccuracy}
-                    />
-                ))}
-
-                {visibleRankMarkers.map(threshold => (
-                    <RankLabelMarker
-                        key={threshold.label}
-                        label={threshold.label}
-                        accuracy={threshold.minAccuracy}
-                        active={threshold.label === rank}
-                    />
-                ))}
-            </svg>
-
-            <p className="text-9xl font-black text-white">
-                {rank}
-            </p>
-        </div>
-    )
-}
-
-function RankTick({ accuracy }: { accuracy: number }) {
-    const start = polarToSvgPoint(180, 180, 153, accuracy)
-    const end = polarToSvgPoint(180, 180, 170, accuracy)
-
-    return (
-        <line
-            x1={start.x}
-            y1={start.y}
-            x2={end.x}
-            y2={end.y}
-            stroke="rgba(255,255,255,0.85)"
-            strokeWidth="2"
-            strokeLinecap="round"
-        />
-    )
-}
-
-function RankLabelMarker({
-    label,
-    accuracy,
-    active
-}: {
-    label: RankLabel
-    accuracy: number
-    active: boolean
-}) {
-    const tickEndRadius = 170
-    const labelOffset = 18
-    const position = polarToSvgPoint(180, 180, tickEndRadius + labelOffset, accuracy)
-
-    return (
-        <text
-            x={position.x}
-            y={position.y}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fill={active ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.75)"}
-            fontSize="24"
-            fontWeight={active ? 900 : 400}
-            className="pointer-events-none transition"
-        >
-            {label}
-        </text>
-    )
-}
-
-function polarToSvgPoint(centerX: number, centerY: number, radius: number, accuracy: number) {
-    const angleRadians = getAccuracyAngleRadians(accuracy)
-
-    return {
-        x: centerX + radius * Math.cos(angleRadians),
-        y: centerY + radius * Math.sin(angleRadians)
-    }
-}
-
-function getAccuracyAngleRadians(accuracy: number) {
-    const clampedAccuracy = clamp(accuracy, 0, 100)
-    const angleDegrees = clampedAccuracy * 3.6 - 90
-
-    return angleDegrees * (Math.PI / 180)
-}
-
-function getNextRankText(accuracy: number) {
-    const nextRank = rankThresholds.find(threshold => {
-        return accuracy < threshold.minAccuracy
-    })
-
-    if (!nextRank) return "Top rank reached"
-
-    const difference = Math.ceil(nextRank.minAccuracy - accuracy)
-
-    return `${difference}% to ${nextRank.label}`
-}
-
-function getRankFromAccuracy(accuracy: number): RankLabel {
-    const reversedThresholds = [...rankThresholds].reverse()
-
-    return reversedThresholds.find(threshold => {
-        return accuracy >= threshold.minAccuracy
-    })?.label ?? "D"
-}
-
-function getRingPalette(paletteId: PaletteThemeId) {
-    const ringPalettes: Record<PaletteThemeId, { from: string; to: string }> = {
-        blue: { from: "#38bdf8", to: "#0ea5e9" },
-        pink: { from: "#f472b6", to: "#ec4899" },
-        green: { from: "#34d399", to: "#10b981" },
-        red: { from: "#f87171", to: "#ef4444" },
-        yellow: { from: "#fcb103", to: "#f5c542" },
-        orange: { from: "#F87002", to: "#FDA460" },
-        purple: { from: "#8B5CF6", to: "#C084FC" },
-        white: { from: "#ffffff", to: "#d1d5db" },
-        purpleGradient: { from: "#f43f5e", to: "#7c3aed" },
-        mangoPop: { from: "#ff0f7b", to: "#f89b29" },
-        frostByte: { from: "#0061ff", to: "#60efff" }
-    }
-
-    return ringPalettes[paletteId]
 }
 
 function getPerformanceSnapshot(runs: GameRunHistory[]): PerformanceSnapshot {
