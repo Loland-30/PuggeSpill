@@ -2,6 +2,8 @@ import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type Rea
 import { Award, Box, Clock, Library, Play, Settings2 } from "lucide-react"
 import type { Deck } from "../../api/decks"
 import type { ActiveGameModifier, GameDirection, RoundLimit } from "../../api/gameSession"
+import resultStatPopupSoundUrl from "../../assets/SFX/result-screen-stat-popup-sound.mp3"
+import { preloadOneShotAudio, useOneShotAudio } from "../../audio/useOneShotAudio"
 import { languages } from "../../data/languages"
 import GradeRing from "../results/GradeRing"
 import { useTheme } from "../../theme/ThemeContext"
@@ -93,6 +95,7 @@ function GameRunResultScreen({
     const [actionsOpen, setActionsOpen] = useState(false)
     const [activeAction, setActiveAction] = useState<ResultAction | null>(null)
     const [revealStep, setRevealStep] = useState(0)
+    const [statPopupSoundKey, setStatPopupSoundKey] = useState(0)
     const overlayRef = useRef<HTMLDivElement>(null)
     const accuracy = totalAnswers === 0 ? 0 : Math.round((correctAnswers / totalAnswers) * 100)
     const rank = getRankFromAccuracy(accuracy)
@@ -116,6 +119,16 @@ function GameRunResultScreen({
     const handleRingAnimationComplete = useCallback(() => {
         setRevealStep(step => Math.max(step, 7))
     }, [])
+
+    useEffect(() => {
+        preloadOneShotAudio(resultStatPopupSoundUrl)
+    }, [])
+
+    useEffect(() => {
+        if (revealStep < 1 || revealStep > 4) return
+
+        setStatPopupSoundKey(key => key + 1)
+    }, [revealStep])
 
     useEffect(() => {
         if (!actionsOpen) return
@@ -158,6 +171,8 @@ function GameRunResultScreen({
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+            {statPopupSoundKey > 0 && <ResultStatPopupSound key={statPopupSoundKey} />}
+
             <img
                 src={backgroundImageUrl}
                 alt=""
@@ -481,4 +496,16 @@ function getDirectionLabel(direction: GameDirection, source: string, target: str
 
 function formatResultNumber(value: number) {
     return new Intl.NumberFormat("nb-NO").format(value)
+}
+
+function ResultStatPopupSound() {
+    const { theme } = useTheme()
+
+    useOneShotAudio({
+        source: resultStatPopupSoundUrl,
+        enabled: theme.audio.audioEnabled,
+        volume: theme.audio.uiVolume
+    })
+
+    return null
 }
