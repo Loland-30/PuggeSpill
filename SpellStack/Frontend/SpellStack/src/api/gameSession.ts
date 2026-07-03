@@ -93,7 +93,6 @@ export async function answerWord(
     direction: ResolvedDirection,
     timeLeft: number,
     modifiers: ActiveGameModifier[] = [],
-    protectLife = false,
     responseTimeSeconds?: number,
     rushHourElapsedSeconds?: number
 ): Promise<AnswerResponse> {
@@ -105,7 +104,6 @@ export async function answerWord(
             direction,
             timeLeft,
             modifiers,
-            protectLife,
             responseTimeSeconds,
             rushHourElapsedSeconds
         })

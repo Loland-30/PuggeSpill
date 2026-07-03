@@ -108,9 +108,7 @@ namespace LexiGo.Api.Controllers {
                 session.CorrectAnswers++;
                 session.BestStreak = Math.Max(session.BestStreak, nextStreak);
             } else {
-                var shouldLoseLife = !modifiers.Contains("zen") &&
-                    !request.ProtectLife &&
-                    (!modifiers.Contains("momentum") || (request.TimeLeft ?? 0) <= 0);
+                var shouldLoseLife = !modifiers.Contains("zen");
 
                 if (shouldLoseLife) session.Lives--;
 
@@ -494,7 +492,6 @@ namespace LexiGo.Api.Controllers {
         int? TimeLeft,
         string? Modifier,
         string[]? Modifiers,
-        bool ProtectLife,
         double? ResponseTimeSeconds,
         double? RushHourElapsedSeconds
     );

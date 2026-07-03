@@ -457,7 +457,6 @@ export default function PlayPage() {
                 currentDirection,
                 submittedTimeLeft,
                 selectedModifiers,
-                isRushActive,
                 responseTimeSeconds,
                 rushHourElapsedSeconds
             )
