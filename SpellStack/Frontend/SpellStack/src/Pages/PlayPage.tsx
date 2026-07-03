@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
+import { motion, useReducedMotion } from "framer-motion"
 
 import { getDeck, type Deck } from "../api/decks"
 import { completeRushHour, endGame, answerWord, recordRushHourStart, startGame, type ActiveGameModifier, type GameDirection, type GameSession, type ResolvedDirection, type RoundLimit } from "../api/gameSession"
@@ -31,7 +32,11 @@ const RUSH_START_SECONDS = 4
 const RUSH_REFILL_SECONDS = 4
 const RUSH_TICK_MS = 500
 const RUSH_BONUS_MULTIPLIER = 2.5
+const END_TRANSITION_DURATION_MS = 1050
+const REDUCED_MOTION_END_TRANSITION_MS = 180
 
+type EndTransitionPhase = "playing" | "end-flash" | "results"
+type RunEndOutcome = "complete" | "failed" | null
 
 interface RunStats {
     totalAnswers: number
@@ -120,6 +125,7 @@ function preloadAudioElements(audioElements: Array<HTMLAudioElement | null | und
 export default function PlayPage() {
     const { id } = useParams()
     const navigate = useNavigate()
+    const prefersReducedMotion = useReducedMotion()
     const { showAchievements } = useAchievementNotifications()
     const [searchParams] = useSearchParams()
     const selectedDirection = (searchParams.get("direction") ?? "original") as GameDirection
@@ -158,6 +164,8 @@ export default function PlayPage() {
     const [startCountdown, setStartCountdown] = useState<number | null>(3)
     const [deck, setDeck] = useState<Deck | null>(null)
     const [setupModalOpen, setSetupModalOpen] = useState(false)
+    const [endTransitionPhase, setEndTransitionPhase] = useState<EndTransitionPhase>("playing")
+    const [runEndOutcome, setRunEndOutcome] = useState<RunEndOutcome>(null)
 
     const inputRef = useRef<HTMLInputElement>(null)
     const shouldResetTimerRef = useRef(true)
@@ -171,6 +179,31 @@ export default function PlayPage() {
     const countdownSoundRef = useRef<HTMLAudioElement | null>(null)
     const countdownSoundStartedRef = useRef(false)
     const gameOverMusicRef = useRef<HTMLAudioElement | null>(null)
+    const endTransitionTimerRef = useRef<number | null>(null)
+
+    const clearEndTransitionTimer = () => {
+        if (endTransitionTimerRef.current === null) return
+
+        window.clearTimeout(endTransitionTimerRef.current)
+        endTransitionTimerRef.current = null
+    }
+
+    const resetEndTransition = () => {
+        clearEndTransitionTimer()
+        setEndTransitionPhase("playing")
+        setRunEndOutcome(null)
+    }
+
+    const startEndTransition = (outcome: Exclude<RunEndOutcome, null>) => {
+        clearEndTransitionTimer()
+        setRunEndOutcome(outcome)
+        setEndTransitionPhase("end-flash")
+
+        endTransitionTimerRef.current = window.setTimeout(() => {
+            setEndTransitionPhase("results")
+            endTransitionTimerRef.current = null
+        }, prefersReducedMotion ? REDUCED_MOTION_END_TRANSITION_MS : END_TRANSITION_DURATION_MS)
+    }
 
     if (correctSoundRefs.current === null) {
         correctSoundRefs.current = [
@@ -201,6 +234,7 @@ export default function PlayPage() {
         const incorrectSounds = incorrectSoundRefs.current
 
         return () => {
+            clearEndTransitionTimer()
             gameOverMusic?.pause()
             countdownSound?.pause()
             correctSounds?.forEach(sound => sound.pause())
@@ -260,6 +294,7 @@ export default function PlayPage() {
             setResult(null)
             setGameOver(false)
             setRunComplete(false)
+            resetEndTransition()
             setIsNewHighScore(false)
             setScoreDelta(null)
             countdownSoundStartedRef.current = false
@@ -345,6 +380,7 @@ export default function PlayPage() {
         } catch (error) {
             console.error("Kunne ikke oppdatere high score", error)
         }
+        startEndTransition("failed")
     }
 
     const handleRunComplete = async (finishedSession: GameSession) => {
@@ -359,6 +395,7 @@ export default function PlayPage() {
         } catch (error) {
             console.error("Kunne ikke oppdatere high score", error)
         }
+        startEndTransition("complete")
     }
 
     const isLocallyCorrect = (answer: string) => {
@@ -524,6 +561,7 @@ export default function PlayPage() {
         setResult(null)
         setGameOver(false)
         setRunComplete(false)
+        resetEndTransition()
         setIsNewHighScore(false)
         setScoreDelta(null)
         countdownSoundStartedRef.current = false
@@ -582,7 +620,7 @@ export default function PlayPage() {
         ? `${currentZone.name} - Final Boss`
         : `${currentZone.name} - ${currentEncounterIndex} / ${currentZone.encountersBeforeBoss}`
 
-    if (gameOver || runComplete) return (
+    if ((gameOver || runComplete) && endTransitionPhase === "results") return (
         <>
             {deck && (
                 <GameModeModal
@@ -684,6 +722,29 @@ export default function PlayPage() {
                     />
                 </main>
             </div>
+            {endTransitionPhase === "end-flash" && runEndOutcome && (
+                <motion.div
+                    className="pointer-events-none fixed inset-0 z-[70] grid place-items-center bg-black/45 text-white backdrop-blur-[2px]"
+                    initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+                    animate={prefersReducedMotion
+                        ? { opacity: 1 }
+                        : {
+                            opacity: [0, 1, 1, 0],
+                            scale: [0.99, 1, 1, 0.995]
+                        }}
+                    transition={prefersReducedMotion
+                        ? { duration: 0.1 }
+                        : {
+                            duration: END_TRANSITION_DURATION_MS / 1000,
+                            ease: "easeOut",
+                            times: [0, 0.22, 0.76, 1]
+                        }}
+                >
+                    <p className="text-center text-5xl font-black tracking-wide drop-shadow-[0_0_26px_rgba(255,255,255,0.22)] md:text-6xl">
+                        {runEndOutcome === "complete" ? "Run Complete" : "Run Failed"}
+                    </p>
+                </motion.div>
+            )}
         </div>
     )
 }
