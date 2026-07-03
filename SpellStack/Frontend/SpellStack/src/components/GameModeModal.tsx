@@ -10,7 +10,7 @@ import { useTheme } from "../theme/ThemeContext"
 import { readGameplaySettings, resolveDefaultGameDirection, toRoundLimit } from "../utils/gameplaySettings"
 import GradientFrame from "./GradientFrame"
 import { MODIFIER_DEFINITIONS, type ModifierCategory, type ModifierDefinition } from "./mods/modifierData"
-import { formatScoreMultiplier, getModifierScoreMultiplier, toggleModifier } from "./mods/modifierUtils"
+import { formatScoreMultiplier, getModifierScoreLabel, getModifierScoreMultiplier, toggleModifier } from "./mods/modifierUtils"
 
 interface Props {
     isOpen: boolean
@@ -469,7 +469,7 @@ function ModifierChip({ modifier, selected, onToggle, disabled, palette }: {
             </div>
 
             <p className="mt-3 text-xs font-black uppercase tracking-[0.14em] text-white/40">
-                {disabled ? "Not available in multiplayer" : `Score ${formatScoreMultiplier(modifier.scoreMultiplier)}`}
+                {disabled ? "Not available in multiplayer" : getModifierScoreLabel(modifier.id)}
             </p>
         </button>
     )

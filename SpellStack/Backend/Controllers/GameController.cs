@@ -13,6 +13,9 @@ namespace LexiGo.Api.Controllers {
 
         private readonly AppDbContext _context;
         private readonly AchievementService _achievementService;
+        private const int MomentumStackInterval = 5;
+        private const int MomentumMaxStacks = 5;
+        private const double MomentumScoreMultiplierPerStack = 0.1;
 
         public GameController(AppDbContext context, AchievementService achievementService) {
             _context = context;
@@ -79,7 +82,7 @@ namespace LexiGo.Api.Controllers {
                 ? "translation"
                 : "original";
 
-            var modifiers = NormalizeModifiers(request.Modifiers, request.Modifier);
+            var modifiers = GetSessionModifiers(session, request.Modifiers, request.Modifier);
             var correct = IsAnswerCorrect(session.CurrentWord, request.Answer, direction);
             var responseTimeSeconds = ClampDuration(request.ResponseTimeSeconds);
 
@@ -99,9 +102,12 @@ namespace LexiGo.Api.Controllers {
                 var nextStreak = session.StreakCount + 1;
                 var timeBonus = Math.Max(0, request.TimeLeft ?? 0) * 5;
                 var streakBonus = nextStreak >= 3 ? nextStreak * 25 : 0;
+                var momentumStacks = modifiers.Contains("momentum")
+                    ? GetMomentumStacks(nextStreak)
+                    : 0;
 
                 var score = modifiers.Contains("zen") ? 0 : 100 + timeBonus + streakBonus;
-                score = (int)Math.Round(score * GetScoreMultiplier(modifiers));
+                score = (int)Math.Round(score * GetScoreMultiplier(modifiers, momentumStacks));
 
                 session.FinalScore += score;
                 session.StreakCount = nextStreak;
@@ -408,7 +414,11 @@ namespace LexiGo.Api.Controllers {
             return lives;
         }
 
-        private static double GetScoreMultiplier(IReadOnlyCollection<string> modifiers) {
+        private static int GetMomentumStacks(int streakCount) {
+            return Math.Clamp(streakCount / MomentumStackInterval, 0, MomentumMaxStacks);
+        }
+
+        private static double GetScoreMultiplier(IReadOnlyCollection<string> modifiers, int momentumStacks = 0) {
             if (modifiers.Contains("zen")) return 0;
 
             var multiplier = 1.0;
@@ -417,6 +427,11 @@ namespace LexiGo.Api.Controllers {
             if (modifiers.Contains("hardcore")) multiplier *= 1.5;
             if (modifiers.Contains("momentum")) multiplier *= 1.25;
             if (modifiers.Contains("hidden")) multiplier *= 1.3;
+            if (modifiers.Contains("notime")) multiplier *= 1.35;
+
+            if (momentumStacks > 0) {
+                multiplier *= 1 + (momentumStacks * MomentumScoreMultiplierPerStack);
+            }
 
             return multiplier;
         }
@@ -444,7 +459,31 @@ namespace LexiGo.Api.Controllers {
                 normalized.Add(normalizedLegacyModifier);
             }
 
+            if (normalized.Contains("zen")) {
+                normalized.Remove("momentum");
+                normalized.Remove("notime");
+            }
+
             return normalized;
+        }
+
+        private static IReadOnlyCollection<string> GetSessionModifiers(
+            GameSession session,
+            string[]? fallbackModifiers = null,
+            string? fallbackLegacyModifier = null
+        ) {
+            if (!string.IsNullOrWhiteSpace(session.ModifiersJson)) {
+                try {
+                    var storedModifiers = JsonSerializer.Deserialize<string[]>(session.ModifiersJson);
+                    if (storedModifiers is { Length: > 0 }) {
+                        return NormalizeModifiers(storedModifiers, null);
+                    }
+                } catch (JsonException) {
+                    // Older/dev sessions may contain malformed modifier JSON. Fall back to the request payload.
+                }
+            }
+
+            return NormalizeModifiers(fallbackModifiers, fallbackLegacyModifier);
         }
 
         private static string NormalizeModifier(string? modifier) {
@@ -454,6 +493,7 @@ namespace LexiGo.Api.Controllers {
                 "hardcore" => "hardcore",
                 "momentum" => "momentum",
                 "hidden" => "hidden",
+                "notime" => "notime",
                 _ => "normal"
             };
         }

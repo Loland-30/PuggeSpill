@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react"
-import { ArrowLeft, Check, EyeOff, Heart, Leaf, RotateCcw, ShieldAlert, X, Zap, type LucideIcon } from "lucide-react"
+import { ArrowLeft, Check, EyeOff, Heart, Leaf, RotateCcw, ShieldAlert, TimerOff, X, Zap, type LucideIcon } from "lucide-react"
 import type { ActiveGameModifier } from "../../api/gameSession"
 import { useTheme } from "../../theme/ThemeContext"
 import type { ModifierCategory, ModifierDefinition } from "./modifierData"
 import { MODIFIER_DEFINITIONS } from "./modifierData"
-import { getModifierDefinition, getModifierScoreMultiplier, toggleModifier } from "./modifierUtils"
+import { getModifierDefinition, getModifierScoreLabel, getModifierScoreMultiplier, toggleModifier } from "./modifierUtils"
 
 interface Props {
     selectedModifiers: ActiveGameModifier[]
@@ -17,7 +17,8 @@ const modifierIcons: Record<string, LucideIcon> = {
     zen: Leaf,
     hardcore: ShieldAlert,
     momentum: Zap,
-    hidden: EyeOff
+    hidden: EyeOff,
+    noTime: TimerOff
 }
 
 export default function ModifierPicker({ selectedModifiers, onChange, onClose }: Props) {
@@ -188,7 +189,7 @@ function ModifierCard({ modifier, selected, onToggle, palette }: {
             <p className="mt-2 min-h-[2.5rem] max-w-[10rem] text-base leading-tight text-white/82">{modifier.shortDescription}</p>
 
             <span className="mt-4 min-w-[92px] rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-sm font-black text-lime-300">
-                Score: x{modifier.scoreMultiplier.toFixed(2)}
+                {getModifierScoreLabel(modifier.id)}
             </span>
         </button>
     )

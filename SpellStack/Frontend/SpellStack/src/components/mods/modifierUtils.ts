@@ -1,6 +1,12 @@
 import type { ActiveGameModifier } from "../../api/gameSession"
 import { MODIFIER_DEFINITIONS } from "./modifierData"
 
+const incompatibleModifiers: Partial<Record<ActiveGameModifier, ActiveGameModifier[]>> = {
+    zen: ["momentum", "noTime"],
+    momentum: ["zen"],
+    noTime: ["zen"]
+}
+
 export function getModifierDefinition(modifier: ActiveGameModifier) {
     return MODIFIER_DEFINITIONS.find(definition => definition.id === modifier)
 }
@@ -29,6 +35,13 @@ export function formatScoreMultiplier(multiplier: number) {
     return `x${multiplier.toFixed(2)}`
 }
 
+export function getModifierScoreLabel(modifier: ActiveGameModifier) {
+    const definition = getModifierDefinition(modifier)
+    if (!definition) return "Score x1.00"
+    if (modifier === "momentum") return `Score ${formatScoreMultiplier(definition.scoreMultiplier)} + stacks`
+    return `Score ${formatScoreMultiplier(definition.scoreMultiplier)}`
+}
+
 export function toggleModifier(
     modifiers: ActiveGameModifier[],
     modifier: ActiveGameModifier
@@ -37,5 +50,8 @@ export function toggleModifier(
         return modifiers.filter(activeModifier => activeModifier !== modifier)
     }
 
-    return [...modifiers, modifier]
+    const incompatible = incompatibleModifiers[modifier] ?? []
+    const compatibleModifiers = modifiers.filter(activeModifier => !incompatible.includes(activeModifier))
+
+    return [...compatibleModifiers, modifier]
 }

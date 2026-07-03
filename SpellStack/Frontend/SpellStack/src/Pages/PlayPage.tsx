@@ -24,8 +24,6 @@ import { useAchievementNotifications } from "../achievements/AchievementNotifica
 
 const TIMER_DURATION = 10
 const BOSS_TIMER_DURATION = 20
-const MOMENTUM_TIMER_DURATION = 15
-const MOMENTUM_REFILL_SECONDS = 4
 const RUSH_TRIGGER_COUNT = 10
 const RUSH_FAST_ANSWER_MS = 3000
 const RUSH_START_SECONDS = 4
@@ -33,6 +31,9 @@ const RUSH_REFILL_SECONDS = 4
 const RUSH_TICK_MS = 500
 const RUSH_BONUS_MULTIPLIER = 2.5
 const END_TRANSITION_DURATION_MS = 2500
+const MOMENTUM_STACK_INTERVAL = 5
+const MOMENTUM_MAX_STACKS = 5
+const MOMENTUM_TIMER_DRAIN_MULTIPLIERS = [1, 1.15, 1.35, 1.6, 1.9, 2.25] as const
 
 type EndTransitionPhase = "playing" | "end-flash" | "results"
 type RunEndOutcome = "complete" | "failed" | null
@@ -52,10 +53,13 @@ function resolveDirection(direction: GameDirection): ResolvedDirection {
 function resolveModifiers(mods: string | null, legacyModifier: string | null): ActiveGameModifier[] {
     const rawMods = mods ? mods.split(",") : legacyModifier ? [legacyModifier] : []
     const parsedMods = rawMods.filter((modifier): modifier is ActiveGameModifier =>
-        modifier === "zen" || modifier === "extraHeart" || modifier === "hardcore" || modifier === "momentum" || modifier === "hidden"
+        modifier === "zen" || modifier === "extraHeart" || modifier === "hardcore" || modifier === "momentum" || modifier === "hidden" || modifier === "noTime"
     )
 
-    return Array.from(new Set(parsedMods))
+    const uniqueMods = Array.from(new Set(parsedMods))
+    return uniqueMods.includes("zen")
+        ? uniqueMods.filter(modifier => modifier !== "momentum" && modifier !== "noTime")
+        : uniqueMods
 }
 
 function resolveRoundLimit(value: string | null): RoundLimit {
@@ -70,9 +74,17 @@ function resolveRoundLimit(value: string | null): RoundLimit {
 function getTimerDuration(modifiers: ActiveGameModifier[], isBossEncounter: boolean) {
     if (isBossEncounter) return BOSS_TIMER_DURATION
     if (modifiers.includes("hardcore")) return 6
-    if (modifiers.includes("momentum")) return MOMENTUM_TIMER_DURATION
     if (modifiers.includes("zen")) return 15
     return TIMER_DURATION
+}
+
+function getMomentumStacks(streakCount: number) {
+    return Math.min(MOMENTUM_MAX_STACKS, Math.floor(streakCount / MOMENTUM_STACK_INTERVAL))
+}
+
+function getMomentumTimerTickMs(stacks: number) {
+    const multiplier = MOMENTUM_TIMER_DRAIN_MULTIPLIERS[stacks] ?? MOMENTUM_TIMER_DRAIN_MULTIPLIERS[0]
+    return Math.max(120, Math.round(1000 / multiplier))
 }
 
 function getMaxLives(modifiers: ActiveGameModifier[]) {
@@ -462,7 +474,6 @@ export default function PlayPage() {
             )
             const wasCorrect = response.correct
             const nextStreak = wasCorrect ? streak + 1 : 0
-            const hasMomentum = selectedModifiers.includes("momentum")
             const rushTimedOut = isRushActive && timedOut
             const wasBossEncounter = isBossEncounter
             const bossEncounterDefeated = wasBossEncounter && wasCorrect && currentEnemy.hp <= 1
@@ -470,7 +481,7 @@ export default function PlayPage() {
             let nextSession = response.session
             let nextTimeLeft = timerDuration
 
-            shouldResetTimerRef.current = !hasMomentum && !isRushActive && (!wasBossEncounter || bossEncounterDefeated)
+            shouldResetTimerRef.current = !isRushActive && (!wasBossEncounter || bossEncounterDefeated)
             if (shouldResetTimerRef.current) {
                 timeLeftRef.current = timerDuration
             }
@@ -481,10 +492,6 @@ export default function PlayPage() {
                     : submittedTimeLeft
 
                 timeLeftRef.current = nextTimeLeft
-            } else if (hasMomentum && !wasBossEncounter) {
-                timeLeftRef.current = wasCorrect
-                    ? Math.min(timerDuration, submittedTimeLeft + MOMENTUM_REFILL_SECONDS)
-                    : submittedTimeLeft
             }
 
             if (isRushActive && wasCorrect) {
@@ -620,6 +627,13 @@ export default function PlayPage() {
     const accuracy = stats.totalAnswers === 0 ? 0 : Math.round((stats.correctAnswers / stats.totalAnswers) * 100)
     const promptWord = currentDirection === "original" ? session.currentWord.original : session.currentWord.translation
     const revealedAnswer = currentDirection === "original" ? session.currentWord.translation : session.currentWord.original
+    const momentumStacks = selectedModifiers.includes("momentum") ? getMomentumStacks(session.streakCount) : 0
+    const noTimeActive = selectedModifiers.includes("noTime")
+    const timerTickMs = rushActive ? RUSH_TICK_MS : getMomentumTimerTickMs(momentumStacks)
+    const activeModifierLabel = [
+        selectedModifiers.includes("momentum") ? `Momentum x${momentumStacks}` : null,
+        noTimeActive ? "No Time" : null
+    ].filter(Boolean).join(" / ")
     const stageLabel = isBossEncounter
         ? `${currentZone.name} - Final Boss`
         : `${currentZone.name} - ${currentEncounterIndex} / ${currentZone.encountersBeforeBoss}`
@@ -687,6 +701,7 @@ export default function PlayPage() {
                     stageLabel={stageLabel}
                     score={session.finalScore}
                     scoreDelta={scoreDelta}
+                    modifierLabel={activeModifierLabel}
                     accuracy={accuracy}
                     streak={streak}
                     rushActive={rushActive}
@@ -714,8 +729,9 @@ export default function PlayPage() {
                         inputRef={inputRef}
                         timerDuration={timerDuration}
                         timerInitialTimeLeft={timeLeftRef.current}
-                        timerResetKey={`${session.currentWordId}-${session.questionsAnswered}-${timerDuration}-${rushActive}`}
-                        timerTickMs={rushActiveRef.current ? RUSH_TICK_MS : 1000}
+                        timerResetKey={`${session.currentWordId}-${session.questionsAnswered}-${timerDuration}-${rushActive}-${momentumStacks}`}
+                        timerHidden={noTimeActive}
+                        timerTickMs={timerTickMs}
                         timerRunning={!result && !gameOver && !runComplete && startCountdown === null}
                         rushActive={rushActive}
                         onTimerTick={timeLeft => {

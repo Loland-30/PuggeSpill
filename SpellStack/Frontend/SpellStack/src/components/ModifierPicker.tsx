@@ -45,8 +45,16 @@ const modifierOptions: ModifierOption[] = [
         id: "momentum",
         name: "Momentum",
         icon: ">",
-        description: "Timer only refills by 4s",
+        description: "Build stacks that drain time faster",
         multiplier: 1.25,
+        group: "harder"
+    },
+    {
+        id: "noTime",
+        name: "No Time",
+        icon: "?",
+        description: "Timer is hidden but still runs",
+        multiplier: 1.35,
         group: "harder"
     }
 ]
@@ -89,6 +97,9 @@ export default function ModifierPicker({ selectedModifiers, onChange, onClose }:
         }
 
         const compatibleModifiers = selectedModifiers.filter(selected => {
+            if (modifier === "zen" && (selected === "momentum" || selected === "noTime")) return false
+            if ((modifier === "momentum" || modifier === "noTime") && selected === "zen") return false
+
             const selectedOption = modifierOptions.find(item => item.id === selected)
             return selectedOption?.group === option.group
         })

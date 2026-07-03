@@ -6,7 +6,7 @@ import type { AchievementUnlock } from "./achievements"
 export type GameDirection = "original" | "translation" | "mixed"
 export type ResolvedDirection = "original" | "translation"
 
-export type GameModifier = "normal" | "zen" | "extraHeart" | "hardcore" | "momentum" | "hidden"
+export type GameModifier = "normal" | "zen" | "extraHeart" | "hardcore" | "momentum" | "hidden" | "noTime"
 export type ActiveGameModifier = Exclude<GameModifier, "normal">
 
 export type RoundLimit = 10 | 25 | 50 | 100 | null

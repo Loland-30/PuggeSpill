@@ -10,6 +10,7 @@ interface AnswerPanelProps {
     timerDuration: number
     timerInitialTimeLeft: number
     timerResetKey: string | number
+    timerHidden: boolean
     timerTickMs: number
     timerRunning: boolean
     rushActive: boolean
@@ -28,6 +29,7 @@ export default function AnswerPanel({
     timerDuration,
     timerInitialTimeLeft,
     timerResetKey,
+    timerHidden,
     timerTickMs,
     timerRunning,
     rushActive,
@@ -122,19 +124,27 @@ export default function AnswerPanel({
                 </span>
             )}
 
-            <div className="flex h-1.5 w-full max-w-xl justify-center rounded-full bg-white/20">
-                <div
-                    className={`h-full w-full origin-center rounded-full transition-transform ${
-                        rushActive ? "bg-yellow-300" :
-                        timerScale <= 0.3 ? "bg-red-400" :
-                        timerScale <= 0.6 ? "bg-orange-400" : "bg-white"
-                    }`}
-                    style={{
-                        transform: `scaleX(${timerScale})`,
-                        transitionDuration: rushActive ? "250ms" : "1000ms",
-                        boxShadow: rushActive ? "0 0 24px rgba(250, 204, 21, 0.95)" : undefined
-                    }}
-                />
+            <div className="flex min-h-6 w-full max-w-xl items-center justify-center">
+                {timerHidden ? (
+                    <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-white/45">
+                        No Time
+                    </span>
+                ) : (
+                    <div className="flex h-1.5 w-full justify-center rounded-full bg-white/20">
+                        <div
+                            className={`h-full w-full origin-center rounded-full transition-transform ${
+                                rushActive ? "bg-yellow-300" :
+                                timerScale <= 0.3 ? "bg-red-400" :
+                                timerScale <= 0.6 ? "bg-orange-400" : "bg-white"
+                            }`}
+                            style={{
+                                transform: `scaleX(${timerScale})`,
+                                transitionDuration: rushActive ? "250ms" : `${Math.max(120, timerTickMs)}ms`,
+                                boxShadow: rushActive ? "0 0 24px rgba(250, 204, 21, 0.95)" : undefined
+                            }}
+                        />
+                    </div>
+                )}
             </div>
 
             <input
