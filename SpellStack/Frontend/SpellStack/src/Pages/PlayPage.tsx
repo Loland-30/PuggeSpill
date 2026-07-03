@@ -32,8 +32,7 @@ const RUSH_START_SECONDS = 4
 const RUSH_REFILL_SECONDS = 4
 const RUSH_TICK_MS = 500
 const RUSH_BONUS_MULTIPLIER = 2.5
-const END_TRANSITION_DURATION_MS = 1050
-const REDUCED_MOTION_END_TRANSITION_MS = 180
+const END_TRANSITION_DURATION_MS = 2500
 
 type EndTransitionPhase = "playing" | "end-flash" | "results"
 type RunEndOutcome = "complete" | "failed" | null
@@ -197,12 +196,18 @@ export default function PlayPage() {
     const startEndTransition = (outcome: Exclude<RunEndOutcome, null>) => {
         clearEndTransitionTimer()
         setRunEndOutcome(outcome)
+
+        if (prefersReducedMotion) {
+            setEndTransitionPhase("results")
+            return
+        }
+
         setEndTransitionPhase("end-flash")
 
         endTransitionTimerRef.current = window.setTimeout(() => {
             setEndTransitionPhase("results")
             endTransitionTimerRef.current = null
-        }, prefersReducedMotion ? REDUCED_MOTION_END_TRANSITION_MS : END_TRANSITION_DURATION_MS)
+        }, END_TRANSITION_DURATION_MS)
     }
 
     if (correctSoundRefs.current === null) {
