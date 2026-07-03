@@ -15,7 +15,7 @@ namespace LexiGo.Api.Controllers {
         private readonly AchievementService _achievementService;
         private const int MomentumStackInterval = 5;
         private const int MomentumMaxStacks = 5;
-        private const double MomentumScoreMultiplierPerStack = 0.1;
+        private const double MomentumScoreMultiplierPerStack = 0.08;
 
         public GameController(AppDbContext context, AchievementService achievementService) {
             _context = context;

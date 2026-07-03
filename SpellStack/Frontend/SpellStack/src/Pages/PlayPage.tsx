@@ -31,9 +31,12 @@ const RUSH_REFILL_SECONDS = 4
 const RUSH_TICK_MS = 500
 const RUSH_BONUS_MULTIPLIER = 2.5
 const END_TRANSITION_DURATION_MS = 2500
+const MOMENTUM_TIMER_CAP = 10
+const MOMENTUM_REFILL_SECONDS = 4
+const MOMENTUM_RECOVERY_SECONDS_AFTER_LIFE_LOSS = 7
 const MOMENTUM_STACK_INTERVAL = 5
 const MOMENTUM_MAX_STACKS = 5
-const MOMENTUM_TIMER_DRAIN_MULTIPLIERS = [1, 1.15, 1.35, 1.6, 1.9, 2.25] as const
+const MOMENTUM_TIMER_DRAIN_MULTIPLIERS = [1, 1.1, 1.25, 1.45, 1.7, 2] as const
 
 type EndTransitionPhase = "playing" | "end-flash" | "results"
 type RunEndOutcome = "complete" | "failed" | null
@@ -477,6 +480,7 @@ export default function PlayPage() {
             const rushTimedOut = isRushActive && timedOut
             const wasBossEncounter = isBossEncounter
             const bossEncounterDefeated = wasBossEncounter && wasCorrect && currentEnemy.hp <= 1
+            const hasMomentum = selectedModifiers.includes("momentum")
 
             let nextSession = response.session
             let nextTimeLeft = timerDuration
@@ -491,6 +495,16 @@ export default function PlayPage() {
                     ? Math.min(timerDuration, submittedTimeLeft + RUSH_REFILL_SECONDS)
                     : submittedTimeLeft
 
+                timeLeftRef.current = nextTimeLeft
+            }
+
+            if (hasMomentum && !isRushActive && !wasBossEncounter) {
+                const momentumTimerCap = Math.min(timerDuration, MOMENTUM_TIMER_CAP)
+                nextTimeLeft = wasCorrect
+                    ? Math.min(momentumTimerCap, submittedTimeLeft + MOMENTUM_REFILL_SECONDS)
+                    : Math.min(momentumTimerCap, MOMENTUM_RECOVERY_SECONDS_AFTER_LIFE_LOSS)
+
+                shouldResetTimerRef.current = false
                 timeLeftRef.current = nextTimeLeft
             }
 
@@ -631,7 +645,7 @@ export default function PlayPage() {
     const noTimeActive = selectedModifiers.includes("noTime")
     const timerTickMs = rushActive ? RUSH_TICK_MS : getMomentumTimerTickMs(momentumStacks)
     const activeModifierLabel = [
-        selectedModifiers.includes("momentum") ? `Momentum x${momentumStacks}` : null,
+        selectedModifiers.includes("momentum") ? "Momentum" : null,
         noTimeActive ? "No Time" : null
     ].filter(Boolean).join(" / ")
     const stageLabel = isBossEncounter
@@ -729,7 +743,7 @@ export default function PlayPage() {
                         inputRef={inputRef}
                         timerDuration={timerDuration}
                         timerInitialTimeLeft={timeLeftRef.current}
-                        timerResetKey={`${session.currentWordId}-${session.questionsAnswered}-${timerDuration}-${rushActive}-${momentumStacks}`}
+                        timerResetKey={`${session.currentWordId}-${session.questionsAnswered}-${timerDuration}-${rushActive}`}
                         timerHidden={noTimeActive}
                         timerTickMs={timerTickMs}
                         timerRunning={!result && !gameOver && !runComplete && startCountdown === null}
