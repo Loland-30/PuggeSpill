@@ -11,6 +11,7 @@ import PlayLoadingScreen from "../components/game/PlayLoadingScreen"
 import RunResultScreen from "../components/game/RunResultScreen"
 import RushHourNotice from "../components/game/RushHourNotice"
 import GameModeModal from "../components/GameModeModal"
+import type { ActiveEnemy } from "../data/enemies/enemyTypes"
 import { useZoneRun } from "../hooks/useZoneRun"
 import { cacheGameImages } from "../utils/gameImageCache"
 import { isAnswerAccepted, splitAcceptedAnswers } from "../utils/answerUtils"
@@ -180,6 +181,7 @@ export default function PlayPage() {
     const [setupModalOpen, setSetupModalOpen] = useState(false)
     const [endTransitionPhase, setEndTransitionPhase] = useState<EndTransitionPhase>("playing")
     const [runEndOutcome, setRunEndOutcome] = useState<RunEndOutcome>(null)
+    const [visualEnemyOverride, setVisualEnemyOverride] = useState<ActiveEnemy | null>(null)
 
     const inputRef = useRef<HTMLInputElement>(null)
     const shouldResetTimerRef = useRef(true)
@@ -194,6 +196,7 @@ export default function PlayPage() {
     const countdownSoundStartedRef = useRef(false)
     const gameOverMusicRef = useRef<HTMLAudioElement | null>(null)
     const endTransitionTimerRef = useRef<number | null>(null)
+    const visualEnemyTimerRef = useRef<number | null>(null)
 
     const clearEndTransitionTimer = () => {
         if (endTransitionTimerRef.current === null) return
@@ -206,6 +209,22 @@ export default function PlayPage() {
         clearEndTransitionTimer()
         setEndTransitionPhase("playing")
         setRunEndOutcome(null)
+    }
+
+    const clearVisualEnemyTimer = () => {
+        if (visualEnemyTimerRef.current === null) return
+
+        window.clearTimeout(visualEnemyTimerRef.current)
+        visualEnemyTimerRef.current = null
+    }
+
+    const showDefeatedEnemy = (enemy: ActiveEnemy) => {
+        clearVisualEnemyTimer()
+        setVisualEnemyOverride({ ...enemy, hp: 0 })
+        visualEnemyTimerRef.current = window.setTimeout(() => {
+            setVisualEnemyOverride(null)
+            visualEnemyTimerRef.current = null
+        }, 520)
     }
 
     const startEndTransition = (outcome: Exclude<RunEndOutcome, null>) => {
@@ -255,6 +274,7 @@ export default function PlayPage() {
 
         return () => {
             clearEndTransitionTimer()
+            clearVisualEnemyTimer()
             gameOverMusic?.pause()
             countdownSound?.pause()
             correctSounds?.forEach(sound => sound.pause())
@@ -322,6 +342,8 @@ export default function PlayPage() {
             setStats({ totalAnswers: 0, correctAnswers: 0, bestStreak: 0 })
             setFastCorrectCount(0)
             setCurrentDirection(resolveDirection(selectedDirection))
+            setVisualEnemyOverride(null)
+            clearVisualEnemyTimer()
             shouldResetTimerRef.current = true
             timeLeftRef.current = timerDuration
             const gameOverMusic = gameOverMusicRef.current
@@ -562,6 +584,12 @@ export default function PlayPage() {
             if (wasCorrect) onCorrectAnswer()
             else onWrongAnswer()
 
+            if (wasCorrect && currentEnemy.hp <= 1) {
+                showDefeatedEnemy(currentEnemy)
+            } else if (!wasCorrect) {
+                setVisualEnemyOverride(null)
+            }
+
             showAchievements(response.newlyUnlockedAchievements)
 
             if (response.gameOver) {
@@ -594,6 +622,8 @@ export default function PlayPage() {
         setStats({ totalAnswers: 0, correctAnswers: 0, bestStreak: 0 })
         setFastCorrectCount(0)
         setCurrentDirection(resolveDirection(selectedDirection))
+        setVisualEnemyOverride(null)
+        clearVisualEnemyTimer()
         shouldResetTimerRef.current = true
         timeLeftRef.current = timerDuration
         const gameOverMusic = gameOverMusicRef.current
@@ -637,7 +667,9 @@ export default function PlayPage() {
 
     if (!session || !stageAssetsReady) return <PlayLoadingScreen backgroundImageUrl={currentZone.backgroundUrl} />
 
-    const hpPercent = (currentEnemy.hp / currentEnemy.maxHp) * 100
+    const displayEnemy = visualEnemyOverride ?? currentEnemy
+    const enemyVisualState = visualEnemyOverride ? "death" : result === "correct" ? "hurt" : "idle"
+    const hpPercent = (displayEnemy.hp / displayEnemy.maxHp) * 100
     const accuracy = stats.totalAnswers === 0 ? 0 : Math.round((stats.correctAnswers / stats.totalAnswers) * 100)
     const promptWord = currentDirection === "original" ? session.currentWord.original : session.currentWord.translation
     const revealedAnswer = currentDirection === "original" ? session.currentWord.translation : session.currentWord.original
@@ -685,7 +717,7 @@ export default function PlayPage() {
     )
 
     return (
-        <div className="relative min-h-screen overflow-hidden bg-[#222222] px-6 py-6 text-white">
+        <div className="relative min-h-screen overflow-hidden bg-[#101017] text-white">
             <img
                 src={currentZone.backgroundUrl}
                 alt=""
@@ -694,8 +726,8 @@ export default function PlayPage() {
             />
             <div
                 className={`pointer-events-none absolute inset-0 ${rushActive
-                    ? "bg-[linear-gradient(rgba(24,20,10,0.68),rgba(24,20,10,0.82))]"
-                    : "bg-[linear-gradient(rgba(0,0,0,0.48),rgba(0,0,0,0.68))]"
+                    ? "bg-[linear-gradient(rgba(24,20,10,0.48),rgba(24,20,10,0.7))]"
+                    : "bg-[linear-gradient(rgba(0,0,0,0.18),rgba(0,0,0,0.5))]"
                 }`}
             />
             {startCountdown !== null && (
@@ -708,7 +740,7 @@ export default function PlayPage() {
                     </div>
                 </div>
             )}
-            <div className="relative z-10 mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-7xl flex-col">
+            <div className="relative z-10 flex min-h-screen w-full flex-col px-6 py-6">
                 <GameHud
                     lives={session.lives}
                     maxLives={maxLives}
@@ -727,11 +759,12 @@ export default function PlayPage() {
                     answers={rushAnswers}
                 />
 
-                <main className="flex w-full flex-1 flex-col items-center justify-center gap-7 pb-20 pt-0 text-center">
+                <main className="relative flex w-full flex-1 flex-col items-center justify-center text-center">
                     <EnemyStage
-                        enemy={currentEnemy}
+                        enemy={displayEnemy}
                         result={result}
                         hpPercent={hpPercent}
+                        enemyVisualState={enemyVisualState}
                     />
 
                     <AnswerPanel

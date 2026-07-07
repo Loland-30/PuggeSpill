@@ -4,6 +4,7 @@ export interface EnemyDefinition {
     id: string
     name: string
     imageUrl: string
+    injuredImageUrl?: string
     deathImageUrl?: string
     maxHp: number
     enemyType?: EnemyType

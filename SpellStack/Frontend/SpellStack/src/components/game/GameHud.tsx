@@ -25,31 +25,28 @@ function GameHud({
     rushActive
 }: GameHudProps) {
     return (
-        <header className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-4">
-            <div className="flex flex-col items-start gap-3">
-
+        <header className="pointer-events-none relative z-40 flex w-full items-start justify-between gap-4">
+            <div className="flex min-w-0 flex-col items-start gap-3">
                 <LivesDisplay lives={lives} maxLives={maxLives} size="large" />
-            </div>
 
-            <div className="min-w-0 px-4 text-center">
-                <p className="truncate text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                <p className="max-w-72 truncate text-xs font-black uppercase tracking-[0.22em] text-white/50">
                     {stageLabel}
                 </p>
                 {modifierLabel && (
-                    <p className="mt-2 text-xs font-bold uppercase tracking-[0.28em] text-white/45">
+                    <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/45">
                         {modifierLabel}
                     </p>
                 )}
             </div>
 
             <div className="flex flex-col items-end text-right">
-                <p className="text-3xl font-black uppercase tracking-tight text-white sm:text-5xl">
+                <p className="text-2xl font-black uppercase tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)] sm:text-4xl">
                     Score: {score}
                 </p>
 
-                <div className="mt-3 flex min-h-20 flex-col items-end gap-1 text-sm font-bold uppercase tracking-[0.2em] text-white/45">
+                <div className="mt-3 flex min-h-20 flex-col items-end gap-1 text-sm font-bold uppercase tracking-[0.2em] text-white/50">
                     {scoreDelta !== null && scoreDelta > 0 && (
-                        <span className="text-4xl font-black tracking-tight text-green-400 sm:text-5xl">
+                        <span className="text-3xl font-black tracking-tight text-green-400 sm:text-4xl">
                             +{scoreDelta}
                         </span>
                     )}

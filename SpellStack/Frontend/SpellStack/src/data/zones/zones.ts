@@ -1,22 +1,22 @@
-﻿import crystalCavesBackground from "../../assets/stages/Crystal_caves_bg.jpeg"
-import enchantingForestBackground from "../../assets/stages/Enchanting_Forest_bg.jpg"
+import deadForestBackground from "../../assets/stages/dead_forest.png"
+import terraceBackground from "../../assets/stages/terrace.png"
 import type { ZoneDefinition } from "./zoneTypes"
 
 export const zones: ZoneDefinition[] = [
     {
-        id: "crystal-cave",
-        name: "Crystal Cave",
-        backgroundUrl: crystalCavesBackground,
+        id: "terrace",
+        name: "Terrace",
+        backgroundUrl: terraceBackground,
         encountersBeforeBoss: 10,
-        enemyPool: ["skeleton", "demon"],
-        bossEnemyId: "phoenix"
+        enemyPool: ["reaper", "vampire-hunter"],
+        bossEnemyId: "skeleton-death-knight"
     },
     {
-        id: "enchanted-forest",
-        name: "Enchanted Forest",
-        backgroundUrl: enchantingForestBackground,
+        id: "dead-forest",
+        name: "Dead Forest",
+        backgroundUrl: deadForestBackground,
         encountersBeforeBoss: 10,
-        enemyPool: ["demon", "skeleton"],
-        bossEnemyId: "phoenix"
+        enemyPool: ["reaper", "vampire-hunter"],
+        bossEnemyId: "skeleton-death-knight"
     }
 ]
