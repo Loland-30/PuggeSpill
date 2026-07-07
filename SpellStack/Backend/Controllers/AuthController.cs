@@ -84,7 +84,6 @@ namespace LexiGo.Api.Controllers {
                 var resetLink = $"{frontendUrl}/reset-password?token={Uri.EscapeDataString(rawToken)}";
 
                 await SendPasswordResetEmail(user.Email, resetLink);
-                _logger.LogWarning("Password reset link for {Email}: {ResetLink}", user.Email, resetLink);
             }
 
             return Ok(new { message = "Hvis e-posten finnes, sender vi en reset-lenke." });
@@ -181,7 +180,12 @@ namespace LexiGo.Api.Controllers {
 
         private async Task SendPasswordResetEmail(string email, string resetLink) {
             var host = _configuration["Smtp:Host"];
-            if (string.IsNullOrWhiteSpace(host)) return;
+            // Hosted builds should configure Smtp:* settings so reset links are only delivered by email.
+            // Until then, keep this as a safe no-op so forgot-password requests do not fail or leak tokens.
+            if (string.IsNullOrWhiteSpace(host)) {
+                _logger.LogInformation("SMTP is not configured; password reset email was not sent.");
+                return;
+            }
 
             var port = int.TryParse(_configuration["Smtp:Port"], out var parsedPort) ? parsedPort : 587;
             var username = _configuration["Smtp:Username"];
