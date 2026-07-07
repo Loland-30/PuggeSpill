@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace LexiGo.Api.Models {
     
     public class Word {
@@ -9,6 +11,7 @@ namespace LexiGo.Api.Models {
         public string? Hint { get; set; }
 
         public int DeckId { get; set; }
+        [JsonIgnore]
         public Deck Deck { get; set; } = null!;
     }
 }

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace LexiGo.Api.Models {
     public class GameSession {
         public int Id { get; set; }
@@ -23,6 +25,7 @@ namespace LexiGo.Api.Models {
         
         public Deck Deck { get; set; } = null!;
         public Word CurrentWord { get; set; } = null!;
+        [JsonIgnore]
         public User? User { get; set; }
         
     }

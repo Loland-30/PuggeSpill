@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace LexiGo.Api.Models {
     public class PasswordResetToken {
         public int Id { get; set; }
@@ -7,6 +9,7 @@ namespace LexiGo.Api.Models {
         public DateTime ExpiresAt { get; set; }
         public DateTime? UsedAt { get; set; }
 
+        [JsonIgnore]
         public User User { get; set; } = null!;
     }
 }

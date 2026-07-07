@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace LexiGo.Api.Models {
     public class GameRunResult {
         public int Id { get; set; }
@@ -21,8 +23,10 @@ namespace LexiGo.Api.Models {
         public string EndReason { get; set; } = "";
         public string ModifiersJson { get; set; } = "";
 
+        [JsonIgnore]
         public User? User { get; set; }
         public Deck Deck { get; set; } = null!;
+        [JsonIgnore]
         public GameSession? GameSession { get; set; }
     }
 }

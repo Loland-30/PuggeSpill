@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace LexiGo.Api.Models {
     public class UserAchievement {
         public int Id { get; set; }
@@ -5,6 +7,7 @@ namespace LexiGo.Api.Models {
         public string AchievementId { get; set; } = "";
         public DateTime UnlockedAt { get; set; } = DateTime.UtcNow;
 
+        [JsonIgnore]
         public User? User { get; set; }
     }
 }

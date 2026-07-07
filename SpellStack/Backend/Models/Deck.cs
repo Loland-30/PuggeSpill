@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace LexiGo.Api.Models {
     
     public class Deck {
@@ -12,6 +14,7 @@ namespace LexiGo.Api.Models {
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public ICollection<Word> Words { get; set; } = new List<Word>();
+        [JsonIgnore]
         public User? User { get; set; }
     }
 }
