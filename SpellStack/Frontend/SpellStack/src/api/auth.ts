@@ -1,5 +1,6 @@
 import { API_URL } from "./config"
 const TOKEN_KEY = "spellstack_auth_token"
+const connectionErrorMessage = "Could not connect to the server. Please try again later."
 
 export interface AuthUser {
     id: number
@@ -47,23 +48,36 @@ export function authHeaders(): Record<string, string> {
     return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
+async function fetchAuth(input: RequestInfo | URL, init?: RequestInit) {
+    try {
+        return await fetch(input, init)
+    } catch {
+        throw new Error(connectionErrorMessage)
+    }
+}
+
+async function readErrorMessage(response: Response, fallback: string) {
+    const message = (await response.text()).trim()
+    return message || fallback
+}
+
 export async function register(username: string, email: string, password: string, favoriteLanguage: string): Promise<AuthResponse> {
-    const response = await fetch(`${API_URL}/auth/register`, {
+    const response = await fetchAuth(`${API_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, email, password, favoriteLanguage })
     })
-    if (!response.ok) throw new Error(await response.text())
+    if (!response.ok) throw new Error(await readErrorMessage(response, "Could not create your account. Please try again."))
     return response.json()
 }
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
-    const response = await fetch(`${API_URL}/auth/login`, {
+    const response = await fetchAuth(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
     })
-    if (!response.ok) throw new Error(await response.text())
+    if (!response.ok) throw new Error(await readErrorMessage(response, "Could not sign in. Please check your details and try again."))
     return response.json()
 }
 

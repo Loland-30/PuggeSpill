@@ -1,5 +1,6 @@
 ﻿import { motion } from "framer-motion"
 import { Lock, Mail } from "lucide-react"
+import type { FormEvent } from "react"
 import AuthInput from "./AuthInput"
 import AuthPrimaryButton from "./AuthPrimaryButton"
 
@@ -18,6 +19,11 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({ email, password, rememberMe, loading, error, message, onEmailChange, onPasswordChange, onRememberMeChange, onForgotPassword, onSubmit }: LoginFormProps) {
+    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault()
+        if (!loading && email && password) onSubmit()
+    }
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 14 }}
@@ -26,6 +32,7 @@ export default function LoginForm({ email, password, rememberMe, loading, error,
             transition={{ duration: 0.28, ease: "easeOut" }}
             className="mx-auto w-full max-w-[28rem]"
         >
+            <form onSubmit={handleSubmit} noValidate>
             <div className="space-y-7">
                 <AuthInput hideLabel label="Email" type="email" value={email} onChange={onEmailChange} placeholder="Your email" autoComplete="email" icon={<Mail size={24} strokeWidth={2.1} />} />
                 <AuthInput hideLabel label="Password" type="password" value={password} onChange={onPasswordChange} placeholder="********" autoComplete="current-password" icon={<Lock size={24} strokeWidth={2.1} />} />
@@ -50,8 +57,9 @@ export default function LoginForm({ email, password, rememberMe, loading, error,
             {message && <p className="mt-5 text-center text-sm font-semibold text-green-200">{message}</p>}
 
             <div className="mt-16 flex justify-center">
-                <AuthPrimaryButton text="Sign in" ariaLabel="Sign in" onClick={onSubmit} loading={loading} disabled={!email || !password} variant="pill" />
+                <AuthPrimaryButton type="submit" text="Sign in" ariaLabel="Sign in" loading={loading} disabled={!email || !password} variant="pill" />
             </div>
+            </form>
         </motion.div>
     )
 }

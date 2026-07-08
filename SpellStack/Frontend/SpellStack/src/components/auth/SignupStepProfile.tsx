@@ -1,4 +1,5 @@
 import { Camera, User } from "lucide-react"
+import type { FormEvent } from "react"
 import AuthBackButton from "./AuthBackButton"
 import AuthCountrySelect from "./AuthCountrySelect"
 import AuthInput from "./AuthInput"
@@ -24,6 +25,11 @@ interface SignupStepProfileProps {
 }
 
 export default function SignupStepProfile({ username, countryCode, profileImagePreview, countries, error, onUsernameChange, onCountryChange, onProfileImageChange, onBack, onNext }: SignupStepProfileProps) {
+    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault()
+        onNext()
+    }
+
     const handleFileChange = (file: File | undefined) => {
         if (!file) return
 
@@ -35,7 +41,7 @@ export default function SignupStepProfile({ username, countryCode, profileImageP
     }
 
     return (
-        <div className="mx-auto w-full max-w-[28rem] space-y-7">
+        <form onSubmit={handleSubmit} noValidate className="mx-auto w-full max-w-[28rem] space-y-7">
             <div className="flex flex-col items-center gap-4">
                 <label className="group relative grid h-36 w-36 cursor-pointer place-items-center overflow-hidden rounded-full bg-white text-slate-950 shadow-2xl transition hover:scale-[1.02]">
                     {profileImagePreview ? (
@@ -61,8 +67,8 @@ export default function SignupStepProfile({ username, countryCode, profileImageP
             {error && <p className="text-center text-sm font-semibold text-red-200">{error}</p>}
             <div className="flex justify-center gap-8 pt-6">
                 <AuthBackButton onClick={onBack} ariaLabel="Back to account step" />
-                <AuthPrimaryButton text="Next" ariaLabel="Next sign up step" onClick={onNext} />
+                <AuthPrimaryButton type="submit" text="Next" ariaLabel="Next sign up step" />
             </div>
-        </div>
+        </form>
     )
 }
