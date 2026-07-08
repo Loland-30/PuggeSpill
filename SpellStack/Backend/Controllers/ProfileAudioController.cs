@@ -1,5 +1,6 @@
 using LexiGo.Api.Data;
 using LexiGo.Api.Models;
+using LexiGo.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -201,9 +202,10 @@ namespace LexiGo.Api.Controllers {
             var token = GetBearerToken();
             if (token == null) return null;
 
+            var tokenHash = SessionTokenHasher.Hash(token);
             var session = await _context.UserSessions
                 .Include(item => item.User)
-                .FirstOrDefaultAsync(item => item.Token == token && item.ExpiresAt > DateTime.UtcNow);
+                .FirstOrDefaultAsync(item => item.TokenHash == tokenHash && item.ExpiresAt > DateTime.UtcNow);
 
             return session?.User;
         }

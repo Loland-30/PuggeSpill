@@ -506,9 +506,10 @@ namespace LexiGo.Api.Controllers {
             var token = GetBearerToken();
             if (token == null) return null;
 
+            var tokenHash = SessionTokenHasher.Hash(token);
             var session = await _context.UserSessions
                 .Include(s => s.User)
-                .FirstOrDefaultAsync(s => s.Token == token && s.ExpiresAt > DateTime.UtcNow);
+                .FirstOrDefaultAsync(s => s.TokenHash == tokenHash && s.ExpiresAt > DateTime.UtcNow);
 
             return session?.User;
         }

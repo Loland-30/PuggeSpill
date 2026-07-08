@@ -128,7 +128,8 @@ namespace LexiGo.Api.Controllers {
             var token = GetBearerToken();
             if (token == null) return Ok();
 
-            var sessions = _context.UserSessions.Where(s => s.Token == token);
+            var tokenHash = SessionTokenHasher.Hash(token);
+            var sessions = _context.UserSessions.Where(s => s.TokenHash == tokenHash);
             _context.UserSessions.RemoveRange(sessions);
             await _context.SaveChangesAsync();
 
@@ -139,7 +140,7 @@ namespace LexiGo.Api.Controllers {
             var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
             var session = new UserSession {
                 UserId = user.Id,
-                Token = token,
+                TokenHash = SessionTokenHasher.Hash(token),
                 ExpiresAt = DateTime.UtcNow.AddDays(30)
             };
 
@@ -153,9 +154,10 @@ namespace LexiGo.Api.Controllers {
             var token = GetBearerToken();
             if (token == null) return null;
 
+            var tokenHash = SessionTokenHasher.Hash(token);
             var session = await _context.UserSessions
                 .Include(s => s.User)
-                .FirstOrDefaultAsync(s => s.Token == token && s.ExpiresAt > DateTime.UtcNow);
+                .FirstOrDefaultAsync(s => s.TokenHash == tokenHash && s.ExpiresAt > DateTime.UtcNow);
 
             return session?.User;
         }
