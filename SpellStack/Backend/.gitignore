@@ -6,13 +6,17 @@ build-check/
 # Local .NET/NuGet caches
 .dotnet/
 .nuget/
+*.lscache
 
 # Local SQLite databases
 *.db
+*.db*
 *.db-shm
 *.db-wal
 *.sqlite
+*.sqlite*
 *.sqlite3
+lexigo.db*
 
 # User/local IDE files
 *.user

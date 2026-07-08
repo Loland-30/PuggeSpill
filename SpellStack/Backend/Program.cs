@@ -3,7 +3,8 @@ using LexiGo.Api.Data;
 using LexiGo.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-var databasePath = Path.Combine(builder.Environment.ContentRootPath, "lexigo.db");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
 
 builder.Services.AddControllers()
     .AddJsonOptions(options => {
@@ -12,7 +13,7 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite($"Data Source={databasePath}"));
+    options.UseNpgsql(connectionString));
 
 builder.Services.AddCors(options => {
     options.AddPolicy("AllowFrontend", policy => {
