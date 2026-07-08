@@ -9,7 +9,6 @@ SpellStack is not trying to replace language-learning apps. It is meant to be a 
 ## Live Demo
 
 **Live site:** add link here
-**Repository:** add GitHub link here
 
 > For the best experience, play in fullscreen mode.
 
