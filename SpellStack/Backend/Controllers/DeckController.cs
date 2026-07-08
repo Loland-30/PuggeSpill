@@ -10,9 +10,11 @@ namespace LexiGo.Api.Controllers {
     public class DeckController : ControllerBase {
 
         private readonly AppDbContext _context;
+        private readonly IWebHostEnvironment _environment;
 
-        public DeckController(AppDbContext context) {
+        public DeckController(AppDbContext context, IWebHostEnvironment environment) {
             _context = context;
+            _environment = environment;
         }
 
         [HttpGet]
@@ -20,7 +22,9 @@ namespace LexiGo.Api.Controllers {
             var user = await GetCurrentUser();
             if (user == null) return Unauthorized();
 
-            await ClaimLocalDecks(user.Id);
+            if (_environment.IsDevelopment()) {
+                await ClaimLocalDecks(user.Id);
+            }
 
             var decks = await _context.Decks
                 .Include(d => d.Words)
