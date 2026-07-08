@@ -10,6 +10,7 @@
 
 # Local databases
 **/*.db
+**/*.db*
 **/*.db-shm
 **/*.db-wal
 **/*.sqlite
