@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace LexiGo.Api.Models {
+namespace SpellStack.Api.Models {
     
     public class Deck {
         public int Id { get; set; }

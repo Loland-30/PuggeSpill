@@ -1,8 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace LexiGo.Api.Migrations
+namespace SpellStack.Api.Migrations
 {
     /// <inheritdoc />
     public partial class HashSessionTokens : Migration

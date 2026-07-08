@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace LexiGo.Api.Models {
+namespace SpellStack.Api.Models {
     public class GameRunResult {
         public int Id { get; set; }
         public int UserId { get; set; }

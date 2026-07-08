@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using LexiGo.Api.Models;
+using SpellStack.Api.Models;
 
-namespace LexiGo.Api.Data {
+namespace SpellStack.Api.Data {
     public class AppDbContext : DbContext {
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options) {

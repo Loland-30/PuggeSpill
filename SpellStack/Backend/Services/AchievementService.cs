@@ -1,9 +1,9 @@
-using LexiGo.Api.Data;
-using LexiGo.Api.Models;
+using SpellStack.Api.Data;
+using SpellStack.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
-namespace LexiGo.Api.Services {
+namespace SpellStack.Api.Services {
     public class AchievementService {
         private static readonly AchievementDefinition[] Definitions = [
             new("mastery_first_deck", "Mastery", "First Deck Cleared", "Create your first deck.", stats => stats.DeckCount >= 1),

@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace LexiGo.Api.Services {
+namespace SpellStack.Api.Services {
     public static class PasswordHasher {
         public static string CreateSalt() {
             return Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));

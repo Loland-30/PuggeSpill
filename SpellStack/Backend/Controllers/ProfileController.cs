@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using LexiGo.Api.Data;
-using LexiGo.Api.Models;
-using LexiGo.Api.Services;
+using SpellStack.Api.Data;
+using SpellStack.Api.Models;
+using SpellStack.Api.Services;
 using System.Net.Mail;
 
-namespace LexiGo.Api.Controllers {
+namespace SpellStack.Api.Controllers {
     [ApiController]
     [Route("api/[controller]")]
     public class ProfileController : ControllerBase {

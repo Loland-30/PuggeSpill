@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using LexiGo.Api.Data;
-using LexiGo.Api.Services;
+using SpellStack.Api.Data;
+using SpellStack.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")

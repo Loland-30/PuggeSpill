@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using LexiGo.Api.Data;
-using LexiGo.Api.Models;
-using LexiGo.Api.Services;
+using SpellStack.Api.Data;
+using SpellStack.Api.Models;
+using SpellStack.Api.Services;
 
-namespace LexiGo.Api.Controllers {
+namespace SpellStack.Api.Controllers {
 
     [ApiController]
     [Route("api/[controller]")]

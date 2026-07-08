@@ -16,7 +16,6 @@ build-check/
 *.sqlite
 *.sqlite*
 *.sqlite3
-lexigo.db*
 
 # User/local IDE files
 *.user
