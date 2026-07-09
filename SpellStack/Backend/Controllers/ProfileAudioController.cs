@@ -28,11 +28,11 @@ namespace SpellStack.Api.Controllers {
             };
 
         private readonly AppDbContext _context;
-        private readonly IWebHostEnvironment _environment;
+        private readonly UploadStorageService _uploadStorage;
 
-        public ProfileAudioController(AppDbContext context, IWebHostEnvironment environment) {
+        public ProfileAudioController(AppDbContext context, UploadStorageService uploadStorage) {
             _context = context;
-            _environment = environment;
+            _uploadStorage = uploadStorage;
         }
 
         [HttpGet]
@@ -177,12 +177,7 @@ namespace SpellStack.Api.Controllers {
         }
 
         private string GetAudioUploadRoot(string folderName) {
-            var webRoot = _environment.WebRootPath;
-            if (string.IsNullOrWhiteSpace(webRoot)) {
-                webRoot = Path.Combine(_environment.ContentRootPath, "wwwroot");
-            }
-
-            return Path.GetFullPath(Path.Combine(webRoot, "uploads", "audio", folderName));
+            return _uploadStorage.GetUploadFolder("audio", folderName);
         }
 
         private void DeleteAudioFile(string? audioUrl, string expectedUrlPrefix, string folderName) {

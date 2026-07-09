@@ -267,9 +267,14 @@ export const defaultTheme: AppTheme = {
 }
 
 export function normalizeTheme(theme: Partial<AppTheme> | null | undefined): AppTheme {
+    const customBackgroundImage = theme?.customBackgroundImage?.startsWith("data:image/")
+        ? null
+        : theme?.customBackgroundImage ?? null
+
     return {
         ...defaultTheme,
         ...theme,
+        customBackgroundImage,
         audio: {
             ...defaultAudioSettings,
             ...(theme?.audio ?? {})

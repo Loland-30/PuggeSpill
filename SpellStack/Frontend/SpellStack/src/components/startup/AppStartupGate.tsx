@@ -38,7 +38,7 @@ export default function AppStartupGate({ children }: AppStartupGateProps) {
     const { theme, isThemeReady } = useTheme()
     const shouldShowStartupTip = useMemo(() => !hasSessionFlag(startupTipSeenKey), [])
     const shouldShowWelcomeBack = Boolean(user?.username) && !hasSessionFlag(welcomeBackSeenKey)
-    const activeBackgroundImage = theme.customBackgroundImage || null
+    const activeBackgroundImage = resolveAssetUrl(theme.customBackgroundImage)
     const [startupTipElapsed, setStartupTipElapsed] = useState(!shouldShowStartupTip)
     const [assetsReady, setAssetsReady] = useState(false)
     const [step, setStep] = useState<StartupGateStep>(shouldShowStartupTip ? "startup-tip" : "loading")

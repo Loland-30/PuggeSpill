@@ -1,6 +1,7 @@
 import { Check, ImagePlus, Trash2 } from "lucide-react"
 import { useState } from "react"
 
+import { uploadThemeBackgroundImage } from "../api/theme"
 import { useUISound } from "../audio/useUISound"
 import FadeIn from "../components/FadeIn"
 import AppPageShell from "../components/layout/AppPageShell"
@@ -9,6 +10,7 @@ import AudioThemePanel from "../components/theme/AudioThemePanel"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
 import { backgroundThemes, getOverlayOpacity, overlayStrengths, paletteThemes } from "../theme/themes"
+import { resolveAssetUrl } from "../utils/assetUrl"
 
 type ThemeMode = "visual" | "audio"
 type BackgroundMode = "color" | "image"
@@ -26,15 +28,24 @@ export default function ThemePage() {
     const [paletteView, setPaletteView] = useState<PaletteView>(() =>
         paletteThemes.find(option => option.id === theme.paletteId)?.kind ?? "solid"
     )
+    const [backgroundUploadError, setBackgroundUploadError] = useState<string | null>(null)
+    const [isUploadingBackground, setIsUploadingBackground] = useState(false)
 
-    const handleImageUpload = (file: File | undefined) => {
+    const handleImageUpload = async (file: File | undefined) => {
         if (!file) return
 
-        const reader = new FileReader()
-        reader.onload = () => {
-            if (typeof reader.result === "string") setCustomBackgroundImage(reader.result)
+        setBackgroundUploadError(null)
+        setIsUploadingBackground(true)
+
+        try {
+            const imageUrl = await uploadThemeBackgroundImage(file)
+            setCustomBackgroundImage(imageUrl)
+            setBackgroundMode("image")
+        } catch (error) {
+            setBackgroundUploadError(error instanceof Error ? error.message : "Kunne ikke laste opp bakgrunnsbilde")
+        } finally {
+            setIsUploadingBackground(false)
         }
-        reader.readAsDataURL(file)
     }
 
     const getOverlayLabel = (id: string) => {
@@ -67,6 +78,8 @@ export default function ThemePage() {
                         paletteView={paletteView}
                         setPaletteView={setPaletteView}
                         handleImageUpload={handleImageUpload}
+                        isUploadingBackground={isUploadingBackground}
+                        backgroundUploadError={backgroundUploadError}
                         getOverlayLabel={getOverlayLabel}
                     />
                 ) : (
@@ -79,17 +92,29 @@ export default function ThemePage() {
     )
 }
 
-function VisualThemeSettings({ backgroundMode, setBackgroundMode, paletteView, setPaletteView, handleImageUpload, getOverlayLabel }: {
+function VisualThemeSettings({
+    backgroundMode,
+    setBackgroundMode,
+    paletteView,
+    setPaletteView,
+    handleImageUpload,
+    isUploadingBackground,
+    backgroundUploadError,
+    getOverlayLabel
+}: {
     backgroundMode: BackgroundMode
     setBackgroundMode: (mode: BackgroundMode) => void
     paletteView: PaletteView
     setPaletteView: (view: PaletteView) => void
-    handleImageUpload: (file: File | undefined) => void
+    handleImageUpload: (file: File | undefined) => Promise<void>
+    isUploadingBackground: boolean
+    backgroundUploadError: string | null
     getOverlayLabel: (id: string) => string
 }) {
     const { t } = useI18n()
     const { theme, palette, setBackground, setPalette, setCustomBackgroundImage, setOverlayStrength } = useTheme()
     const { playHoverSound } = useUISound()
+    const customBackgroundSrc = resolveAssetUrl(theme.customBackgroundImage)
 
     return (
         <>
@@ -134,14 +159,14 @@ function VisualThemeSettings({ backgroundMode, setBackgroundMode, paletteView, s
                         </div>
                     ) : (
                         <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_320px]">
-                            <div className={`rounded-lg border-2 ${theme.customBackgroundImage ? palette.border : "border-white/10"} p-4 ${theme.customBackgroundImage ? palette.glow : ""}`}>
+                            <div className={`rounded-lg border-2 ${customBackgroundSrc ? palette.border : "border-white/10"} p-4 ${customBackgroundSrc ? palette.glow : ""}`}>
                                 <div
                                     className={`relative h-56 overflow-hidden rounded-lg bg-gradient-to-br ${backgroundThemes.find(background => background.id === theme.backgroundId)?.preview ?? "from-slate-950 to-slate-800"}`}
                                 >
-                                    {theme.customBackgroundImage && (
+                                    {customBackgroundSrc && (
                                         <>
                                             <img
-                                                src={theme.customBackgroundImage}
+                                                src={customBackgroundSrc}
                                                 alt={t.themePage.customBackgroundPreviewAlt}
                                                 className="h-full w-full object-cover"
                                             />
@@ -160,14 +185,18 @@ function VisualThemeSettings({ backgroundMode, setBackgroundMode, paletteView, s
                                 <div className="mt-4 flex flex-wrap gap-3">
                                     <label
                                         onMouseEnter={playHoverSound}
-                                        className={`inline-flex cursor-pointer items-center gap-2 rounded-full px-5 py-3 text-sm font-bold ${palette.primaryButtonText} ${palette.primaryButton}`}
+                                        className={`inline-flex cursor-pointer items-center gap-2 rounded-full px-5 py-3 text-sm font-bold ${palette.primaryButtonText} ${palette.primaryButton} ${isUploadingBackground ? "opacity-70" : ""}`}
                                     >
                                         <ImagePlus size={18} strokeWidth={2.5} />
-                                        {t.themePage.uploadImage}
+                                        {isUploadingBackground ? "Uploading..." : t.themePage.uploadImage}
                                         <input
                                             type="file"
                                             accept="image/*"
-                                            onChange={event => handleImageUpload(event.target.files?.[0])}
+                                            disabled={isUploadingBackground}
+                                            onChange={event => {
+                                                void handleImageUpload(event.target.files?.[0])
+                                                event.currentTarget.value = ""
+                                            }}
                                             className="hidden"
                                         />
                                     </label>
@@ -183,6 +212,10 @@ function VisualThemeSettings({ backgroundMode, setBackgroundMode, paletteView, s
                                         </button>
                                     )}
                                 </div>
+
+                                {backgroundUploadError && (
+                                    <p className="mt-3 text-sm font-semibold text-red-200">{backgroundUploadError}</p>
+                                )}
                             </div>
 
                             <div className="rounded-lg border border-white/10 bg-white/10 p-4">

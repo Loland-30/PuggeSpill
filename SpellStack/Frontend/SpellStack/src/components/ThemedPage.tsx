@@ -1,18 +1,20 @@
 import type { ReactNode } from "react"
 import { useTheme } from "../theme/ThemeContext"
 import { getOverlayOpacity } from "../theme/themes"
+import { resolveAssetUrl } from "../utils/assetUrl"
 
 export default function ThemedPage({ children, className = "" }: { children: ReactNode; className?: string }) {
     const { theme, background } = useTheme()
     const overlayOpacity = getOverlayOpacity(theme.overlayStrength)
+    const customBackgroundImage = resolveAssetUrl(theme.customBackgroundImage)
 
     return (
         <div className={`relative isolate min-h-screen overflow-hidden ${background.pageClass} ${className}`}>
             <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-                {theme.customBackgroundImage ? (
+                {customBackgroundImage ? (
                     <>
                         <img
-                            src={theme.customBackgroundImage}
+                            src={customBackgroundImage}
                             alt=""
                             aria-hidden="true"
                             className="absolute inset-0 h-full w-full object-cover object-center"

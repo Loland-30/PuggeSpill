@@ -145,7 +145,16 @@ Examples of expected configuration:
 DATABASE_URL=
 FRONTEND_URL=
 ASPNETCORE_ENVIRONMENT=
+UPLOAD_ROOT=
 ```
+
+For production uploads, `UPLOAD_ROOT` should point to persistent storage. On Railway, mount a Volume and set:
+
+```env
+UPLOAD_ROOT=/data/uploads
+```
+
+Uploaded files are served publicly under `/uploads/...`. Without persistent storage, uploaded profile images, custom audio, and theme backgrounds may disappear after a backend restart or redeploy.
 
 ## Known Limitations
 

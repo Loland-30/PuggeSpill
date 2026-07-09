@@ -20,11 +20,11 @@ namespace SpellStack.Api.Controllers {
         };
 
         private readonly AppDbContext _context;
-        private readonly IWebHostEnvironment _environment;
+        private readonly UploadStorageService _uploadStorage;
 
-        public ProfileController(AppDbContext context, IWebHostEnvironment environment) {
+        public ProfileController(AppDbContext context, UploadStorageService uploadStorage) {
             _context = context;
-            _environment = environment;
+            _uploadStorage = uploadStorage;
         }
 
         [HttpGet("summary")]
@@ -219,12 +219,7 @@ namespace SpellStack.Api.Controllers {
         }
 
         private string GetProfileImageUploadRoot() {
-            var webRoot = _environment.WebRootPath;
-            if (string.IsNullOrWhiteSpace(webRoot)) {
-                webRoot = Path.Combine(_environment.ContentRootPath, "wwwroot");
-            }
-
-            return Path.GetFullPath(Path.Combine(webRoot, "uploads", "profile-images"));
+            return _uploadStorage.GetUploadFolder("profile-images");
         }
 
         private static string? GetValidatedExtension(IFormFile image) {

@@ -27,6 +27,7 @@ builder.Services.AddCors(options => {
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<AchievementService>();
+builder.Services.AddSingleton<UploadStorageService>();
 
 var app = builder.Build();
 
@@ -42,6 +43,10 @@ if (app.Environment.IsDevelopment()) {
 
 app.UseCors("AllowFrontend");
 app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions {
+    FileProvider = app.Services.GetRequiredService<UploadStorageService>().CreateFileProvider(),
+    RequestPath = "/uploads"
+});
 
 // app.UseHttpsRedirection(); // keep off for local HTTP dev
 

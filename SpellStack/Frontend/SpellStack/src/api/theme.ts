@@ -26,3 +26,21 @@ export async function saveUserTheme(theme: AppTheme): Promise<void> {
     })
     if (!response.ok) throw new Error("Kunne ikke lagre theme")
 }
+
+export async function uploadThemeBackgroundImage(image: File): Promise<string> {
+    const formData = new FormData()
+    formData.append("image", image)
+
+    const response = await fetch(`${API_URL}/theme/background-image`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: formData
+    })
+
+    if (!response.ok) {
+        throw new Error(await response.text() || "Kunne ikke laste opp bakgrunnsbilde")
+    }
+
+    const result: { url: string } = await response.json()
+    return result.url
+}
