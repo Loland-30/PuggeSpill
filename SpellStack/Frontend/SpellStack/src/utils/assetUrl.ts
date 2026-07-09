@@ -1,9 +1,10 @@
-﻿import { API_ORIGIN } from "../api/config"
+import { API_ORIGIN } from "../api/config"
 
 export function resolveAssetUrl(path?: string | null): string | null {
-    if (!path) return null
-    if (/^https?:\/\//i.test(path)) return path
+    const trimmedPath = path?.trim()
+    if (!trimmedPath) return null
+    if (/^https?:\/\//i.test(trimmedPath)) return trimmedPath
 
-    const normalizedPath = path.startsWith("/") ? path : `/${path}`
+    const normalizedPath = trimmedPath.startsWith("/") ? trimmedPath : `/${trimmedPath}`
     return `${API_ORIGIN}${normalizedPath}`
 }

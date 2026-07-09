@@ -76,7 +76,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         background: getBackgroundTheme(theme.backgroundId),
         palette: getPaletteTheme(theme.paletteId),
         textTone: getTextTone(theme.textTone),
-        setBackground: backgroundId => setTheme(current => ({ ...current, backgroundId })),
+        setBackground: backgroundId => setTheme(current => ({ ...current, backgroundId, customBackgroundImage: null })),
         setPalette: paletteId => setTheme(current => ({ ...current, paletteId })),
         setCustomBackgroundImage: customBackgroundImage => setTheme(current => ({ ...current, customBackgroundImage })),
         setOverlayStrength: overlayStrength => setTheme(current => ({ ...current, overlayStrength })),
