@@ -7,22 +7,28 @@ export default function ThemedPage({ children, className = "" }: { children: Rea
     const overlayOpacity = getOverlayOpacity(theme.overlayStrength)
 
     return (
-        <div className={`relative min-h-screen overflow-hidden ${background.pageClass} ${className}`}>
-            {theme.customBackgroundImage ? (
-                <>
-                    <div
-                        className="fixed inset-0 bg-cover bg-center"
-                        style={{ backgroundImage: `url(${theme.customBackgroundImage})` }}
-                    />
-                    <div className="fixed inset-0 bg-black" style={{ opacity: overlayOpacity }} />
-                </>
-            ) : (
-                <div className={`fixed inset-0 ${background.backdropClass}`} />
-            )}
-            <div className="fixed inset-x-0 bottom-0 h-72 bg-[linear-gradient(180deg,transparent,#020617)]" />
-            <div className="fixed left-[-7rem] top-48 h-80 w-80 rounded-full bg-white/5 blur-3xl" />
-            <div className="fixed right-[-8rem] bottom-32 h-96 w-96 rounded-full bg-cyan-400/10 blur-3xl" />
-            {children}
+        <div className={`relative isolate min-h-screen overflow-hidden ${background.pageClass} ${className}`}>
+            <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+                {theme.customBackgroundImage ? (
+                    <>
+                        <img
+                            src={theme.customBackgroundImage}
+                            alt=""
+                            aria-hidden="true"
+                            className="absolute inset-0 h-full w-full object-cover object-center"
+                            draggable={false}
+                        />
+                        <div className="absolute inset-0 bg-black" style={{ opacity: overlayOpacity }} />
+                    </>
+                ) : (
+                    <div className={`absolute inset-0 ${background.backdropClass}`} />
+                )}
+                <div className="absolute inset-x-0 bottom-0 h-72 bg-[linear-gradient(180deg,transparent,#020617)]" />
+            </div>
+
+            <div className="relative z-10">
+                {children}
+            </div>
         </div>
     )
 }
