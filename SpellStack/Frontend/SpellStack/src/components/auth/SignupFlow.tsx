@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion"
+import AuthBrandTitle from "./AuthBrandTitle"
 import SignupStepAccount from "./SignupStepAccount"
 import SignupStepProfile, { type AuthCountryOption } from "./SignupStepProfile"
 import SignupStepSummary from "./SignupStepSummary"
@@ -39,6 +40,7 @@ export default function SignupFlow(props: SignupFlowProps) {
             transition={{ duration: 0.28, ease: "easeOut" }}
             className="mx-auto w-full max-w-2xl"
         >
+            <AuthBrandTitle subtitle="Build your practice stack." />
             <SignupStepper step={props.step} />
             <div className="mt-12 min-h-[31rem]">
                 <AnimatePresence mode="wait">

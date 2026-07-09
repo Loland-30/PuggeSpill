@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useAuth } from "../../auth/AuthContext"
 import { useTheme } from "../../theme/ThemeContext"
+import { getOverlayOpacity } from "../../theme/themes"
 import { resolveAssetUrl } from "../../utils/assetUrl"
 import { preloadImage } from "../../utils/preloadImage"
 import WelcomeBackSplash from "../auth/WelcomeBackSplash"
@@ -35,14 +36,16 @@ function setSessionFlag(key: string) {
 
 export default function AppStartupGate({ children }: AppStartupGateProps) {
     const { user, loading, profileImage } = useAuth()
-    const { theme, isThemeReady } = useTheme()
+    const { theme, isThemeReady, background } = useTheme()
     const shouldShowStartupTip = useMemo(() => !hasSessionFlag(startupTipSeenKey), [])
     const shouldShowWelcomeBack = Boolean(user?.username) && !hasSessionFlag(welcomeBackSeenKey)
     const activeBackgroundImage = resolveAssetUrl(theme.customBackgroundImage)
+    const overlayOpacity = getOverlayOpacity(theme.overlayStrength)
     const [startupTipElapsed, setStartupTipElapsed] = useState(!shouldShowStartupTip)
     const [assetsReady, setAssetsReady] = useState(false)
     const [step, setStep] = useState<StartupGateStep>(shouldShowStartupTip ? "startup-tip" : "loading")
     const bootstrapReady = !loading && isThemeReady && assetsReady
+    const useThemeBackground = step === "welcome-back" && Boolean(user) && isThemeReady
 
     useEffect(() => {
         setAssetsReady(false)
@@ -115,12 +118,18 @@ export default function AppStartupGate({ children }: AppStartupGateProps) {
 
             <AnimatePresence>
                 {step !== "ready" && (
-                    <StartupOverlay key="startup-overlay">
+                    <StartupOverlay
+                        key="startup-overlay"
+                        useThemeBackground={useThemeBackground}
+                        customBackgroundImage={activeBackgroundImage}
+                        backdropClass={background.backdropClass}
+                        overlayOpacity={overlayOpacity}
+                    >
                         <AnimatePresence mode="wait">
                             {step === "startup-tip" && (
                                 <motion.div
                                     key="startup-tip"
-                                    className="px-6 text-center text-3xl font-normal leading-tight text-white/90 sm:text-5xl"
+                                    className="rounded-full border border-white/10 bg-black/55 px-5 py-3 text-center text-base font-semibold text-white/85 shadow-2xl shadow-black/35 backdrop-blur-md sm:text-lg"
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -8 }}
@@ -160,7 +169,25 @@ export default function AppStartupGate({ children }: AppStartupGateProps) {
     )
 }
 
-function StartupOverlay({ children }: { children: ReactNode }) {
+function StartupOverlay({
+    children,
+    useThemeBackground,
+    customBackgroundImage,
+    backdropClass,
+    overlayOpacity
+}: {
+    children: ReactNode
+    useThemeBackground: boolean
+    customBackgroundImage: string | null
+    backdropClass: string
+    overlayOpacity: number
+}) {
+    const [backgroundFailed, setBackgroundFailed] = useState(false)
+
+    useEffect(() => {
+        setBackgroundFailed(false)
+    }, [customBackgroundImage])
+
     return (
         <motion.div
             className="fixed inset-0 z-[10000] grid min-h-screen place-items-center overflow-hidden bg-slate-950 px-6 text-white"
@@ -169,7 +196,19 @@ function StartupOverlay({ children }: { children: ReactNode }) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
         >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_78%,rgba(139,92,246,0.24),transparent_34%),radial-gradient(circle_at_18%_86%,rgba(14,165,233,0.18),transparent_30%),linear-gradient(180deg,#020617_0%,#050816_50%,#071426_100%)]" />
+            {useThemeBackground && customBackgroundImage && !backgroundFailed ? (
+                <img
+                    src={customBackgroundImage}
+                    alt=""
+                    aria-hidden="true"
+                    draggable={false}
+                    onError={() => setBackgroundFailed(true)}
+                    className="absolute inset-0 h-full w-full object-cover object-center"
+                />
+            ) : (
+                <div className={`absolute inset-0 ${useThemeBackground ? backdropClass : "bg-[radial-gradient(circle_at_50%_78%,rgba(139,92,246,0.24),transparent_34%),radial-gradient(circle_at_18%_86%,rgba(14,165,233,0.18),transparent_30%),linear-gradient(180deg,#020617_0%,#050816_50%,#071426_100%)]"}`} />
+            )}
+            {useThemeBackground && <div className="absolute inset-0 bg-black" style={{ opacity: overlayOpacity }} />}
             <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-cyan-950/30 to-transparent" />
             <div className="relative z-10">{children}</div>
         </motion.div>
