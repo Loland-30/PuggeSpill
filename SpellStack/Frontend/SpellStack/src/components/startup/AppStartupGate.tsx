@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useAuth } from "../../auth/AuthContext"
+import { useTheme } from "../../theme/ThemeContext"
 import { resolveAssetUrl } from "../../utils/assetUrl"
+import { preloadImage } from "../../utils/preloadImage"
 import WelcomeBackSplash from "../auth/WelcomeBackSplash"
 
 const startupTipSeenKey = "spellstack_startup_tip_seen"
@@ -9,7 +11,7 @@ const welcomeBackSeenKey = "spellstack_welcome_back_seen"
 const startupTipMinimumMs = 2500
 const welcomeBackMs = 1700
 
-type StartupGateStep = "startup-tip" | "welcome-back" | "ready"
+type StartupGateStep = "startup-tip" | "loading" | "welcome-back" | "ready"
 
 interface AppStartupGateProps {
     children: ReactNode
@@ -33,11 +35,32 @@ function setSessionFlag(key: string) {
 
 export default function AppStartupGate({ children }: AppStartupGateProps) {
     const { user, loading, profileImage } = useAuth()
+    const { theme, isThemeReady } = useTheme()
     const shouldShowStartupTip = useMemo(() => !hasSessionFlag(startupTipSeenKey), [])
     const shouldShowWelcomeBack = Boolean(user?.username) && !hasSessionFlag(welcomeBackSeenKey)
+    const activeBackgroundImage = theme.customBackgroundImage || null
     const [startupTipElapsed, setStartupTipElapsed] = useState(!shouldShowStartupTip)
-    const [step, setStep] = useState<StartupGateStep>(shouldShowStartupTip ? "startup-tip" : "ready")
-    const initialAuthDecisionHandled = useRef(false)
+    const [assetsReady, setAssetsReady] = useState(false)
+    const [step, setStep] = useState<StartupGateStep>(shouldShowStartupTip ? "startup-tip" : "loading")
+    const bootstrapReady = !loading && isThemeReady && assetsReady
+
+    useEffect(() => {
+        setAssetsReady(false)
+        if (loading || !isThemeReady) return
+
+        let cancelled = false
+
+        Promise.all([
+            preloadImage(profileImage),
+            preloadImage(activeBackgroundImage)
+        ]).then(() => {
+            if (!cancelled) setAssetsReady(true)
+        })
+
+        return () => {
+            cancelled = true
+        }
+    }, [activeBackgroundImage, isThemeReady, loading, profileImage])
 
     useEffect(() => {
         if (!shouldShowStartupTip) return
@@ -52,7 +75,7 @@ export default function AppStartupGate({ children }: AppStartupGateProps) {
 
     useEffect(() => {
         if (step !== "startup-tip") return
-        if (loading || !startupTipElapsed) return
+        if (!bootstrapReady || !startupTipElapsed) return
 
         if (shouldShowWelcomeBack) {
             setSessionFlag(welcomeBackSeenKey)
@@ -61,19 +84,20 @@ export default function AppStartupGate({ children }: AppStartupGateProps) {
         }
 
         setStep("ready")
-    }, [loading, shouldShowWelcomeBack, startupTipElapsed, step])
+    }, [bootstrapReady, shouldShowWelcomeBack, startupTipElapsed, step])
 
     useEffect(() => {
-        if (step !== "ready") return
-        if (loading) return
-        if (initialAuthDecisionHandled.current) return
+        if (step !== "loading") return
+        if (!bootstrapReady) return
 
-        initialAuthDecisionHandled.current = true
         if (shouldShowWelcomeBack) {
             setSessionFlag(welcomeBackSeenKey)
             setStep("welcome-back")
+            return
         }
-    }, [loading, shouldShowWelcomeBack, step])
+
+        setStep("ready")
+    }, [bootstrapReady, shouldShowWelcomeBack, step])
 
     useEffect(() => {
         if (step !== "welcome-back") return

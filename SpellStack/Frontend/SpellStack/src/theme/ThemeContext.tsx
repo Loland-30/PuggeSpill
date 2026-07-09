@@ -5,6 +5,7 @@ import { defaultTheme, getBackgroundTheme, getPaletteTheme, getTextTone, normali
 
 interface ThemeContextValue {
     theme: AppTheme
+    isThemeReady: boolean
     background: ReturnType<typeof getBackgroundTheme>
     palette: ReturnType<typeof getPaletteTheme>
     textTone: ReturnType<typeof getTextTone>
@@ -73,6 +74,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     const value = useMemo<ThemeContextValue>(() => ({
         theme,
+        isThemeReady: remoteThemeReady,
         background: getBackgroundTheme(theme.backgroundId),
         palette: getPaletteTheme(theme.paletteId),
         textTone: getTextTone(theme.textTone),
@@ -85,7 +87,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         setUiVolume: uiVolume => updateAudio({ uiVolume: clampVolume(uiVolume) }),
         setMusicVolume: musicVolume => updateAudio({ musicVolume: clampVolume(musicVolume) }),
         setAudioPreset: (key, value) => updateAudio({ [key]: value } as Partial<AudioSettings>)
-    }), [theme])
+    }), [remoteThemeReady, theme])
 
     return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
 }
