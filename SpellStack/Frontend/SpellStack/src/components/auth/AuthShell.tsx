@@ -18,20 +18,17 @@ export default function AuthShell({ mode, onModeChange, children }: AuthShellPro
                     {children}
                 </main>
             </div>
-            <div className="pointer-events-none fixed bottom-5 left-1/2 z-20 -translate-x-1/2 rounded-full border border-white/10 bg-black/45 px-4 py-2 text-center text-xs font-semibold text-white/75 shadow-xl shadow-black/30 backdrop-blur-md sm:left-6 sm:translate-x-0">
-                For best experience, use fullscreen (F11)
-            </div>
             <a
                 href="https://github.com/Loland-30/Spellstack"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="View SpellStack source on GitHub"
-                className="fixed bottom-5 right-5 z-30 grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-black/35 text-white/70 shadow-xl shadow-black/30 backdrop-blur-md transition hover:border-white/25 hover:bg-black/55 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/70"
+                className="fixed bottom-5 right-5 z-30 grid h-12 w-12 place-items-center text-white/82 drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] transition hover:text-white focus-visible:rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/70"
             >
                 <svg
                     aria-hidden="true"
                     viewBox="0 0 24 24"
-                    className="h-5 w-5 fill-current"
+                    className="h-8 w-8 fill-current"
                 >
                     <path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.71.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.36 1.12 2.93.86.09-.67.35-1.12.63-1.38-2.22-.26-4.55-1.14-4.55-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.31.1-2.72 0 0 .84-.27 2.75 1.05A9.37 9.37 0 0 1 12 6.94c.85 0 1.7.12 2.5.34 1.9-1.32 2.74-1.05 2.74-1.05.55 1.41.2 2.46.1 2.72.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.94.68 1.9 0 1.38-.01 2.49-.01 2.83 0 .27.18.59.69.49A10.07 10.07 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z" />
                 </svg>

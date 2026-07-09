@@ -40,7 +40,7 @@ export default function SignupFlow(props: SignupFlowProps) {
             transition={{ duration: 0.28, ease: "easeOut" }}
             className="mx-auto w-full max-w-2xl"
         >
-            <AuthBrandTitle subtitle="Build your practice stack." />
+            <AuthBrandTitle />
             <SignupStepper step={props.step} />
             <div className="mt-12 min-h-[31rem]">
                 <AnimatePresence mode="wait">

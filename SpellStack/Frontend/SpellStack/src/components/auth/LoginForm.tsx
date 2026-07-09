@@ -34,7 +34,7 @@ export default function LoginForm({ email, password, rememberMe, loading, error,
             className="mx-auto w-full max-w-[28rem]"
         >
             <form onSubmit={handleSubmit} noValidate>
-                <AuthBrandTitle subtitle="Vocabulary practice, stacked." />
+                <AuthBrandTitle />
                 <div className="space-y-7">
                     <AuthInput hideLabel label="Email" type="email" value={email} onChange={onEmailChange} placeholder="Your email" autoComplete="email" icon={<Mail size={24} strokeWidth={2.1} />} />
                     <AuthInput hideLabel label="Password" type="password" value={password} onChange={onPasswordChange} placeholder="********" autoComplete="current-password" icon={<Lock size={24} strokeWidth={2.1} />} />

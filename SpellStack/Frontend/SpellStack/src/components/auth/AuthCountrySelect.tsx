@@ -41,7 +41,7 @@ export default function AuthCountrySelect({ value, countries, onChange }: AuthCo
                 onMouseEnter={playHoverSound}
                 aria-haspopup="listbox"
                 aria-expanded={open}
-                className="flex min-h-16 w-full items-center gap-4 rounded-[1.35rem] bg-white px-5 text-left text-slate-950 shadow-xl ring-1 ring-white/20 transition focus:outline-none focus:ring-2 focus:ring-white/70"
+                className="flex min-h-16 w-full items-center gap-4 rounded-[1.35rem] border border-white bg-[#A7A7A7]/20 px-5 text-left text-white shadow-xl shadow-black/10 backdrop-blur-md focus:outline-none"
             >
                 <span className="text-3xl leading-none">{selectedCountry.flag}</span>
                 <span className="min-w-0 flex-1 truncate text-lg font-medium">{selectedCountry.name}</span>

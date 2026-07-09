@@ -1,5 +1,28 @@
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&display=swap");
 @import "tailwindcss";
 
 :root.spellstack-larger-text {
     font-size: 112.5%;
+}
+
+.spellstack-auth-title {
+    font-family: "Sora", system-ui, sans-serif;
+}
+
+.spellstack-auth-input input:-webkit-autofill,
+.spellstack-auth-input input:-webkit-autofill:hover,
+.spellstack-auth-input input:-webkit-autofill:focus,
+.spellstack-auth-input input:-webkit-autofill:active {
+    background-color: transparent !important;
+    background-image: none !important;
+    -webkit-text-fill-color: #ffffff;
+    caret-color: #ffffff;
+    -webkit-box-shadow: 0 0 0 1000px transparent inset;
+    box-shadow: 0 0 0 1000px transparent inset;
+    transition: background-color 999999s ease-in-out 0s;
+}
+
+.spellstack-auth-input input:autofill {
+    color: #ffffff;
+    caret-color: #ffffff;
 }
