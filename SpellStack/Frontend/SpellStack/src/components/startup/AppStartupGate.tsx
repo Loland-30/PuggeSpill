@@ -118,16 +118,30 @@ export default function AppStartupGate({ children }: AppStartupGateProps) {
                     <StartupOverlay key="startup-overlay">
                         <AnimatePresence mode="wait">
                             {step === "startup-tip" && (
-                        <motion.div
+                                <motion.div
                                     key="startup-tip"
                                     className="px-6 text-center text-3xl font-normal leading-tight text-white/90 sm:text-5xl"
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -8 }}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -8 }}
                                     transition={{ duration: 0.22, ease: "easeOut" }}
-                        >
-                            For the best experience, use Fullscreen (F11)
-                        </motion.div>
+                                >
+                                    For the best experience, use Fullscreen (F11)
+                                </motion.div>
+                            )}
+
+                            {step === "loading" && (
+                                <motion.div
+                                    key="loading"
+                                    className="flex flex-col items-center gap-5 text-center text-white/88"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -8 }}
+                                    transition={{ duration: 0.22, ease: "easeOut" }}
+                                >
+                                    <span className="h-12 w-12 rounded-full border-2 border-white/20 border-t-white/85 animate-spin" />
+                                    <p className="text-lg font-semibold tracking-wide">Loading SpellStack</p>
+                                </motion.div>
                             )}
 
                             {step === "welcome-back" && user?.username && (
