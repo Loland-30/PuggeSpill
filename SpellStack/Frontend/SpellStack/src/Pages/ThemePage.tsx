@@ -103,11 +103,7 @@ function VisualThemeSettings({ backgroundMode, setBackgroundMode, paletteView, s
                                 { value: "image", label: "Background Image" }
                             ]}
                             value={backgroundMode}
-                            onChange={value => {
-                                const nextMode = value as BackgroundMode
-                                setBackgroundMode(nextMode)
-                                if (nextMode === "color") setCustomBackgroundImage(null)
-                            }}
+                            onChange={value => setBackgroundMode(value as BackgroundMode)}
                         />
                     </div>
 
