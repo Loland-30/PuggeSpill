@@ -19,7 +19,7 @@ export default function AuthShell({ mode, onModeChange, children }: AuthShellPro
                 </main>
             </div>
             <a
-                href="https://github.com/Loland-30/Spellstack"
+                href="https://github.com/Loland-30/Spellstack/tree/dev"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="View SpellStack source on GitHub"
