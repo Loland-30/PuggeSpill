@@ -1,6 +1,13 @@
-﻿import { useCallback, useEffect, useRef, useState } from "react"
+﻿import { useCallback, useEffect, useState } from "react"
 
-import { getMultiplayerConnection, startMultiplayerConnection } from "./multiplayerConnection"
+import {
+    getMultiplayerConnection,
+    leaveActiveMultiplayerRoom,
+    roomNoLongerExistsMessage,
+    setActiveMultiplayerRoomCode,
+    setMultiplayerReconnectHandlers,
+    startMultiplayerConnection
+} from "./multiplayerConnection"
 import type { MultiplayerRoom } from "./multiplayerTypes"
 
 type MultiplayerStatus = "idle" | "connecting" | "connected"
@@ -13,38 +20,42 @@ function getErrorMessage(error: unknown) {
     return "Could not connect to the multiplayer room. Please try again."
 }
 
+function normalizeRoomError(error: unknown) {
+    const message = getErrorMessage(error)
+    return message.toLowerCase().includes("room not found") ? roomNoLongerExistsMessage : message
+}
+
 export function useMultiplayerRoom() {
     const [room, setRoom] = useState<MultiplayerRoom | null>(null)
     const [status, setStatus] = useState<MultiplayerStatus>("idle")
     const [error, setError] = useState<string | null>(null)
     const [isBusy, setIsBusy] = useState(false)
-    const roomCodeRef = useRef<string | null>(null)
 
     useEffect(() => {
         const connection = getMultiplayerConnection()
 
         const handleRoomUpdated = (updatedRoom: MultiplayerRoom) => {
-            roomCodeRef.current = updatedRoom.code
+            setActiveMultiplayerRoomCode(updatedRoom.code)
             setRoom(updatedRoom)
             setStatus("connected")
         }
 
-        connection.on("RoomUpdated", handleRoomUpdated)
-        connection.onreconnected(async () => {
-            const roomCode = roomCodeRef.current
-            if (!roomCode) return
+        const handleRejoinFailed = (message: string) => {
+            setActiveMultiplayerRoomCode(null)
+            setRoom(null)
+            setStatus("idle")
+            setError(message)
+        }
 
-            try {
-                const updatedRoom = await connection.invoke<MultiplayerRoom>("JoinRoom", roomCode)
-                handleRoomUpdated(updatedRoom)
-            }
-            catch (reconnectError) {
-                setError(getErrorMessage(reconnectError))
-            }
+        connection.on("RoomUpdated", handleRoomUpdated)
+        setMultiplayerReconnectHandlers({
+            onRoomRejoined: handleRoomUpdated,
+            onRejoinFailed: handleRejoinFailed
         })
 
         return () => {
             connection.off("RoomUpdated", handleRoomUpdated)
+            setMultiplayerReconnectHandlers(null)
         }
     }, [])
 
@@ -56,14 +67,15 @@ export function useMultiplayerRoom() {
         try {
             const connection = await startMultiplayerConnection()
             const createdRoom = await connection.invoke<MultiplayerRoom>("CreateRoom")
-            roomCodeRef.current = createdRoom.code
+            setActiveMultiplayerRoomCode(createdRoom.code)
             setRoom(createdRoom)
             setStatus("connected")
             return createdRoom
         }
         catch (createError) {
+            setActiveMultiplayerRoomCode(null)
             setStatus("idle")
-            const message = getErrorMessage(createError)
+            const message = normalizeRoomError(createError)
             setError(message)
             throw new Error(message)
         }
@@ -80,14 +92,16 @@ export function useMultiplayerRoom() {
         try {
             const connection = await startMultiplayerConnection()
             const joinedRoom = await connection.invoke<MultiplayerRoom>("JoinRoom", roomCode.trim().toUpperCase())
-            roomCodeRef.current = joinedRoom.code
+            setActiveMultiplayerRoomCode(joinedRoom.code)
             setRoom(joinedRoom)
             setStatus("connected")
             return joinedRoom
         }
         catch (joinError) {
-            setStatus(roomCodeRef.current ? "connected" : "idle")
-            const message = getErrorMessage(joinError)
+            setActiveMultiplayerRoomCode(null)
+            setRoom(null)
+            setStatus("idle")
+            const message = normalizeRoomError(joinError)
             setError(message)
             throw new Error(message)
         }
@@ -97,12 +111,7 @@ export function useMultiplayerRoom() {
     }, [])
 
     const leaveRoom = useCallback(async () => {
-        const connection = getMultiplayerConnection()
-        if (connection.state === "Connected") {
-            await connection.invoke("LeaveRoom").catch(() => undefined)
-        }
-
-        roomCodeRef.current = null
+        await leaveActiveMultiplayerRoom()
         setRoom(null)
         setStatus("idle")
     }, [])

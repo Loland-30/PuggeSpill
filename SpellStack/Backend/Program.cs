@@ -37,6 +37,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<AchievementService>();
 builder.Services.AddSingleton<UploadStorageService>();
 builder.Services.AddSingleton<MultiplayerRoomService>();
+builder.Services.AddSingleton<MultiplayerDisconnectCleanupService>();
 
 var app = builder.Build();
 

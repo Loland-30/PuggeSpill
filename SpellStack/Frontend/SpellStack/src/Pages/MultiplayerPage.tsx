@@ -17,6 +17,7 @@ import PageContentTransition from "../components/PageContentTransition"
 import ProfileImage from "../components/ProfileImage"
 import { countries, languages } from "../data/languages"
 import type { MultiplayerPlayer } from "../multiplayer/multiplayerTypes"
+import { roomNoLongerExistsMessage } from "../multiplayer/multiplayerConnection"
 import { useMultiplayerRoom } from "../multiplayer/useMultiplayerRoom"
 import { useTheme } from "../theme/ThemeContext"
 import { resolveAssetUrl } from "../utils/assetUrl"
@@ -71,6 +72,7 @@ export default function MultiplayerPage() {
         isBusy: multiplayerBusy,
         createRoom: createMultiplayerRoom,
         joinRoom: joinMultiplayerRoom,
+        leaveRoom: leaveMultiplayerRoom,
         clearError
     } = useMultiplayerRoom()
     const currentHostId = room?.ownerUserId ?? null
@@ -107,6 +109,13 @@ export default function MultiplayerPage() {
         attemptedJoinRoomRef.current = roomFromUrl
         joinMultiplayerRoom(roomFromUrl).catch(() => undefined)
     }, [authLoading, joinMultiplayerRoom, location.search, room?.code, user])
+
+    useEffect(() => {
+        if (room || multiplayerError !== roomNoLongerExistsMessage || !new URLSearchParams(location.search).get("room")) return
+
+        navigate("/multiplayer", { replace: true })
+        attemptedJoinRoomRef.current = null
+    }, [location.search, multiplayerError, navigate, room])
 
     useEffect(() => {
         if (!room) return
@@ -153,6 +162,15 @@ export default function MultiplayerPage() {
         catch {
             // Error state is surfaced by useMultiplayerRoom.
         }
+    }
+
+    const handleLeaveRoom = async () => {
+        await leaveMultiplayerRoom()
+        setSelectedDeck(null)
+        setReadyConfig(null)
+        setModalDeck(null)
+        attemptedJoinRoomRef.current = null
+        navigate("/multiplayer", { replace: true })
     }
 
     const openDeckSetup = (deck: Deck) => {
@@ -235,6 +253,7 @@ export default function MultiplayerPage() {
                             currentHostId={currentHostId}
                             isLocalHost={isLocalHost}
                             players={players}
+                            onLeaveRoom={handleLeaveRoom}
                             onDeckSelect={openDeckSetup}
                             palette={palette}
                         />
@@ -326,7 +345,7 @@ function LandingAction({ title, description, icon, onClick, disabled, palette }:
     )
 }
 
-function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConfig, currentHostId, isLocalHost, players, onDeckSelect, palette }: {
+function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConfig, currentHostId, isLocalHost, players, onLeaveRoom, onDeckSelect, palette }: {
     roomCode: string
     maxPlayers: number
     decks: Deck[]
@@ -335,6 +354,7 @@ function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConf
     currentHostId: string | null
     isLocalHost: boolean
     players: LobbyPlayer[]
+    onLeaveRoom: () => void | Promise<void>
     onDeckSelect: (deck: Deck) => void
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
@@ -343,11 +363,22 @@ function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConf
     return (
         <FadeIn className="relative flex min-h-0 flex-1 flex-col gap-8">
             <header className="w-fit max-w-full rounded-[1.75rem] border border-white/10 bg-black/35 px-6 py-5 shadow-2xl shadow-black/35 backdrop-blur-md sm:px-7">
-                <p className={`text-sm font-black uppercase tracking-[0.28em] ${palette.accentText}`}>Multiplayer room</p>
-                <h1 className="mt-3 text-5xl font-black text-white">Room code: {roomCode}</h1>
-                <p className="mt-3 text-base font-semibold text-white/62">
-                    Send this code to your friends to let them join your room
-                </p>
+                <div className="flex flex-wrap items-start justify-between gap-5">
+                    <div>
+                        <p className={`text-sm font-black uppercase tracking-[0.28em] ${palette.accentText}`}>Multiplayer room</p>
+                        <h1 className="mt-3 text-5xl font-black text-white">Room code: {roomCode}</h1>
+                        <p className="mt-3 text-base font-semibold text-white/62">
+                            Send this code to your friends to let them join your room
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onLeaveRoom}
+                        className="rounded-full border border-white/12 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-white/60 transition hover:bg-white/[0.1] hover:text-white"
+                    >
+                        Leave room
+                    </button>
+                </div>
             </header>
 
             <section className="min-w-0 self-start">

@@ -6,13 +6,16 @@ namespace SpellStack.Api.Multiplayer {
     [Authorize]
     public class MultiplayerHub : Hub {
         private readonly MultiplayerRoomService rooms;
+        private readonly MultiplayerDisconnectCleanupService disconnectCleanup;
 
-        public MultiplayerHub(MultiplayerRoomService rooms) {
+        public MultiplayerHub(MultiplayerRoomService rooms, MultiplayerDisconnectCleanupService disconnectCleanup) {
             this.rooms = rooms;
+            this.disconnectCleanup = disconnectCleanup;
         }
 
         public async Task<MultiplayerRoomDto> CreateRoom() {
             try {
+                disconnectCleanup.Cancel(Context.ConnectionId);
                 var change = rooms.CreateRoom(GetCurrentUser(), Context.ConnectionId);
                 await SyncGroupsAndBroadcast(change);
                 return change.CurrentRoom ?? throw new HubException("Could not create room.");
@@ -24,6 +27,7 @@ namespace SpellStack.Api.Multiplayer {
 
         public async Task<MultiplayerRoomDto> JoinRoom(string roomCode) {
             try {
+                disconnectCleanup.Cancel(Context.ConnectionId);
                 var change = rooms.JoinRoom(roomCode, GetCurrentUser(), Context.ConnectionId);
                 await SyncGroupsAndBroadcast(change);
                 return change.CurrentRoom ?? throw new HubException("Could not join room.");
@@ -34,6 +38,7 @@ namespace SpellStack.Api.Multiplayer {
         }
 
         public async Task LeaveRoom() {
+            disconnectCleanup.Cancel(Context.ConnectionId);
             var change = rooms.LeaveRoom(Context.ConnectionId);
             if (change == null) return;
 
@@ -46,11 +51,7 @@ namespace SpellStack.Api.Multiplayer {
         }
 
         public override async Task OnDisconnectedAsync(Exception? exception) {
-            var change = rooms.Disconnect(Context.ConnectionId);
-            if (change?.PreviousRoomCode != null && change.PreviousRoom != null) {
-                await Clients.Group(change.PreviousRoomCode).SendAsync("RoomUpdated", change.PreviousRoom);
-            }
-
+            disconnectCleanup.Schedule(Context.ConnectionId);
             await base.OnDisconnectedAsync(exception);
         }
 

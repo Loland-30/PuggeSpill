@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 
 namespace SpellStack.Api.Multiplayer {
     public record MultiplayerUser(string UserId, string Username, string? ProfileImageUrl);
@@ -33,7 +34,6 @@ namespace SpellStack.Api.Multiplayer {
         private readonly object syncRoot = new();
         private readonly Dictionary<string, RoomState> rooms = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, string> connectionRooms = new(StringComparer.Ordinal);
-        private readonly Random random = new();
 
         public MultiplayerRoomChange CreateRoom(MultiplayerUser user, string connectionId) {
             lock (syncRoot) {
@@ -87,7 +87,7 @@ namespace SpellStack.Api.Multiplayer {
             }
         }
 
-        public MultiplayerRoomChange? Disconnect(string connectionId) {
+        public MultiplayerRoomChange? CompleteDisconnect(string connectionId) {
             lock (syncRoot) {
                 return RemoveConnectionFromRoomLocked(connectionId);
             }
@@ -98,17 +98,18 @@ namespace SpellStack.Api.Multiplayer {
                 return null;
             }
 
-            connectionRooms.Remove(connectionId);
-
             if (!rooms.TryGetValue(roomCode, out var room)) {
+                connectionRooms.Remove(connectionId);
                 return null;
             }
 
             var player = room.Players.Values.FirstOrDefault(roomPlayer => roomPlayer.ConnectionId == connectionId);
             if (player == null) {
+                connectionRooms.Remove(connectionId);
                 return null;
             }
 
+            connectionRooms.Remove(connectionId);
             room.Players.Remove(player.UserId);
             var updatedRoom = NormalizeRoomAfterPlayerRemovalLocked(room);
             return new MultiplayerRoomChange(null, null, updatedRoom, room.Code);
@@ -163,9 +164,9 @@ namespace SpellStack.Api.Multiplayer {
             throw new MultiplayerRoomException("Could not create a unique room code. Please try again.");
         }
 
-        private string RandomChunk(int length) {
+        private static string RandomChunk(int length) {
             return new string(Enumerable.Range(0, length)
-                .Select(_ => CodeCharacters[random.Next(CodeCharacters.Length)])
+                .Select(_ => CodeCharacters[RandomNumberGenerator.GetInt32(CodeCharacters.Length)])
                 .ToArray());
         }
 

@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { clearStoredToken, getMe, getStoredToken, login, logout, register, storeToken, updateAccountProfile as updateAccountProfileRequest, type AuthUser } from "../api/auth"
 import { deleteProfileImage as deleteProfileImageRequest, uploadProfileImage as uploadProfileImageRequest } from "../api/profileImage"
 import { deleteCustomAudio, uploadCustomAudio } from "../api/profileAudio"
+import { stopMultiplayerConnection } from "../multiplayer/multiplayerConnection"
 import { resolveAssetUrl } from "../utils/assetUrl"
 
 interface AuthContextValue {
@@ -127,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return result.user
         },
         logoutUser: async () => {
+            await stopMultiplayerConnection()
             await logout()
             setUser(null)
             window.dispatchEvent(new Event("spellstack-auth-changed"))
