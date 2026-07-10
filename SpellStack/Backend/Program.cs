@@ -1,5 +1,8 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
+using SpellStack.Api.Auth;
 using SpellStack.Api.Data;
+using SpellStack.Api.Multiplayer;
 using SpellStack.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,10 +27,16 @@ builder.Services.AddCors(options => {
     });
 });
 
+builder.Services.AddAuthentication(SessionTokenAuthenticationHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, SessionTokenAuthenticationHandler>(SessionTokenAuthenticationHandler.SchemeName, _ => { });
+builder.Services.AddAuthorization();
+builder.Services.AddSignalR();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<AchievementService>();
 builder.Services.AddSingleton<UploadStorageService>();
+builder.Services.AddSingleton<MultiplayerRoomService>();
 
 var app = builder.Build();
 
@@ -50,8 +59,10 @@ app.UseStaticFiles(new StaticFileOptions {
 
 // app.UseHttpsRedirection(); // keep off for local HTTP dev
 
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<MultiplayerHub>("/hubs/multiplayer");
 
 app.Run();
 

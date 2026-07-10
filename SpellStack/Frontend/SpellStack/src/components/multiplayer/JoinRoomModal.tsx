@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react"
+import { useCallback, useEffect, useState, type FormEvent } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { ArrowRight, X } from "lucide-react"
 
@@ -8,36 +8,39 @@ import type { PaletteTheme } from "../../theme/themes"
 interface JoinRoomModalProps {
     isOpen: boolean
     onClose: () => void
-    onJoin: (roomCode: string) => void
+    onJoin: (roomCode: string) => void | Promise<void>
+    isLoading?: boolean
+    error?: string | null
     palette: PaletteTheme
 }
 
-export default function JoinRoomModal({ isOpen, onClose, onJoin, palette }: JoinRoomModalProps) {
+export default function JoinRoomModal({ isOpen, onClose, onJoin, isLoading = false, error, palette }: JoinRoomModalProps) {
     const [roomCode, setRoomCode] = useState("")
     const { playHoverSound } = useUISound()
+
+    const handleClose = useCallback(() => {
+        setRoomCode("")
+        onClose()
+    }, [onClose])
 
     useEffect(() => {
         if (!isOpen) return
 
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") onClose()
+            if (event.key === "Escape") handleClose()
         }
 
         document.addEventListener("keydown", handleKeyDown)
         return () => document.removeEventListener("keydown", handleKeyDown)
-    }, [isOpen, onClose])
+    }, [isOpen, handleClose])
 
-    useEffect(() => {
-        if (!isOpen) setRoomCode("")
-    }, [isOpen])
-
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
 
         const normalizedCode = roomCode.trim().toUpperCase()
-        if (!normalizedCode) return
+        if (!normalizedCode || isLoading) return
 
-        onJoin(normalizedCode)
+        await onJoin(normalizedCode)
     }
 
     return (
@@ -49,7 +52,7 @@ export default function JoinRoomModal({ isOpen, onClose, onJoin, palette }: Join
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.18, ease: "easeOut" }}
-                    onMouseDown={onClose}
+                    onMouseDown={handleClose}
                 >
                     <motion.form
                         onSubmit={handleSubmit}
@@ -62,7 +65,7 @@ export default function JoinRoomModal({ isOpen, onClose, onJoin, palette }: Join
                     >
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={handleClose}
                             onMouseEnter={playHoverSound}
                             className="absolute right-6 top-6 grid h-10 w-10 place-items-center rounded-full text-white/75 transition hover:bg-white/10 hover:text-white"
                             aria-label="Close join room modal"
@@ -76,13 +79,14 @@ export default function JoinRoomModal({ isOpen, onClose, onJoin, palette }: Join
                             <input
                                 value={roomCode}
                                 onChange={event => setRoomCode(event.target.value.toUpperCase())}
-                                className="min-w-0 flex-1 bg-transparent text-2xl font-black uppercase tracking-wide text-white outline-none placeholder:text-white/30"
+                                className="min-w-0 flex-1 bg-transparent text-2xl font-black uppercase tracking-wide text-white outline-none placeholder:text-white/30 disabled:cursor-wait"
                                 placeholder="T6@XA2"
                                 autoFocus
+                                disabled={isLoading}
                             />
                             <button
                                 type="submit"
-                                disabled={!roomCode.trim()}
+                                disabled={!roomCode.trim() || isLoading}
                                 onMouseEnter={playHoverSound}
                                 className={`grid h-10 w-10 shrink-0 place-items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-35 ${palette.primaryButton} ${palette.primaryButtonText}`}
                                 aria-label="Join room"
@@ -91,8 +95,8 @@ export default function JoinRoomModal({ isOpen, onClose, onJoin, palette }: Join
                             </button>
                         </div>
 
-                        <p className="mt-4 min-h-5 text-sm font-semibold text-white/45">
-                            Mock rooms accept any non-empty code for now.
+                        <p className={`mt-4 min-h-5 text-sm font-semibold ${error ? "text-red-100" : "text-white/45"}`}>
+                            {error ?? (isLoading ? "Joining room..." : "Enter the code your friend sent you.")}
                         </p>
                     </motion.form>
                 </motion.div>

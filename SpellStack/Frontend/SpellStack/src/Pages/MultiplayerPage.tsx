@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { Check, Crown, Lock, Plus, Send, Trophy, UsersRound } from "lucide-react"
 
@@ -16,17 +16,18 @@ import LibraryPageToolbar from "../components/navigation/LibraryPageToolbar"
 import PageContentTransition from "../components/PageContentTransition"
 import ProfileImage from "../components/ProfileImage"
 import { countries, languages } from "../data/languages"
+import type { MultiplayerPlayer } from "../multiplayer/multiplayerTypes"
+import { useMultiplayerRoom } from "../multiplayer/useMultiplayerRoom"
 import { useTheme } from "../theme/ThemeContext"
+import { resolveAssetUrl } from "../utils/assetUrl"
 
 const minimumMultiplayerWords = 10
 
-interface MockPlayer {
+type LobbyPlayer = MultiplayerPlayer & {
     id: string
-    userId?: string
     name: string
-    countryCode: string
-    isRoomOwner?: boolean
     ready?: boolean
+    countryCode?: string
     profileImage?: string | null
     profilePath?: string
 }
@@ -43,52 +44,37 @@ interface ReadyConfig {
     roundLimit: RoundLimit
 }
 
-type RoomState = "landing" | "lobby"
-
-const roomCodeCharacters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-
-function randomChunk(length: number) {
-    return Array.from({ length }, () => roomCodeCharacters[Math.floor(Math.random() * roomCodeCharacters.length)]).join("")
-}
-
-function generateRoomCode() {
-    return `${randomChunk(2)}@${randomChunk(3)}`
-}
-
 function getLanguage(code: string) {
     return languages.find(language => language.code === code)
 }
 
-function getCountryFlag(code: string) {
+function getCountryFlag(code?: string) {
+    if (!code) return undefined
     return countries.find(country => country.code === code)?.flagUrl
 }
 
 export default function MultiplayerPage() {
     const navigate = useNavigate()
     const location = useLocation()
-    const { user, loading: authLoading, profileImage } = useAuth()
+    const { user, loading: authLoading } = useAuth()
     const { palette, theme } = useTheme()
-    const localPlayerId = user ? `user-${user.id}` : "local-player"
     const readySoundRef = useRef<HTMLAudioElement | null>(null)
+    const attemptedJoinRoomRef = useRef<string | null>(null)
     const [decks, setDecks] = useState<Deck[]>([])
-    const [roomState, setRoomState] = useState<RoomState>("landing")
-    const [roomCode, setRoomCode] = useState("")
-    const [roomOwnerId, setRoomOwnerId] = useState<string | null>(null)
-    const [currentHostId, setCurrentHostId] = useState<string | null>(null)
     const [joinModalOpen, setJoinModalOpen] = useState(false)
     const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null)
     const [modalDeck, setModalDeck] = useState<Deck | null>(null)
     const [readyConfig, setReadyConfig] = useState<ReadyConfig | null>(null)
-
-    useEffect(() => {
-        const roomFromUrl = new URLSearchParams(location.search).get("room")
-        if (!roomFromUrl) return
-
-        setRoomCode(roomFromUrl)
-        setRoomState("lobby")
-        setRoomOwnerId(currentOwner => currentOwner ?? localPlayerId)
-        setCurrentHostId(currentHost => currentHost ?? localPlayerId)
-    }, [localPlayerId, location.search])
+    const {
+        room,
+        error: multiplayerError,
+        isBusy: multiplayerBusy,
+        createRoom: createMultiplayerRoom,
+        joinRoom: joinMultiplayerRoom,
+        clearError
+    } = useMultiplayerRoom()
+    const currentHostId = room?.ownerUserId ?? null
+    const isLocalHost = Boolean(user && currentHostId === String(user.id))
 
     useEffect(() => {
         const audio = new Audio(readySoundUrl)
@@ -112,34 +98,61 @@ export default function MultiplayerPage() {
         getDecks().then(setDecks)
     }, [authLoading, navigate, user])
 
-    const players = useMemo<MockPlayer[]>(() => [
-        { id: localPlayerId, userId: user ? String(user.id) : undefined, name: user?.username ?? "Player 1", countryCode: "no", isRoomOwner: roomOwnerId === localPlayerId, ready: Boolean(readyConfig), profileImage, profilePath: "/profile" },
-        { id: "player-2", name: "Player 2", countryCode: "es", ready: true },
-        { id: "player-3", name: "Player 3", countryCode: "gb", ready: false }
-    ], [localPlayerId, profileImage, readyConfig, roomOwnerId, user])
+    useEffect(() => {
+        if (authLoading || !user) return
 
-    const isLocalHost = currentHostId === localPlayerId
+        const roomFromUrl = new URLSearchParams(location.search).get("room")?.trim().toUpperCase()
+        if (!roomFromUrl || room?.code === roomFromUrl || attemptedJoinRoomRef.current === roomFromUrl) return
 
-    const createRoom = () => {
-        const nextRoomCode = generateRoomCode()
-        setRoomCode(nextRoomCode)
-        setRoomState("lobby")
-        setRoomOwnerId(localPlayerId)
-        setCurrentHostId(localPlayerId)
-        setSelectedDeck(null)
-        setReadyConfig(null)
-        navigate(`/multiplayer?room=${encodeURIComponent(nextRoomCode)}`, { replace: true })
+        attemptedJoinRoomRef.current = roomFromUrl
+        joinMultiplayerRoom(roomFromUrl).catch(() => undefined)
+    }, [authLoading, joinMultiplayerRoom, location.search, room?.code, user])
+
+    useEffect(() => {
+        if (!room) return
+
+        const roomUrl = `/multiplayer?room=${encodeURIComponent(room.code)}`
+        if (`${location.pathname}${location.search}` !== roomUrl) {
+            navigate(roomUrl, { replace: true })
+        }
+    }, [location.pathname, location.search, navigate, room])
+
+    const players: LobbyPlayer[] = (room?.players ?? []).map(player => {
+        const isCurrentUser = Boolean(user && player.userId === String(user.id))
+
+        return {
+            ...player,
+            id: player.userId,
+            name: player.username,
+            ready: isCurrentUser && Boolean(readyConfig),
+            profileImage: resolveAssetUrl(player.profileImageUrl),
+            profilePath: isCurrentUser ? "/profile" : `/profile/${player.userId}`
+        }
+    })
+
+    const createRoom = async () => {
+        try {
+            const createdRoom = await createMultiplayerRoom()
+            setSelectedDeck(null)
+            setReadyConfig(null)
+            navigate(`/multiplayer?room=${encodeURIComponent(createdRoom.code)}`, { replace: true })
+        }
+        catch {
+            // Error state is surfaced by useMultiplayerRoom.
+        }
     }
 
-    const joinRoom = (code: string) => {
-        setRoomCode(code)
-        setRoomState("lobby")
-        setRoomOwnerId("player-2")
-        setCurrentHostId("player-2")
-        setJoinModalOpen(false)
-        setSelectedDeck(null)
-        setReadyConfig(null)
-        navigate(`/multiplayer?room=${encodeURIComponent(code)}`, { replace: true })
+    const joinRoom = async (code: string) => {
+        try {
+            const joinedRoom = await joinMultiplayerRoom(code)
+            setJoinModalOpen(false)
+            setSelectedDeck(null)
+            setReadyConfig(null)
+            navigate(`/multiplayer?room=${encodeURIComponent(joinedRoom.code)}`, { replace: true })
+        }
+        catch {
+            // Error state is surfaced by useMultiplayerRoom.
+        }
     }
 
     const openDeckSetup = (deck: Deck) => {
@@ -166,23 +179,17 @@ export default function MultiplayerPage() {
         setModalDeck(null)
     }
 
-    const shuffleHost = () => {
-        const playerIds = players.map(player => player.id)
-        if (playerIds.length <= 1) return
-
-        // Mock-only: real multiplayer host rotation must be server-authoritative.
-        setCurrentHostId(currentHost => {
-            const currentIndex = playerIds.findIndex(playerId => playerId === currentHost)
-            return playerIds[(currentIndex + 1) % playerIds.length]
-        })
-    }
-
     return (
         <>
             <JoinRoomModal
                 isOpen={joinModalOpen}
-                onClose={() => setJoinModalOpen(false)}
+                onClose={() => {
+                    clearError()
+                    setJoinModalOpen(false)
+                }}
                 onJoin={joinRoom}
+                isLoading={multiplayerBusy}
+                error={multiplayerError}
                 palette={palette}
             />
 
@@ -207,19 +214,27 @@ export default function MultiplayerPage() {
                 <LibraryPageToolbar reserveActionsSlot />
 
                 <PageContentTransition className="flex min-h-0 flex-1 flex-col">
-                    {roomState === "landing" ? (
-                        <MultiplayerLanding onCreate={createRoom} onJoin={() => setJoinModalOpen(true)} palette={palette} />
+                    {!room ? (
+                        <MultiplayerLanding
+                            onCreate={createRoom}
+                            onJoin={() => {
+                                clearError()
+                                setJoinModalOpen(true)
+                            }}
+                            isBusy={multiplayerBusy}
+                            error={multiplayerError}
+                            palette={palette}
+                        />
                     ) : (
                         <MultiplayerLobby
-                            roomCode={roomCode}
+                            roomCode={room.code}
+                            maxPlayers={room.maxPlayers}
                             decks={decks}
                             selectedDeck={selectedDeck}
                             readyConfig={readyConfig}
-                            roomOwnerId={roomOwnerId}
                             currentHostId={currentHostId}
                             isLocalHost={isLocalHost}
                             players={players}
-                            onShuffleHost={shuffleHost}
                             onDeckSelect={openDeckSetup}
                             palette={palette}
                         />
@@ -227,12 +242,12 @@ export default function MultiplayerPage() {
                 </PageContentTransition>
             </AppPageShell>
 
-            {roomState === "lobby" && (
+            {room && (
                 <aside className="fixed right-9 top-[calc(50%+0.75rem)] z-30 hidden w-80 -translate-y-1/2 xl:block 2xl:w-[21rem]">
                     <PlayersPanel
                         players={players}
                         currentHostId={currentHostId}
-                        onShuffleHost={shuffleHost}
+                        maxPlayers={room.maxPlayers}
                         palette={palette}
                     />
                 </aside>
@@ -241,38 +256,51 @@ export default function MultiplayerPage() {
     )
 }
 
-function MultiplayerLanding({ onCreate, onJoin, palette }: {
-    onCreate: () => void
+function MultiplayerLanding({ onCreate, onJoin, isBusy, error, palette }: {
+    onCreate: () => void | Promise<void>
     onJoin: () => void
+    isBusy: boolean
+    error: string | null
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
     return (
         <FadeIn className="flex flex-1 items-center justify-center">
-            <div className="grid w-full max-w-3xl gap-5 sm:grid-cols-2">
-                <LandingAction
-                    title="Create a room"
-                    description="Open a mock lobby and invite friends with a room code."
-                    icon={<Plus size={30} strokeWidth={3} />}
-                    onClick={onCreate}
-                    palette={palette}
-                />
-                <LandingAction
-                    title="Join a room"
-                    description="Enter a room code from a friend to join their mock lobby."
-                    icon={<Send size={28} strokeWidth={2.8} />}
-                    onClick={onJoin}
-                    palette={palette}
-                />
+            <div className="w-full max-w-3xl">
+                <div className="grid gap-5 sm:grid-cols-2">
+                    <LandingAction
+                        title="Create a room"
+                        description="Open a lobby and invite friends with a room code."
+                        icon={<Plus size={30} strokeWidth={3} />}
+                        onClick={onCreate}
+                        disabled={isBusy}
+                        palette={palette}
+                    />
+                    <LandingAction
+                        title="Join a room"
+                        description="Enter a room code from a friend to join their lobby."
+                        icon={<Send size={28} strokeWidth={2.8} />}
+                        onClick={onJoin}
+                        disabled={isBusy}
+                        palette={palette}
+                    />
+                </div>
+
+                {error && (
+                    <p className="mt-5 rounded-2xl border border-red-300/25 bg-red-500/12 px-4 py-3 text-sm font-bold text-red-100">
+                        {error}
+                    </p>
+                )}
             </div>
         </FadeIn>
     )
 }
 
-function LandingAction({ title, description, icon, onClick, palette }: {
+function LandingAction({ title, description, icon, onClick, disabled, palette }: {
     title: string
     description: string
     icon: ReactNode
-    onClick: () => void
+    onClick: () => void | Promise<void>
+    disabled: boolean
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
     const { playHoverSound } = useUISound()
@@ -283,7 +311,8 @@ function LandingAction({ title, description, icon, onClick, palette }: {
                 type="button"
                 onClick={onClick}
                 onMouseEnter={playHoverSound}
-                className="flex h-full min-h-48 w-full flex-col items-start justify-between rounded-[inherit] p-6 text-left"
+                disabled={disabled}
+                className="flex h-full min-h-48 w-full flex-col items-start justify-between rounded-[inherit] p-6 text-left disabled:cursor-not-allowed disabled:opacity-55"
             >
                 <span className={`grid h-14 w-14 place-items-center rounded-2xl ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`}>
                     {icon}
@@ -297,16 +326,15 @@ function LandingAction({ title, description, icon, onClick, palette }: {
     )
 }
 
-function MultiplayerLobby({ roomCode, decks, selectedDeck, readyConfig, currentHostId, isLocalHost, players, onShuffleHost, onDeckSelect, palette }: {
+function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConfig, currentHostId, isLocalHost, players, onDeckSelect, palette }: {
     roomCode: string
+    maxPlayers: number
     decks: Deck[]
     selectedDeck: Deck | null
     readyConfig: ReadyConfig | null
-    roomOwnerId: string | null
     currentHostId: string | null
     isLocalHost: boolean
-    players: MockPlayer[]
-    onShuffleHost: () => void
+    players: LobbyPlayer[]
     onDeckSelect: (deck: Deck) => void
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
@@ -359,7 +387,7 @@ function MultiplayerLobby({ roomCode, decks, selectedDeck, readyConfig, currentH
             </section>
 
             <aside className="mt-8 w-full xl:hidden">
-                <PlayersPanel players={players} currentHostId={currentHostId} onShuffleHost={onShuffleHost} palette={palette} />
+                <PlayersPanel players={players} currentHostId={currentHostId} maxPlayers={maxPlayers} palette={palette} />
             </aside>
         </FadeIn>
     )
@@ -453,18 +481,16 @@ function LobbyFlag({ flagUrl, label, learning }: { flagUrl?: string; label: stri
     )
 }
 
-function PlayersPanel({ players, currentHostId, onShuffleHost, palette }: {
-    players: MockPlayer[]
+function PlayersPanel({ players, currentHostId, maxPlayers, palette }: {
+    players: LobbyPlayer[]
     currentHostId: string | null
-    onShuffleHost: () => void
+    maxPlayers: number
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
     return (
         <div className={`h-fit w-full rounded-[2rem] border ${palette.border} ${palette.card} p-5 shadow-2xl backdrop-blur-xl`}>
             <div className="flex items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-2xl font-black text-white">Players {players.length}/4</h2>
-                </div>
+                <h2 className="text-2xl font-black text-white">Players {players.length}/{maxPlayers}</h2>
                 <UsersRound size={26} strokeWidth={2.5} className="text-white/50" />
             </div>
 
@@ -473,20 +499,12 @@ function PlayersPanel({ players, currentHostId, onShuffleHost, palette }: {
                     <PlayerRow key={player.id} player={player} isCurrentHost={player.id === currentHostId} palette={palette} />
                 ))}
             </div>
-
-            <button
-                type="button"
-                onClick={onShuffleHost}
-                className="mt-5 w-full rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-white/55 transition hover:bg-white/[0.09] hover:text-white"
-            >
-                Shuffle host
-            </button>
         </div>
     )
 }
 
 function PlayerRow({ player, isCurrentHost, palette }: {
-    player: MockPlayer
+    player: LobbyPlayer
     isCurrentHost: boolean
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
