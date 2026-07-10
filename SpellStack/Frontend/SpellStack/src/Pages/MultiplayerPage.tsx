@@ -17,7 +17,7 @@ import PageContentTransition from "../components/PageContentTransition"
 import ProfileImage from "../components/ProfileImage"
 import { countries, languages } from "../data/languages"
 import type { MultiplayerPlayer } from "../multiplayer/multiplayerTypes"
-import { roomNoLongerExistsMessage } from "../multiplayer/multiplayerConnection"
+import { connectionLostMessage, roomNoLongerExistsMessage, type MultiplayerConnectionStatus } from "../multiplayer/multiplayerConnection"
 import { useMultiplayerRoom } from "../multiplayer/useMultiplayerRoom"
 import { useTheme } from "../theme/ThemeContext"
 import { resolveAssetUrl } from "../utils/assetUrl"
@@ -54,6 +54,12 @@ function getCountryFlag(code?: string) {
     return countries.find(country => country.code === code)?.flagUrl
 }
 
+function getMultiplayerStatusMessage(status: MultiplayerConnectionStatus) {
+    if (status === "connecting") return "Connecting..."
+    if (status === "reconnecting") return "Reconnecting..."
+    return null
+}
+
 export default function MultiplayerPage() {
     const navigate = useNavigate()
     const location = useLocation()
@@ -68,6 +74,7 @@ export default function MultiplayerPage() {
     const [readyConfig, setReadyConfig] = useState<ReadyConfig | null>(null)
     const {
         room,
+        status: multiplayerStatus,
         error: multiplayerError,
         isBusy: multiplayerBusy,
         createRoom: createMultiplayerRoom,
@@ -111,7 +118,8 @@ export default function MultiplayerPage() {
     }, [authLoading, joinMultiplayerRoom, location.search, room?.code, user])
 
     useEffect(() => {
-        if (room || multiplayerError !== roomNoLongerExistsMessage || !new URLSearchParams(location.search).get("room")) return
+        const shouldClearStaleRoom = multiplayerError === roomNoLongerExistsMessage || multiplayerError === connectionLostMessage
+        if (room || !shouldClearStaleRoom || !new URLSearchParams(location.search).get("room")) return
 
         navigate("/multiplayer", { replace: true })
         attemptedJoinRoomRef.current = null
@@ -240,6 +248,7 @@ export default function MultiplayerPage() {
                                 setJoinModalOpen(true)
                             }}
                             isBusy={multiplayerBusy}
+                            status={multiplayerStatus}
                             error={multiplayerError}
                             palette={palette}
                         />
@@ -255,6 +264,9 @@ export default function MultiplayerPage() {
                             players={players}
                             onLeaveRoom={handleLeaveRoom}
                             onDeckSelect={openDeckSetup}
+                            connectionStatus={multiplayerStatus}
+                            connectionError={multiplayerError}
+                            networkBusy={multiplayerBusy}
                             palette={palette}
                         />
                     )}
@@ -275,13 +287,16 @@ export default function MultiplayerPage() {
     )
 }
 
-function MultiplayerLanding({ onCreate, onJoin, isBusy, error, palette }: {
+function MultiplayerLanding({ onCreate, onJoin, isBusy, status, error, palette }: {
     onCreate: () => void | Promise<void>
     onJoin: () => void
     isBusy: boolean
+    status: MultiplayerConnectionStatus
     error: string | null
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
+    const statusMessage = error ? null : getMultiplayerStatusMessage(status)
+
     return (
         <FadeIn className="flex flex-1 items-center justify-center">
             <div className="w-full max-w-3xl">
@@ -304,9 +319,9 @@ function MultiplayerLanding({ onCreate, onJoin, isBusy, error, palette }: {
                     />
                 </div>
 
-                {error && (
-                    <p className="mt-5 rounded-2xl border border-red-300/25 bg-red-500/12 px-4 py-3 text-sm font-bold text-red-100">
-                        {error}
+                {(error || statusMessage) && (
+                    <p className={`mt-5 rounded-2xl border px-4 py-3 text-sm font-bold ${error ? "border-red-300/25 bg-red-500/12 text-red-100" : "border-white/10 bg-white/[0.06] text-white/70"}`}>
+                        {error ?? statusMessage}
                     </p>
                 )}
             </div>
@@ -345,7 +360,7 @@ function LandingAction({ title, description, icon, onClick, disabled, palette }:
     )
 }
 
-function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConfig, currentHostId, isLocalHost, players, onLeaveRoom, onDeckSelect, palette }: {
+function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConfig, currentHostId, isLocalHost, players, onLeaveRoom, onDeckSelect, connectionStatus, connectionError, networkBusy, palette }: {
     roomCode: string
     maxPlayers: number
     decks: Deck[]
@@ -356,9 +371,13 @@ function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConf
     players: LobbyPlayer[]
     onLeaveRoom: () => void | Promise<void>
     onDeckSelect: (deck: Deck) => void
+    connectionStatus: MultiplayerConnectionStatus
+    connectionError: string | null
+    networkBusy: boolean
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
     const currentHost = players.find(player => player.id === currentHostId)
+    const statusMessage = connectionError ?? getMultiplayerStatusMessage(connectionStatus)
 
     return (
         <FadeIn className="relative flex min-h-0 flex-1 flex-col gap-8">
@@ -374,11 +393,17 @@ function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConf
                     <button
                         type="button"
                         onClick={onLeaveRoom}
-                        className="rounded-full border border-white/12 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-white/60 transition hover:bg-white/[0.1] hover:text-white"
+                        disabled={networkBusy}
+                        className="rounded-full border border-white/12 bg-white/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-white/60 transition hover:bg-white/[0.1] hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
                     >
                         Leave room
                     </button>
                 </div>
+                {statusMessage && (
+                    <p className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-bold ${connectionError ? "border-red-300/25 bg-red-500/12 text-red-100" : "border-white/10 bg-white/[0.06] text-white/70"}`}>
+                        {statusMessage}
+                    </p>
+                )}
             </header>
 
             <section className="min-w-0 self-start">
