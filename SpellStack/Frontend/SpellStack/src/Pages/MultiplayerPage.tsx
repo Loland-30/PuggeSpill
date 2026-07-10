@@ -17,7 +17,7 @@ import PageContentTransition from "../components/PageContentTransition"
 import ProfileImage from "../components/ProfileImage"
 import { countries, languages } from "../data/languages"
 import type { MultiplayerPlayer } from "../multiplayer/multiplayerTypes"
-import { connectionLostMessage, roomNoLongerExistsMessage, type MultiplayerConnectionStatus } from "../multiplayer/multiplayerConnection"
+import { type MultiplayerConnectionStatus } from "../multiplayer/multiplayerConnection"
 import { useMultiplayerRoom } from "../multiplayer/useMultiplayerRoom"
 import { useTheme } from "../theme/ThemeContext"
 import { resolveAssetUrl } from "../utils/assetUrl"
@@ -77,6 +77,7 @@ export default function MultiplayerPage() {
         status: multiplayerStatus,
         error: multiplayerError,
         isBusy: multiplayerBusy,
+        roomSessionInvalidationId,
         createRoom: createMultiplayerRoom,
         joinRoom: joinMultiplayerRoom,
         leaveRoom: leaveMultiplayerRoom,
@@ -118,12 +119,11 @@ export default function MultiplayerPage() {
     }, [authLoading, joinMultiplayerRoom, location.search, room?.code, user])
 
     useEffect(() => {
-        const shouldClearStaleRoom = multiplayerError === roomNoLongerExistsMessage || multiplayerError === connectionLostMessage
-        if (room || !shouldClearStaleRoom || !new URLSearchParams(location.search).get("room")) return
+        if (roomSessionInvalidationId === 0 || !new URLSearchParams(location.search).get("room")) return
 
         navigate("/multiplayer", { replace: true })
         attemptedJoinRoomRef.current = null
-    }, [location.search, multiplayerError, navigate, room])
+    }, [location.search, navigate, roomSessionInvalidationId])
 
     useEffect(() => {
         if (!room) return

@@ -31,6 +31,7 @@ export function useMultiplayerRoom() {
     const [connectionStatus, setConnectionStatus] = useState<MultiplayerConnectionStatus>(getMultiplayerConnectionStatus())
     const [error, setError] = useState<string | null>(null)
     const [requestBusy, setRequestBusy] = useState(false)
+    const [roomSessionInvalidationId, setRoomSessionInvalidationId] = useState(0)
 
     useEffect(() => subscribeToMultiplayerConnectionStatus(setConnectionStatus), [])
 
@@ -43,23 +44,18 @@ export function useMultiplayerRoom() {
             setError(null)
         }
 
-        const handleRejoinFailed = (message: string) => {
+        const invalidateActiveRoomSession = (message: string) => {
             setActiveMultiplayerRoomCode(null)
             setRoom(null)
             setError(message)
-        }
-
-        const handleConnectionClosed = (message: string) => {
-            setActiveMultiplayerRoomCode(null)
-            setRoom(null)
-            setError(message)
+            setRoomSessionInvalidationId(id => id + 1)
         }
 
         connection.on("RoomUpdated", handleRoomUpdated)
         setMultiplayerReconnectHandlers({
             onRoomRejoined: handleRoomUpdated,
-            onRejoinFailed: handleRejoinFailed,
-            onConnectionClosed: handleConnectionClosed
+            onRejoinFailed: invalidateActiveRoomSession,
+            onConnectionClosed: invalidateActiveRoomSession
         })
 
         return () => {
@@ -125,6 +121,7 @@ export function useMultiplayerRoom() {
         status: connectionStatus,
         error,
         isBusy: requestBusy || isConnectionBusy,
+        roomSessionInvalidationId,
         createRoom,
         joinRoom,
         leaveRoom,
