@@ -67,6 +67,7 @@ export default function MultiplayerPage() {
     const { palette, theme } = useTheme()
     const readySoundRef = useRef<HTMLAudioElement | null>(null)
     const attemptedJoinRoomRef = useRef<string | null>(null)
+    const handledInvalidationIdRef = useRef(0)
     const [decks, setDecks] = useState<Deck[]>([])
     const [joinModalOpen, setJoinModalOpen] = useState(false)
     const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null)
@@ -115,14 +116,23 @@ export default function MultiplayerPage() {
         if (!roomFromUrl || room?.code === roomFromUrl || attemptedJoinRoomRef.current === roomFromUrl) return
 
         attemptedJoinRoomRef.current = roomFromUrl
-        joinMultiplayerRoom(roomFromUrl).catch(() => undefined)
-    }, [authLoading, joinMultiplayerRoom, location.search, room?.code, user])
+        joinMultiplayerRoom(roomFromUrl).catch(() => {
+            if (room) return
+
+            attemptedJoinRoomRef.current = null
+            navigate("/multiplayer", { replace: true })
+        })
+    }, [authLoading, joinMultiplayerRoom, location.search, navigate, room, room?.code, user])
 
     useEffect(() => {
-        if (roomSessionInvalidationId === 0 || !new URLSearchParams(location.search).get("room")) return
+        if (roomSessionInvalidationId === 0 || handledInvalidationIdRef.current === roomSessionInvalidationId) return
 
-        navigate("/multiplayer", { replace: true })
+        handledInvalidationIdRef.current = roomSessionInvalidationId
         attemptedJoinRoomRef.current = null
+
+        if (new URLSearchParams(location.search).get("room")) {
+            navigate("/multiplayer", { replace: true })
+        }
     }, [location.search, navigate, roomSessionInvalidationId])
 
     useEffect(() => {
