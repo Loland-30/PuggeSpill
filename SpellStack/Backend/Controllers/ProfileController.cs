@@ -113,7 +113,13 @@ namespace SpellStack.Api.Controllers {
 
             user.Username = username;
             user.Email = email;
-            user.Country = NormalizeCountry(request.Country);
+            if (request.Country != null) {
+                if (!CountryCodes.TryNormalize(request.Country, out var country)) {
+                    return BadRequest("Select a valid country.");
+                }
+
+                user.Country = country;
+            }
             await _context.SaveChangesAsync();
 
             return Ok(ToUserResponse(user));
@@ -274,10 +280,6 @@ namespace SpellStack.Api.Controllers {
             );
         }
 
-        private static string NormalizeCountry(string? country) {
-            var normalized = country?.Trim().ToUpperInvariant();
-            return normalized is { Length: 2 } && normalized.All(char.IsLetter) ? normalized : "NO";
-        }
     }
 
     public record ProfileSummaryResponse(int RunsPlayed, int LongestStreak, int WordsLearned);

@@ -62,10 +62,12 @@ export default function SettingsPage() {
         t,
         appLanguage,
         manualAppLanguage,
+        useRegionLanguage,
         setManualAppLanguage,
+        setUseRegionLanguage,
     } = useI18n()
     const [activeTab, setActiveTab] = useState<SectionId>("account")
-    const [accountCountry, setAccountCountry] = useState(() => user?.country ?? "NO")
+    const [accountCountry, setAccountCountry] = useState(() => user?.country ?? "")
     const [savedMessage, setSavedMessage] = useState("")
     const [saveError, setSaveError] = useState("")
     const [isSavingAccount, setIsSavingAccount] = useState(false)
@@ -95,6 +97,7 @@ export default function SettingsPage() {
     })
 
     const copy = t.settings
+    const selectedAppLanguage = appLanguages.find(language => language.code === appLanguage) ?? appLanguages[0]
     const countryOptions: SettingsSelectOption[] = countries
         .map(country => ({
             value: country.code,
@@ -161,6 +164,12 @@ export default function SettingsPage() {
         void persistAccount(value)
     }
 
+    const updateUseRegionLanguage = (value: boolean) => {
+        setSavedMessage("")
+        setSaveError("")
+        setUseRegionLanguage(value)
+    }
+
     const updateLargerText = (value: boolean) => {
         setGlobalLargerText(value)
         updateSetting("largerText", value)
@@ -192,7 +201,7 @@ export default function SettingsPage() {
                 username: updatedUser.username,
                 email: updatedUser.email
             }))
-            setAccountCountry(updatedUser.country)
+            setAccountCountry(updatedUser.country ?? country)
 
             setSavedMessage(copy.savedMessage)
         } catch (error) {
@@ -303,14 +312,28 @@ export default function SettingsPage() {
                                     />
                                 </SettingRow>
 
-                                <SettingRow label={copy.account.appLanguage} description={copy.account.appLanguageDescription}>
-                                    <SettingsSelect
-                                        value={manualAppLanguage}
-                                        onChange={updateManualAppLanguage}
-                                        options={appLanguageOptions}
-                                        palette={palette}
-                                        label={copy.account.appLanguage}
-                                    />
+                                <SettingRow label={copy.account.useRegionLanguage} description={copy.account.useRegionLanguageDescription}>
+                                    <SettingsToggle checked={useRegionLanguage} onChange={updateUseRegionLanguage} palette={palette} label={copy.account.useRegionLanguage} />
+                                </SettingRow>
+
+                                <SettingRow label={copy.account.appLanguage} description={useRegionLanguage ? copy.account.appLanguageControlledDescription : copy.account.appLanguageDescription}>
+                                    {useRegionLanguage ? (
+                                        <div className={`flex min-w-64 items-center gap-3 rounded-2xl border ${palette.border} bg-slate-950/80 px-4 py-3 text-white shadow-xl backdrop-blur`}>
+                                            <img src={selectedAppLanguage.flagUrl} alt="" className="h-6 w-9 rounded-md object-cover" />
+                                            <div>
+                                                <p className="text-sm font-black">{selectedAppLanguage.label}</p>
+                                                <p className="text-xs font-semibold text-white/48">{copy.account.appLanguageControlledSummary}</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <SettingsSelect
+                                            value={manualAppLanguage}
+                                            onChange={updateManualAppLanguage}
+                                            options={appLanguageOptions}
+                                            palette={palette}
+                                            label={copy.account.appLanguage}
+                                        />
+                                    )}
                                 </SettingRow>
                             </SettingsSection>
                             </div>

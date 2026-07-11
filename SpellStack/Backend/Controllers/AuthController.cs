@@ -26,7 +26,9 @@ namespace SpellStack.Api.Controllers {
         public async Task<IActionResult> Register([FromBody] RegisterRequest request) {
             var email = request.Email.Trim().ToLowerInvariant();
             var username = request.Username.Trim();
-            var country = NormalizeCountry(request.Country);
+            if (!CountryCodes.TryNormalize(request.Country, out var country)) {
+                return BadRequest("Select a valid country.");
+            }
 
             if (username.Length < 2) return BadRequest("Username er for kort");
             if (request.Password.Length < 6) return BadRequest("Passord må være minst 6 tegn");
@@ -230,10 +232,6 @@ namespace SpellStack.Api.Controllers {
             );
         }
 
-        private static string NormalizeCountry(string? country) {
-            var normalized = country?.Trim().ToUpperInvariant();
-            return normalized is { Length: 2 } && normalized.All(char.IsLetter) ? normalized : "NO";
-        }
     }
 
     public record RegisterRequest(string Username, string Email, string Password, string? FavoriteLanguage, string? Country);
@@ -246,7 +244,7 @@ namespace SpellStack.Api.Controllers {
         string Username,
         string Email,
         string FavoriteLanguage,
-        string Country,
+        string? Country,
         DateTime CreatedAt,
         string? ProfileImageUrl,
         string? CustomLoginSplashSoundUrl,

@@ -16,8 +16,6 @@ import { getAppLanguageLocale } from "../i18n/localeMap"
 import { useTheme } from "../theme/ThemeContext"
 
 const profilePages = ["Profile", "Performance", "Achievements"] as const
-const PROFILE_REGION_STORAGE_KEY = "spellstack_profile_region"
-
 type ProfileNavigationState = {
     openedFrom?: "navbar" | "multiplayer-players-panel"
     returnTo?: string
@@ -148,8 +146,8 @@ export default function ProfileContainer() {
 
     const currentLanguage = profileLanguages.find(language => language.code === selectedLanguageCode) ?? profileLanguages[0]
     const createdAt = new Intl.DateTimeFormat(locale).format(new Date(user.createdAt))
-    const profileRegionCode = user.country ?? localStorage.getItem(PROFILE_REGION_STORAGE_KEY) ?? "NO"
-    const profileRegion = getCountryFromValue(profileRegionCode)
+    const profileRegionCode = user.country
+    const profileRegion = profileRegionCode ? getCountryFromValue(profileRegionCode) : undefined
     const favoriteLanguageFlag = profileRegion?.flagUrl
 
     const handleProfileImageUpload = async (file: File | undefined) => {
@@ -201,7 +199,7 @@ export default function ProfileContainer() {
         profileImage,
         createdAt,
         favoriteLanguageFlag,
-        profileRegionLabel: getCountryName(profileRegionCode),
+        profileRegionLabel: profileRegionCode ? getCountryName(profileRegionCode, locale) : undefined,
         profileLanguages,
         currentLanguage,
         onSelectLanguage: setSelectedLanguageCode,

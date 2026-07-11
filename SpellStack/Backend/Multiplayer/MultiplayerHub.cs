@@ -73,12 +73,13 @@ namespace SpellStack.Api.Multiplayer {
             var userId = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
             var username = Context.User?.FindFirstValue(ClaimTypes.Name);
             var profileImageUrl = Context.User?.FindFirstValue("profileImageUrl");
+            var countryCode = Context.User?.FindFirstValue("countryCode");
 
             if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(username)) {
                 throw new HubException("You must be signed in to use multiplayer.");
             }
 
-            return new MultiplayerUser(userId, username, profileImageUrl);
+            return new MultiplayerUser(userId, username, profileImageUrl, countryCode);
         }
     }
 }

@@ -7,7 +7,7 @@ export interface AuthUser {
     username: string
     email: string
     favoriteLanguage: string
-    country: string
+    country: string | null
     createdAt: string
     profileImageUrl?: string | null
     customLoginSplashSoundUrl?: string | null

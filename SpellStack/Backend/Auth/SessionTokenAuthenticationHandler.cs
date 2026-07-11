@@ -52,6 +52,10 @@ namespace SpellStack.Api.Auth {
                 claims.Add(new Claim("profileImageUrl", session.User.ProfileImageUrl));
             }
 
+            if (!string.IsNullOrWhiteSpace(session.User.Country)) {
+                claims.Add(new Claim("countryCode", session.User.Country));
+            }
+
             var identity = new ClaimsIdentity(claims, Scheme.Name);
             var principal = new ClaimsPrincipal(identity);
             return AuthenticateResult.Success(new AuthenticationTicket(principal, Scheme.Name));

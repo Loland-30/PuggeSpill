@@ -2,6 +2,7 @@
     userId: string
     username: string
     profileImageUrl: string | null
+    countryCode: string | null
     isOwner: boolean
 }
 

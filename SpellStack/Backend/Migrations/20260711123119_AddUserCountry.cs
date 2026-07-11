@@ -14,8 +14,7 @@ namespace SpellStack.Api.Migrations
                 name: "Country",
                 table: "Users",
                 type: "text",
-                nullable: false,
-                defaultValue: "NO");
+                nullable: true);
         }
 
         /// <inheritdoc />

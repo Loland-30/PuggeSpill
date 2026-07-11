@@ -2,12 +2,13 @@
 using System.Text.RegularExpressions;
 
 namespace SpellStack.Api.Multiplayer {
-    public record MultiplayerUser(string UserId, string Username, string? ProfileImageUrl);
+    public record MultiplayerUser(string UserId, string Username, string? ProfileImageUrl, string? CountryCode);
 
     public record MultiplayerPlayerDto(
         string UserId,
         string Username,
         string? ProfileImageUrl,
+        string? CountryCode,
         bool IsOwner);
 
     public record MultiplayerRoomDto(
@@ -70,6 +71,7 @@ namespace SpellStack.Api.Multiplayer {
 
                     existingPlayer.Username = user.Username;
                     existingPlayer.ProfileImageUrl = user.ProfileImageUrl;
+                    existingPlayer.CountryCode = user.CountryCode;
                     existingPlayer.ConnectionId = connectionId;
                 }
                 else {
@@ -186,6 +188,7 @@ namespace SpellStack.Api.Multiplayer {
                     player.UserId,
                     player.Username,
                     player.ProfileImageUrl,
+                    player.CountryCode,
                     player.UserId == room.OwnerUserId))
                 .ToList();
 
@@ -207,6 +210,7 @@ namespace SpellStack.Api.Multiplayer {
             public string UserId { get; init; } = "";
             public string Username { get; set; } = "";
             public string? ProfileImageUrl { get; set; }
+            public string? CountryCode { get; set; }
             public string ConnectionId { get; set; } = "";
             public DateTime JoinedAt { get; init; }
 
@@ -215,6 +219,7 @@ namespace SpellStack.Api.Multiplayer {
                     UserId = user.UserId,
                     Username = user.Username,
                     ProfileImageUrl = user.ProfileImageUrl,
+                    CountryCode = user.CountryCode,
                     ConnectionId = connectionId,
                     JoinedAt = DateTime.UtcNow
                 };

@@ -15,8 +15,9 @@ import JoinRoomModal from "../components/multiplayer/JoinRoomModal"
 import LibraryPageToolbar from "../components/navigation/LibraryPageToolbar"
 import PageContentTransition from "../components/PageContentTransition"
 import ProfileImage from "../components/ProfileImage"
-import { countries } from "../data/countries"
+import { countries, getCountryName } from "../data/countries"
 import { languages } from "../data/languages"
+import { useI18n } from "../i18n/I18nContext"
 import type { MultiplayerPlayer } from "../multiplayer/multiplayerTypes"
 import { type MultiplayerConnectionStatus } from "../multiplayer/multiplayerConnection"
 import { useMultiplayerRoom } from "../multiplayer/useMultiplayerRoom"
@@ -29,7 +30,7 @@ type LobbyPlayer = MultiplayerPlayer & {
     id: string
     name: string
     ready?: boolean
-    countryCode?: string
+    countryCode?: string | null
     profileImage?: string | null
     profilePath?: string
 }
@@ -50,7 +51,7 @@ function getLanguage(code: string) {
     return languages.find(language => language.code === code)
 }
 
-function getCountryFlag(code?: string) {
+function getCountryFlag(code?: string | null) {
     if (!code) return undefined
     return countries.find(country => country.code === code.toUpperCase())?.flagUrl
 }
@@ -578,7 +579,9 @@ function PlayerRow({ player, isCurrentHost, palette }: {
     const navigate = useNavigate()
     const location = useLocation()
     const { playHoverSound } = useUISound()
+    const { appLanguage } = useI18n()
     const flagUrl = getCountryFlag(player.countryCode)
+    const countryName = player.countryCode ? getCountryName(player.countryCode, appLanguage) : null
     const canOpenProfile = Boolean(player.profilePath)
     const rowClassName = `flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
         player.ready
@@ -611,7 +614,7 @@ function PlayerRow({ player, isCurrentHost, palette }: {
                 </p>
             </div>
 
-            {flagUrl && <img src={flagUrl} alt="" className="h-5 w-8 rounded-sm object-cover shadow-lg" />}
+            {flagUrl && <img src={flagUrl} alt={countryName ?? ""} title={countryName ?? undefined} className="h-5 w-8 rounded-sm object-cover shadow-lg" />}
         </>
     )
 
