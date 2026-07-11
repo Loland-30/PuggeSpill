@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type WheelEvent } from "react"
 import { motion } from "framer-motion"
-import { useNavigate, useParams } from "react-router-dom"
+import { X } from "lucide-react"
+import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { getLanguageStats, type LanguageStats } from "../api/auth"
 import AppPageShell from "../components/layout/AppPageShell"
 import { useAuth } from "../auth/AuthContext"
@@ -16,6 +17,12 @@ import { useTheme } from "../theme/ThemeContext"
 
 const profilePages = ["Profile", "Performance", "Achievements"] as const
 const PROFILE_REGION_STORAGE_KEY = "spellstack_profile_region"
+
+type ProfileNavigationState = {
+    openedFrom?: "navbar" | "multiplayer-players-panel"
+    returnTo?: string
+    profileMode?: "full" | "preview"
+}
 
 function getCountryFromValue(value: string) {
     const normalized = normalizeCountryCode(value)
@@ -38,6 +45,7 @@ function getLanguageFromCode(code: string, locale: string) {
 
 export default function ProfileContainer() {
     const navigate = useNavigate()
+    const location = useLocation()
     const { userId } = useParams()
     const { user, loading, profileImage, setProfileImage } = useAuth()
     const { palette } = useTheme()
@@ -57,6 +65,28 @@ export default function ProfileContainer() {
 
     const isOwnProfile = !userId || (user ? userId === String(user.id) : false)
     const isPublicProfile = Boolean(userId && !isOwnProfile)
+    const navigationState = location.state as ProfileNavigationState | null
+    const openedFromPlayersPanel = navigationState?.openedFrom === "multiplayer-players-panel"
+
+    const closeProfile = () => {
+        if (navigationState?.returnTo) {
+            navigate(navigationState.returnTo, { replace: true })
+            return
+        }
+
+        navigate(-1)
+    }
+
+    const multiplayerCloseButton = openedFromPlayersPanel ? (
+        <button
+            type="button"
+            onClick={closeProfile}
+            aria-label="Close profile"
+            className={`fixed right-8 top-8 z-40 grid h-11 w-11 place-items-center rounded-full border ${palette.border} ${palette.card} text-white/80 shadow-2xl transition hover:-translate-y-0.5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70`}
+        >
+            <X size={20} strokeWidth={2.5} aria-hidden="true" />
+        </button>
+    ) : null
 
     useEffect(() => {
         if (user && isOwnProfile) getLanguageStats().then(setLanguageStats)
@@ -94,6 +124,8 @@ export default function ProfileContainer() {
 
     if (isPublicProfile) {
         return (
+            <>
+            {multiplayerCloseButton}
             <AppPageShell contentClassName="max-w-4xl">
                 <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
                     <section className={`rounded-[2rem] border ${palette.border} ${palette.card} p-8 text-center shadow-2xl backdrop-blur-xl`}>
@@ -110,6 +142,7 @@ export default function ProfileContainer() {
                     </section>
                 </div>
             </AppPageShell>
+            </>
         )
     }
 
@@ -178,6 +211,8 @@ export default function ProfileContainer() {
     }
 
     return (
+        <>
+        {multiplayerCloseButton}
         <AppPageShell contentClassName="max-w-[102rem]">
             <div
                 onWheel={handleWheel}
@@ -220,6 +255,7 @@ export default function ProfileContainer() {
             </main>
             </div>
         </AppPageShell>
+        </>
     )
 }
 
