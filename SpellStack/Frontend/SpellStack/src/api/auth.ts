@@ -49,6 +49,15 @@ export function authHeaders(): Record<string, string> {
     return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
+export interface PublicProfile {
+    id: number
+    username: string
+    favoriteLanguage: string
+    country: string | null
+    createdAt: string
+    profileImageUrl: string | null
+}
+
 async function fetchAuth(input: RequestInfo | URL, init?: RequestInit) {
     try {
         return await fetch(input, init)
@@ -164,5 +173,13 @@ export async function getLanguageStats(): Promise<LanguageStats[]> {
         headers: authHeaders()
     })
     if (!response.ok) throw new Error("Kunne ikke hente språkstats")
+    return response.json()
+}
+
+export async function getPublicProfile(userId: string): Promise<PublicProfile> {
+    const response = await fetch(`${API_URL}/profile/public/${encodeURIComponent(userId)}`, {
+        headers: authHeaders()
+    })
+    if (!response.ok) throw new Error(await readErrorMessage(response, "Could not load player profile."))
     return response.json()
 }

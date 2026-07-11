@@ -89,6 +89,24 @@ namespace SpellStack.Api.Controllers {
             return Ok(stats);
         }
 
+        [HttpGet("public/{userId:int}")]
+        public async Task<IActionResult> PublicProfile(int userId) {
+            if (await GetCurrentUser() == null) return Unauthorized();
+
+            var profile = await _context.Users
+                .Where(user => user.Id == userId)
+                .Select(user => new PublicProfileResponse(
+                    user.Id,
+                    user.Username,
+                    user.FavoriteLanguage,
+                    user.Country,
+                    user.CreatedAt,
+                    user.ProfileImageUrl))
+                .FirstOrDefaultAsync();
+
+            return profile == null ? NotFound("Profile not found.") : Ok(profile);
+        }
+
         [HttpPut("account")]
         public async Task<IActionResult> UpdateAccount([FromBody] UpdateAccountRequest request) {
             var user = await GetCurrentUser();
@@ -284,6 +302,13 @@ namespace SpellStack.Api.Controllers {
 
     public record ProfileSummaryResponse(int RunsPlayed, int LongestStreak, int WordsLearned);
     public record LanguageStatsResponse(string LanguageCode, int RunsPlayed, int LongestStreak, int WordsLearned);
+    public record PublicProfileResponse(
+        int Id,
+        string Username,
+        string FavoriteLanguage,
+        string? Country,
+        DateTime CreatedAt,
+        string? ProfileImageUrl);
     public record UpdateAccountRequest(string Username, string Email, string? Country);
     public record UpdatePasswordRequest(string CurrentPassword, string NewPassword, string ConfirmPassword);
 }

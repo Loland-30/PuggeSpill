@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type WheelEvent } from "react"
 import { motion } from "framer-motion"
 import { X } from "lucide-react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
-import { getLanguageStats, type LanguageStats } from "../api/auth"
+import { getLanguageStats, getPublicProfile, type LanguageStats, type PublicProfile } from "../api/auth"
 import AppPageShell from "../components/layout/AppPageShell"
 import { useAuth } from "../auth/AuthContext"
 import AchievementsPage from "../components/ProfileComponents/AchievementsPage"
@@ -13,6 +13,8 @@ import { countries, getCountryName, normalizeCountryCode } from "../data/countri
 import { getLanguageName, languages, normalizeLanguageCode } from "../data/languages"
 import { useI18n } from "../i18n/I18nContext"
 import { getAppLanguageLocale } from "../i18n/localeMap"
+import ProfileImage from "../components/ProfileImage"
+import { resolveAssetUrl } from "../utils/assetUrl"
 import { useTheme } from "../theme/ThemeContext"
 
 const profilePages = ["Profile", "Performance", "Achievements"] as const
@@ -54,6 +56,8 @@ export default function ProfileContainer() {
     const [pageIndex, setPageIndex] = useState(0)
     const [isPageFading, setIsPageFading] = useState(false)
     const [profileImageError, setProfileImageError] = useState("")
+    const [publicProfile, setPublicProfile] = useState<PublicProfile | null>(null)
+    const [publicProfileError, setPublicProfileError] = useState("")
     const wheelLockedRef = useRef(false)
     const pageTransitionTimeoutRef = useRef<number | null>(null)
 
@@ -85,6 +89,24 @@ export default function ProfileContainer() {
             <X size={20} strokeWidth={2.5} aria-hidden="true" />
         </button>
     ) : null
+
+    useEffect(() => {
+        if (!isPublicProfile || !userId) return
+
+        let cancelled = false
+        setPublicProfileError("")
+        getPublicProfile(userId)
+            .then(profile => {
+                if (!cancelled) setPublicProfile(profile)
+            })
+            .catch(error => {
+                if (!cancelled) setPublicProfileError(error instanceof Error ? error.message : "Could not load player profile.")
+            })
+
+        return () => {
+            cancelled = true
+        }
+    }, [isPublicProfile, userId])
 
     useEffect(() => {
         if (user && isOwnProfile) getLanguageStats().then(setLanguageStats)
@@ -121,22 +143,44 @@ export default function ProfileContainer() {
     }
 
     if (isPublicProfile) {
+        const publicCountry = publicProfile?.country ? getCountryFromValue(publicProfile.country) : undefined
+        const publicLanguageCode = normalizeLanguageCode(publicProfile?.favoriteLanguage)
+        const publicLanguageName = publicLanguageCode ? getLanguageName(publicLanguageCode, locale) : null
+
         return (
             <>
             {multiplayerCloseButton}
             <AppPageShell contentClassName="max-w-4xl">
                 <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-                    <section className={`rounded-[2rem] border ${palette.border} ${palette.card} p-8 text-center shadow-2xl backdrop-blur-xl`}>
-                        <p className={`text-xs font-black uppercase tracking-[0.24em] ${palette.accentText}`}>
-                            Public profile
-                        </p>
-                        <h1 className="mt-3 text-4xl font-black text-white">Player profile preview</h1>
-                        <p className="mx-auto mt-4 max-w-xl text-base font-semibold leading-7 text-white/62">
-                            Public player profiles are wired at the route level now, but the backend endpoint for reading another user's profile is not implemented yet.
-                        </p>
-                        <p className="mt-5 text-sm font-bold text-white/42">
-                            Requested user id: {userId}
-                        </p>
+                    <section className={`w-full rounded-[2rem] border ${palette.border} ${palette.card} p-8 text-center shadow-2xl backdrop-blur-xl`}>
+                        {publicProfile ? (
+                            <div className="flex flex-col items-center">
+                                <div className={`relative grid h-28 w-28 place-items-center overflow-hidden rounded-full ${palette.primaryButton} ${palette.primaryButtonText} text-4xl font-black`}>
+                                    {publicProfile.username.slice(0, 1).toUpperCase()}
+                                    <ProfileImage
+                                        src={resolveAssetUrl(publicProfile.profileImageUrl)}
+                                        alt={`${publicProfile.username} profile`}
+                                        className="absolute inset-0 h-full w-full object-cover"
+                                    />
+                                </div>
+                                <div className="mt-5 flex items-center justify-center gap-3">
+                                    <h1 className="text-4xl font-black text-white">{publicProfile.username}</h1>
+                                    {publicCountry && (
+                                        <img
+                                            src={publicCountry.flagUrl}
+                                            alt={getCountryName(publicProfile.country!, locale)}
+                                            title={getCountryName(publicProfile.country!, locale)}
+                                            className="h-7 w-10 rounded-md object-cover"
+                                        />
+                                    )}
+                                </div>
+                                {publicLanguageName && <p className="mt-3 text-lg font-semibold text-white/70">{publicLanguageName}</p>}
+                            </div>
+                        ) : (
+                            <p className={`text-base font-bold ${publicProfileError ? "text-red-200" : "text-white/60"}`}>
+                                {publicProfileError || "Loading profile..."}
+                            </p>
+                        )}
                     </section>
                 </div>
             </AppPageShell>
