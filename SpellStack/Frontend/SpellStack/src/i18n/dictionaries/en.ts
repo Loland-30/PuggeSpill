@@ -118,6 +118,9 @@
         signUp: "Sign up",
         rememberMe: "Remember me"
     },
+    startup: {
+        fullscreenRecommendation: "For the best experience, use fullscreen (F11)"
+    },
     gameMode: {
         kicker: "SpellStack",
         chooseGameMode: "Choose game mode",

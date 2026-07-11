@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
-import { AnimatePresence, motion } from "framer-motion"
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import { useAuth } from "../../auth/AuthContext"
 import { useTheme } from "../../theme/ThemeContext"
 import { getOverlayOpacity } from "../../theme/themes"
 import { resolveAssetUrl } from "../../utils/assetUrl"
 import { preloadImage } from "../../utils/preloadImage"
 import WelcomeBackSplash from "../auth/WelcomeBackSplash"
+import { useI18n } from "../../i18n/I18nContext"
 
 const startupTipSeenKey = "spellstack_startup_tip_seen"
 const welcomeBackSeenKey = "spellstack_welcome_back_seen"
@@ -36,7 +37,9 @@ function setSessionFlag(key: string) {
 
 export default function AppStartupGate({ children }: AppStartupGateProps) {
     const { user, loading, profileImage } = useAuth()
+    const { t } = useI18n()
     const { theme, isThemeReady, background } = useTheme()
+    const prefersReducedMotion = useReducedMotion()
     const shouldShowStartupTip = useMemo(() => !hasSessionFlag(startupTipSeenKey), [])
     const shouldShowWelcomeBack = Boolean(user?.username) && !hasSessionFlag(welcomeBackSeenKey)
     const activeBackgroundImage = resolveAssetUrl(theme.customBackgroundImage)
@@ -124,18 +127,19 @@ export default function AppStartupGate({ children }: AppStartupGateProps) {
                         customBackgroundImage={activeBackgroundImage}
                         backdropClass={background.backdropClass}
                         overlayOpacity={overlayOpacity}
+                        forceBlack={step === "startup-tip"}
                     >
                         <AnimatePresence mode="wait">
                             {step === "startup-tip" && (
                                 <motion.div
                                     key="startup-tip"
-                                    className="rounded-full border border-white/10 bg-black/55 px-5 py-3 text-center text-base font-semibold text-white/85 shadow-2xl shadow-black/35 backdrop-blur-md sm:text-lg"
-                                    initial={{ opacity: 0, y: 10 }}
+                                    className="max-w-4xl text-center text-2xl font-medium leading-relaxed text-white sm:text-3xl"
+                                    initial={prefersReducedMotion ? false : { opacity: 0 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -8 }}
-                                    transition={{ duration: 0.22, ease: "easeOut" }}
+                                    exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+                                    transition={{ duration: prefersReducedMotion ? 0 : 0.8, ease: "easeOut" }}
                                 >
-                                    For the best experience, use Fullscreen (F11)
+                                    {t.startup.fullscreenRecommendation}
                                 </motion.div>
                             )}
 
@@ -174,13 +178,15 @@ function StartupOverlay({
     useThemeBackground,
     customBackgroundImage,
     backdropClass,
-    overlayOpacity
+    overlayOpacity,
+    forceBlack
 }: {
     children: ReactNode
     useThemeBackground: boolean
     customBackgroundImage: string | null
     backdropClass: string
     overlayOpacity: number
+    forceBlack: boolean
 }) {
     const [backgroundFailed, setBackgroundFailed] = useState(false)
 
@@ -196,7 +202,9 @@ function StartupOverlay({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
         >
-            {useThemeBackground && customBackgroundImage && !backgroundFailed ? (
+            {forceBlack ? (
+                <div className="absolute inset-0 bg-black" />
+            ) : useThemeBackground && customBackgroundImage && !backgroundFailed ? (
                 <img
                     src={customBackgroundImage}
                     alt=""
@@ -209,7 +217,7 @@ function StartupOverlay({
                 <div className={`absolute inset-0 ${useThemeBackground ? backdropClass : "bg-[radial-gradient(circle_at_50%_78%,rgba(139,92,246,0.24),transparent_34%),radial-gradient(circle_at_18%_86%,rgba(14,165,233,0.18),transparent_30%),linear-gradient(180deg,#020617_0%,#050816_50%,#071426_100%)]"}`} />
             )}
             {useThemeBackground && <div className="absolute inset-0 bg-black" style={{ opacity: overlayOpacity }} />}
-            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-cyan-950/30 to-transparent" />
+            {!forceBlack && <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-cyan-950/30 to-transparent" />}
             <div className="relative z-10">{children}</div>
         </motion.div>
     )

@@ -120,6 +120,9 @@ export const ja = {
         signUp: "登録",
         rememberMe: "ログイン状態を保持"
     },
+    startup: {
+        fullscreenRecommendation: "最高の体験のため、全画面表示（F11）をご利用ください"
+    },
     gameMode: {
         kicker: "SpellStack",
         chooseGameMode: "ゲームモードを選択",

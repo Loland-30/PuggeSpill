@@ -120,6 +120,9 @@ export const no = {
         signUp: "Registrer deg",
         rememberMe: "Husk meg"
     },
+    startup: {
+        fullscreenRecommendation: "For den beste opplevelsen, bruk fullskjerm (F11)"
+    },
     gameMode: {
         kicker: "SpellStack",
         chooseGameMode: "Velg spillmodus",

@@ -120,6 +120,9 @@ export const es = {
         signUp: "Registrarse",
         rememberMe: "Recordarme"
     },
+    startup: {
+        fullscreenRecommendation: "Para disfrutar de la mejor experiencia, usa la pantalla completa (F11)"
+    },
     gameMode: {
         kicker: "SpellStack",
         chooseGameMode: "Elige modo de juego",
