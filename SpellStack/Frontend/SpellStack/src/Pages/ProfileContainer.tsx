@@ -9,7 +9,9 @@ import PerformancePage from "../components/ProfileComponents/PerformancePage"
 import ProfilePage from "../components/ProfileComponents/ProfilePage"
 import type { ProfileLanguage } from "../components/ProfileComponents/types"
 import { countries, getCountryName, normalizeCountryCode } from "../data/countries"
-import { languages } from "../data/languages"
+import { getLanguageName, languages, normalizeLanguageCode } from "../data/languages"
+import { useI18n } from "../i18n/I18nContext"
+import { getAppLanguageLocale } from "../i18n/localeMap"
 import { useTheme } from "../theme/ThemeContext"
 
 const profilePages = ["Profile", "Performance", "Achievements"] as const
@@ -20,20 +22,18 @@ function getCountryFromValue(value: string) {
     return countries.find(country => country.code === normalized)
 }
 function getLanguageFromValue(value: string) {
-    const normalized = value.trim().toLowerCase()
-
-    return languages.find(language =>
-        language.label.toLowerCase() === normalized ||
-        language.code.toLowerCase() === normalized
-    )
+    const normalized = normalizeLanguageCode(value)
+    return languages.find(language => language.code === normalized)
 }
 
-function getLanguageFromCode(code: string) {
-    return getLanguageFromValue(code) ?? {
+function getLanguageFromCode(code: string, locale: string) {
+    const language = getLanguageFromValue(code) ?? {
         code,
         label: code.toUpperCase(),
         flagUrl: ""
     }
+
+    return { ...language, label: getLanguageName(language.code, locale) }
 }
 
 export default function ProfileContainer() {
@@ -41,6 +41,8 @@ export default function ProfileContainer() {
     const { userId } = useParams()
     const { user, loading, profileImage, setProfileImage } = useAuth()
     const { palette } = useTheme()
+    const { appLanguage } = useI18n()
+    const locale = getAppLanguageLocale(appLanguage)
     const [languageStats, setLanguageStats] = useState<LanguageStats[]>([])
     const [selectedLanguageCode, setSelectedLanguageCode] = useState<string | null>(null)
     const [pageIndex, setPageIndex] = useState(0)
@@ -78,13 +80,13 @@ export default function ProfileContainer() {
 
         return stats
             .map(stat => ({
-                ...getLanguageFromCode(stat.languageCode),
+                ...getLanguageFromCode(stat.languageCode, locale),
                 stats: stat
             }))
             .filter((language, index, all) =>
                 all.findIndex(item => item.code === language.code) === index
             )
-    }, [languageStats, user?.favoriteLanguage])
+    }, [languageStats, locale, user?.favoriteLanguage])
 
     if (loading || !user) {
         return <div className="relative z-10 mt-20 text-center text-gray-400">Loading...</div>
@@ -112,7 +114,7 @@ export default function ProfileContainer() {
     }
 
     const currentLanguage = profileLanguages.find(language => language.code === selectedLanguageCode) ?? profileLanguages[0]
-    const createdAt = new Intl.DateTimeFormat("nb-NO").format(new Date(user.createdAt))
+    const createdAt = new Intl.DateTimeFormat(locale).format(new Date(user.createdAt))
     const profileRegionCode = user.country ?? localStorage.getItem(PROFILE_REGION_STORAGE_KEY) ?? "NO"
     const profileRegion = getCountryFromValue(profileRegionCode)
     const favoriteLanguageFlag = profileRegion?.flagUrl

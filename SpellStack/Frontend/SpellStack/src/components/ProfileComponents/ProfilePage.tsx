@@ -2,6 +2,14 @@ import { useTheme } from "../../theme/ThemeContext"
 import GradientFrame from "../GradientFrame"
 import ProfileImage from "../ProfileImage"
 import type { ProfileComponentProps } from "./types"
+import { useI18n } from "../../i18n/I18nContext"
+
+const learningLanguageLabels = {
+    en: "Learning language",
+    no: "Læringsspråk",
+    es: "Idioma de aprendizaje",
+    ja: "学習言語"
+} as const
 
 export default function ProfilePage({
     user,
@@ -16,6 +24,9 @@ export default function ProfilePage({
     onProfileImageRemove,
     profileImageError
 }: ProfileComponentProps) {
+    const { appLanguage } = useI18n()
+    const learningLanguageLabel = learningLanguageLabels[appLanguage]
+
     return (
         <div className="mx-auto flex min-h-[calc(100vh-12rem)] w-full max-w-[102rem] items-center justify-center px-6">
             <div className="w-full max-w-7xl">
@@ -72,7 +83,7 @@ export default function ProfilePage({
                         </div>
 
                         <p className="mt-2 text-2xl text-white/85">
-                            Favorite language: {user.favoriteLanguage}
+                            {learningLanguageLabel}: {currentLanguage.label}
                         </p>
 
                         <p className="mt-4 text-white/70">

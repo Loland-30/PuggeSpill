@@ -51,3 +51,27 @@ export const appLanguages: AppLanguage[] = [
     { code: "es", locale: "es-ES", label: "Espa\u00f1ol", flagUrl: "https://flagcdn.com/w40/es.png" },
     { code: "ja", locale: "ja-JP", label: "\u65e5\u672c\u8a9e", flagUrl: "https://flagcdn.com/w40/jp.png" }
 ]
+
+export function getLanguageName(code: string, locale = "en") {
+    const language = languages.find(option => option.code === code.toLowerCase())
+    if (!language) return code.toUpperCase()
+
+    try {
+        return new Intl.DisplayNames([locale], { type: "language" }).of(language.code) ?? language.label
+    } catch {
+        return language.label
+    }
+}
+
+export function normalizeLanguageCode(value: string | null | undefined) {
+    const normalized = value?.trim().toLowerCase()
+    const directMatch = languages.find(language => language.code === normalized || language.label.toLowerCase() === normalized)
+    if (directMatch) return directMatch.code
+
+    for (const locale of ["en", "nb", "es", "ja"]) {
+        const localizedMatch = languages.find(language => getLanguageName(language.code, locale).toLowerCase() === normalized)
+        if (localizedMatch) return localizedMatch.code
+    }
+
+    return normalized ?? ""
+}

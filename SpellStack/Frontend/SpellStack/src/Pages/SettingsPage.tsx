@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { KeyRound, Save } from "lucide-react"
+import { KeyRound } from "lucide-react"
 
 import { changePassword } from "../api/auth"
 import { useAuth } from "../auth/AuthContext"
@@ -62,17 +62,13 @@ export default function SettingsPage() {
         t,
         appLanguage,
         manualAppLanguage,
-        countryRegion,
-        useRegionLanguage,
         setManualAppLanguage,
-        setCountryRegion,
-        setUseRegionLanguage
     } = useI18n()
     const [activeTab, setActiveTab] = useState<SectionId>("account")
-    const [accountCountry, setAccountCountry] = useState(() => user?.country ?? countryRegion)
+    const [accountCountry, setAccountCountry] = useState(() => user?.country ?? "NO")
     const [savedMessage, setSavedMessage] = useState("")
     const [saveError, setSaveError] = useState("")
-    const [isSaving, setIsSaving] = useState(false)
+    const [isSavingAccount, setIsSavingAccount] = useState(false)
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
     const [settings, setSettings] = useState<SettingsState>(() => {
         const storedGameplay = readGameplaySettings()
@@ -106,7 +102,6 @@ export default function SettingsPage() {
             flagUrl: country.flagUrl
         }))
         .sort((left, right) => left.label.localeCompare(right.label, appLanguage))
-    const selectedAppLanguage = appLanguages.find(language => language.code === appLanguage) ?? appLanguages[0]
     const tabs: SettingsTab[] = [
         { id: "account", label: copy.tabs.account },
         { id: "gameplay", label: copy.tabs.gameplay },
@@ -162,14 +157,8 @@ export default function SettingsPage() {
     const updateCountryRegion = (value: string) => {
         setSavedMessage("")
         setSaveError("")
-        setCountryRegion(value)
         setAccountCountry(value)
-    }
-
-    const updateUseRegionLanguage = (value: boolean) => {
-        setSavedMessage("")
-        setSaveError("")
-        setUseRegionLanguage(value)
+        void persistAccount(value)
     }
 
     const updateLargerText = (value: boolean) => {
@@ -184,11 +173,37 @@ export default function SettingsPage() {
         return message
     }
 
-    const handleSave = async () => {
-        setIsSaving(true)
+    const persistAccount = async (country = accountCountry) => {
+        if (!user || isSavingAccount) return
+
+        const usernameChanged = settings.username.trim() !== user.username
+        const emailChanged = settings.email.trim().toLowerCase() !== user.email.toLowerCase()
+        const countryChanged = country !== user.country
+        if (!usernameChanged && !emailChanged && !countryChanged) return
+
+        setIsSavingAccount(true)
         setSavedMessage("")
         setSaveError("")
 
+        try {
+            const updatedUser = await updateAccountProfile(settings.username, settings.email, country)
+            setSettings(current => ({
+                ...current,
+                username: updatedUser.username,
+                email: updatedUser.email
+            }))
+            setAccountCountry(updatedUser.country)
+
+            setSavedMessage(copy.savedMessage)
+        } catch (error) {
+            const message = error instanceof Error ? error.message : ""
+            setSaveError(message || "Kunne ikke lagre innstillingene")
+        } finally {
+            setIsSavingAccount(false)
+        }
+    }
+
+    useEffect(() => {
         saveGameplaySettings({
             defaultRoundLength: settings.defaultRoundLength,
             defaultGameDirection: settings.defaultGameDirection,
@@ -197,29 +212,14 @@ export default function SettingsPage() {
             rushHourAutoSubmit: settings.rushHourAutoSubmit,
             accentHandling: settings.accentHandling
         })
-
-        try {
-            const usernameChanged = settings.username.trim() !== (user?.username ?? "")
-            const emailChanged = settings.email.trim().toLowerCase() !== (user?.email ?? "").toLowerCase()
-            const countryChanged = accountCountry !== (user?.country ?? "NO")
-
-            if (user && (usernameChanged || emailChanged || countryChanged)) {
-                const updatedUser = await updateAccountProfile(settings.username, settings.email, accountCountry)
-                setSettings(current => ({
-                    ...current,
-                    username: updatedUser.username,
-                    email: updatedUser.email
-                }))
-            }
-
-            setSavedMessage(copy.savedMessage)
-        } catch (error) {
-            const message = error instanceof Error ? error.message : ""
-            setSaveError(message || "Kunne ikke lagre innstillingene")
-        } finally {
-            setIsSaving(false)
-        }
-    }
+    }, [
+        settings.accentHandling,
+        settings.autoFocusAnswerInput,
+        settings.defaultGameDirection,
+        settings.defaultRoundLength,
+        settings.rushHourAutoSubmit,
+        settings.wrongAnswerRevealDuration
+    ])
 
     const inputClassName = `w-full min-w-64 rounded-2xl border ${palette.border} bg-slate-950/90 px-4 py-3 text-sm font-bold text-white placeholder:text-white/35 outline-none backdrop-blur transition focus:ring-2 focus:ring-white/20`
 
@@ -262,6 +262,7 @@ export default function SettingsPage() {
                                     <input
                                         value={settings.username}
                                         onChange={event => updateSetting("username", event.target.value)}
+                                        onBlur={() => void persistAccount()}
                                         className={inputClassName}
                                         placeholder={copy.account.usernamePlaceholder}
                                         autoComplete="username"
@@ -273,6 +274,7 @@ export default function SettingsPage() {
                                         type="email"
                                         value={settings.email}
                                         onChange={event => updateSetting("email", event.target.value)}
+                                        onBlur={() => void persistAccount()}
                                         className={inputClassName}
                                         placeholder={copy.account.emailPlaceholder}
                                         autoComplete="email"
@@ -301,31 +303,14 @@ export default function SettingsPage() {
                                     />
                                 </SettingRow>
 
-                                <SettingRow label={copy.account.useRegionLanguage} description={copy.account.useRegionLanguageDescription}>
-                                    <SettingsToggle checked={useRegionLanguage} onChange={updateUseRegionLanguage} palette={palette} label={copy.account.useRegionLanguage} />
-                                </SettingRow>
-
-                                <SettingRow
-                                    label={copy.account.appLanguage}
-                                    description={useRegionLanguage ? copy.account.appLanguageControlledDescription : copy.account.appLanguageDescription}
-                                >
-                                    {useRegionLanguage ? (
-                                        <div className={`flex min-w-64 items-center gap-3 rounded-2xl border ${palette.border} bg-slate-950/80 px-4 py-3 text-white shadow-xl backdrop-blur`}>
-                                            <img src={selectedAppLanguage.flagUrl} alt="" className="h-6 w-9 rounded-md object-cover" />
-                                            <div>
-                                                <p className="text-sm font-black">{selectedAppLanguage.label}</p>
-                                                <p className="text-xs font-semibold text-white/48">{copy.account.appLanguageControlledSummary}</p>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <SettingsSelect
-                                            value={manualAppLanguage}
-                                            onChange={updateManualAppLanguage}
-                                            options={appLanguageOptions}
-                                            palette={palette}
-                                            label={copy.account.appLanguage}
-                                        />
-                                    )}
+                                <SettingRow label={copy.account.appLanguage} description={copy.account.appLanguageDescription}>
+                                    <SettingsSelect
+                                        value={manualAppLanguage}
+                                        onChange={updateManualAppLanguage}
+                                        options={appLanguageOptions}
+                                        palette={palette}
+                                        label={copy.account.appLanguage}
+                                    />
                                 </SettingRow>
                             </SettingsSection>
                             </div>
@@ -407,19 +392,13 @@ export default function SettingsPage() {
                         </div>
                     </FadeIn>
 
+                    {(savedMessage || saveError || isSavingAccount) && (
                     <div className="mt-8 flex items-center justify-end gap-4 rounded-3xl border border-white/10 bg-slate-950/80 px-5 py-4 shadow-2xl backdrop-blur-xl">
                         {savedMessage && <p className="text-sm font-semibold text-white/62">{savedMessage}</p>}
                         {saveError && <p className="text-sm font-semibold text-red-300">{saveError}</p>}
-                        <button
-                            type="button"
-                            onClick={handleSave}
-                            disabled={isSaving}
-                            className={`inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-black shadow-xl transition hover:-translate-y-0.5 ${palette.primaryButton} ${palette.primaryButtonText}`}
-                        >
-                            <Save size={18} strokeWidth={2.6} />
-                            {isSaving ? "Saving..." : copy.saveChanges}
-                        </button>
+                        {isSavingAccount && <p className="text-sm font-semibold text-white/62">Saving...</p>}
                     </div>
+                    )}
                 </AppPageShell>
             </PageContentTransition>
         </>

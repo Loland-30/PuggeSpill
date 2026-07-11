@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react"
 import { ChevronDown } from "lucide-react"
 
-import { languages } from "../data/languages"
+import { getLanguageName, languages } from "../data/languages"
+import { useI18n } from "../i18n/I18nContext"
+import { getAppLanguageLocale } from "../i18n/localeMap"
 import { useTheme } from "../theme/ThemeContext"
 
 interface Props {
@@ -16,6 +18,8 @@ export default function LanguageSelect({ value, onChange, placeholder = "Select 
     const [open, setOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement>(null)
     const { theme, palette } = useTheme()
+    const { appLanguage } = useI18n()
+    const locale = getAppLanguageLocale(appLanguage)
     const selected = languages.find(language => language.code === value)
     const isRedPurple = theme.paletteId === "purpleGradient"
 
@@ -43,7 +47,7 @@ export default function LanguageSelect({ value, onChange, placeholder = "Select 
                     <span className="h-5 w-7 rounded-sm border border-white/20 bg-black/30" />
                 )}
                 <span className={`min-w-0 flex-1 text-base font-semibold ${inputClassName}`}>
-                    {selected?.label ?? placeholder}
+                    {selected ? getLanguageName(selected.code, locale) : placeholder}
                 </span>
                 <ChevronDown size={18} className={`shrink-0 text-white transition ${open ? "rotate-180" : ""}`} />
             </button>
@@ -64,7 +68,7 @@ export default function LanguageSelect({ value, onChange, placeholder = "Select 
                                 className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-base font-semibold transition ${isSelected ? `${palette.primaryButton} ${palette.primaryButtonText}` : "text-white hover:bg-white/10"}`}
                             >
                                 <img src={language.flagUrl} className="h-5 w-7 rounded-sm object-cover" />
-                                <span>{language.label}</span>
+                                <span>{getLanguageName(language.code, locale)}</span>
                             </button>
                         )
                     })}
