@@ -52,14 +52,26 @@ export const appLanguages: AppLanguage[] = [
     { code: "ja", locale: "ja-JP", label: "\u65e5\u672c\u8a9e", flagUrl: "https://flagcdn.com/w40/jp.png" }
 ]
 
+export function uppercaseFirstGrapheme(value: string, locale = "en") {
+    if (!value) return value
+
+    const firstGrapheme = typeof Intl.Segmenter === "function"
+        ? Array.from(new Intl.Segmenter(locale, { granularity: "grapheme" }).segment(value))[0]?.segment
+        : Array.from(value)[0]
+
+    if (!firstGrapheme) return value
+    return firstGrapheme.toLocaleUpperCase(locale) + value.slice(firstGrapheme.length)
+}
+
 export function getLanguageName(code: string, locale = "en") {
     const language = languages.find(option => option.code === code.toLowerCase())
     if (!language) return code.toUpperCase()
 
     try {
-        return new Intl.DisplayNames([locale], { type: "language" }).of(language.code) ?? language.label
+        const displayName = new Intl.DisplayNames([locale], { type: "language" }).of(language.code) ?? language.label
+        return uppercaseFirstGrapheme(displayName, locale)
     } catch {
-        return language.label
+        return uppercaseFirstGrapheme(language.label, locale)
     }
 }
 
