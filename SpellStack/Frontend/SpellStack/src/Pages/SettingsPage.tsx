@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { KeyRound } from "lucide-react"
 
 import { changePassword } from "../api/auth"
@@ -40,13 +40,18 @@ interface SettingsState {
     accentHandling: AccentHandling
     reduceAnimations: boolean
     reduceScreenFlashes: boolean
-    reduceGlowEffects: boolean
     largerText: boolean
     disableRushHourEffects: boolean
     showOtherCustomThemes: boolean
     hideOtherCustomBackgrounds: boolean
     hideOtherCustomAudio: boolean
     allowLobbyFriendRequests: boolean
+}
+
+interface AccountSaveRequest {
+    username: string
+    email: string
+    country: string
 }
 
 const appLanguageOptions: SettingsSelectOption[] = appLanguages.map(language => ({
@@ -71,6 +76,8 @@ export default function SettingsPage() {
     const [savedMessage, setSavedMessage] = useState("")
     const [saveError, setSaveError] = useState("")
     const [isSavingAccount, setIsSavingAccount] = useState(false)
+    const accountSaveInFlightRef = useRef(false)
+    const pendingAccountSaveRef = useRef<AccountSaveRequest | null>(null)
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
     const [settings, setSettings] = useState<SettingsState>(() => {
         const storedGameplay = readGameplaySettings()
@@ -86,7 +93,6 @@ export default function SettingsPage() {
             accentHandling: storedGameplay.accentHandling ?? "forgiving",
             reduceAnimations: false,
             reduceScreenFlashes: true,
-            reduceGlowEffects: false,
             largerText: getStoredLargerText(),
             disableRushHourEffects: false,
             showOtherCustomThemes: true,
@@ -143,14 +149,6 @@ export default function SettingsPage() {
         setSettings(current => ({ ...current, [key]: value }))
     }
 
-    useEffect(() => {
-        setSettings(current => ({
-            ...current,
-            username: user?.username ?? "",
-            email: user?.email ?? ""
-        }))
-    }, [user?.email, user?.username])
-
     const updateManualAppLanguage = (value: string) => {
         setSavedMessage("")
         setSaveError("")
@@ -182,34 +180,53 @@ export default function SettingsPage() {
         return message
     }
 
-    const persistAccount = async (country = accountCountry) => {
-        if (!user || isSavingAccount) return
+    const persistAccount = (country = accountCountry) => {
+        if (!user) return
 
-        const usernameChanged = settings.username.trim() !== user.username
-        const emailChanged = settings.email.trim().toLowerCase() !== user.email.toLowerCase()
-        const countryChanged = country !== user.country
+        const request: AccountSaveRequest = {
+            username: settings.username.trim(),
+            email: settings.email.trim(),
+            country
+        }
+        const usernameChanged = request.username !== user.username
+        const emailChanged = request.email.toLowerCase() !== user.email.toLowerCase()
+        const countryChanged = request.country !== user.country
         if (!usernameChanged && !emailChanged && !countryChanged) return
 
+        pendingAccountSaveRef.current = request
+        if (accountSaveInFlightRef.current) return
+
+        accountSaveInFlightRef.current = true
         setIsSavingAccount(true)
         setSavedMessage("")
         setSaveError("")
 
-        try {
-            const updatedUser = await updateAccountProfile(settings.username, settings.email, country)
-            setSettings(current => ({
-                ...current,
-                username: updatedUser.username,
-                email: updatedUser.email
-            }))
-            setAccountCountry(updatedUser.country ?? country)
+        void (async () => {
+            while (pendingAccountSaveRef.current) {
+                const nextRequest = pendingAccountSaveRef.current
+                pendingAccountSaveRef.current = null
 
-            setSavedMessage(copy.savedMessage)
-        } catch (error) {
-            const message = error instanceof Error ? error.message : ""
-            setSaveError(message || "Kunne ikke lagre innstillingene")
-        } finally {
+                try {
+                    const updatedUser = await updateAccountProfile(nextRequest.username, nextRequest.email, nextRequest.country)
+                    if (!pendingAccountSaveRef.current) {
+                        setSettings(current => ({
+                            ...current,
+                            username: updatedUser.username,
+                            email: updatedUser.email
+                        }))
+                        setAccountCountry(updatedUser.country ?? nextRequest.country)
+                        setSavedMessage(copy.savedMessage)
+                        setSaveError("")
+                    }
+                } catch (error) {
+                    const message = error instanceof Error ? error.message : ""
+                    setSaveError(message || "Kunne ikke lagre innstillingene")
+                }
+            }
+
+            accountSaveInFlightRef.current = false
             setIsSavingAccount(false)
-        }
+        })()
     }
 
     useEffect(() => {
@@ -380,9 +397,6 @@ export default function SettingsPage() {
                                 </SettingRow>
                                 <SettingRow label={copy.comfort.reduceScreenFlashes} description={copy.comfort.reduceScreenFlashesDescription}>
                                     <SettingsToggle checked={settings.reduceScreenFlashes} onChange={value => updateSetting("reduceScreenFlashes", value)} palette={palette} label={copy.comfort.reduceScreenFlashes} />
-                                </SettingRow>
-                                <SettingRow label={copy.comfort.reduceGlowEffects} description={copy.comfort.reduceGlowEffectsDescription}>
-                                    <SettingsToggle checked={settings.reduceGlowEffects} onChange={value => updateSetting("reduceGlowEffects", value)} palette={palette} label={copy.comfort.reduceGlowEffects} />
                                 </SettingRow>
                                 <SettingRow label={copy.comfort.largerText} description={copy.comfort.largerTextDescription}>
                                     <SettingsToggle checked={settings.largerText} onChange={updateLargerText} palette={palette} label={copy.comfort.largerText} />

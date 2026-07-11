@@ -3,6 +3,7 @@ export type BackgroundThemeId = "night" | "aurora" | "sunset" | "forest" | "rose
 export type PaletteThemeId = "blue" | "pink" | "green" | "red" | "yellow" | "orange" | "purple" | "white" | "purpleGradient" | "mangoPop" | "frostByte"
 export type OverlayStrength = "low" | "medium" | "high"
 export type TextTone = "light" | "dark"
+export type GlowStrength = "off" | "low" | "medium" | "high"
 export type AudioPresetKey = "ui_hover_soft_01" | "ui_hover_soft_02"
 
 export interface BackgroundTheme {
@@ -23,6 +24,7 @@ export interface PaletteTheme {
     border: string
     card: string
     glow: string
+    glowColor: string
     preview: string
     frameGradient?: string
     frameFrom?: string
@@ -37,6 +39,7 @@ export interface AppTheme {
     customBackgroundImage: string | null
     overlayStrength: OverlayStrength
     textTone: TextTone
+    glowStrength: GlowStrength
     audio: AudioSettings
 }
 
@@ -263,6 +266,7 @@ export const defaultTheme: AppTheme = {
     customBackgroundImage: null,
     overlayStrength: "medium",
     textTone: "light",
+    glowStrength: "medium",
     audio: defaultAudioSettings
 }
 
@@ -271,10 +275,19 @@ export function normalizeTheme(theme: Partial<AppTheme> | null | undefined): App
         ? null
         : theme?.customBackgroundImage ?? null
 
+    const legacyTheme = theme as (Partial<AppTheme> & { reduceGlowEffects?: boolean }) | null | undefined
+    const currentTheme = { ...(legacyTheme ?? {}) }
+    delete currentTheme.reduceGlowEffects
+    const validGlowStrengths: GlowStrength[] = ["off", "low", "medium", "high"]
+    const glowStrength = validGlowStrengths.includes(theme?.glowStrength as GlowStrength)
+        ? theme!.glowStrength as GlowStrength
+        : legacyTheme?.reduceGlowEffects === true ? "off" : "medium"
+
     return {
         ...defaultTheme,
-        ...theme,
+        ...currentTheme,
         customBackgroundImage,
+        glowStrength,
         audio: {
             ...defaultAudioSettings,
             ...(theme?.audio ?? {})
@@ -317,6 +330,25 @@ export function getBackgroundTheme(id: BackgroundThemeId) {
     return backgroundThemes.find(theme => theme.id === id) ?? backgroundThemes[0]
 }
 
-export function getPaletteTheme(id: PaletteThemeId): PaletteTheme {
-    return paletteThemes.find(option => option.id === id) ?? paletteThemes[0]
+const paletteGlowColors: Record<PaletteThemeId, string> = {
+    blue: "56 189 248",
+    pink: "244 114 182",
+    green: "52 211 153",
+    red: "248 113 113",
+    yellow: "252 177 3",
+    orange: "248 112 2",
+    purple: "139 92 246",
+    white: "255 255 255",
+    purpleGradient: "217 70 239",
+    mangoPop: "248 155 41",
+    frostByte: "96 239 255"
+}
+
+export function getPaletteTheme(id: PaletteThemeId, glowStrength: GlowStrength = "medium"): PaletteTheme {
+    const palette = paletteThemes.find(option => option.id === id) ?? paletteThemes[0]
+    return {
+        ...palette,
+        glow: glowStrength === "off" ? "" : `spellstack-theme-glow spellstack-theme-glow-${glowStrength}`,
+        glowColor: paletteGlowColors[palette.id]
+    }
 }

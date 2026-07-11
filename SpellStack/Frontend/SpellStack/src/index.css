@@ -5,6 +5,25 @@
     font-size: 112.5%;
 }
 
+.spellstack-theme-glow {
+    box-shadow: 0 0 var(--spellstack-glow-radius) rgb(var(--spellstack-glow-rgb) / var(--spellstack-glow-opacity));
+}
+
+.spellstack-theme-glow-low {
+    --spellstack-glow-radius: 16px;
+    --spellstack-glow-opacity: 0.16;
+}
+
+.spellstack-theme-glow-medium {
+    --spellstack-glow-radius: 28px;
+    --spellstack-glow-opacity: 0.3;
+}
+
+.spellstack-theme-glow-high {
+    --spellstack-glow-radius: 42px;
+    --spellstack-glow-opacity: 0.48;
+}
+
 .spellstack-auth-title {
     font-family: "Sora", system-ui, sans-serif;
 }

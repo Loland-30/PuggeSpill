@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { getStoredToken } from "../api/auth"
 import { getUserTheme, saveUserTheme } from "../api/theme"
-import { defaultTheme, getBackgroundTheme, getPaletteTheme, getTextTone, normalizeTheme, type AppTheme, type AudioSettings, type BackgroundThemeId, type OverlayStrength, type PaletteThemeId, type TextTone } from "./themes"
+import { defaultTheme, getBackgroundTheme, getPaletteTheme, getTextTone, normalizeTheme, type AppTheme, type AudioSettings, type BackgroundThemeId, type GlowStrength, type OverlayStrength, type PaletteThemeId, type TextTone } from "./themes"
 
 interface ThemeContextValue {
     theme: AppTheme
@@ -14,6 +14,7 @@ interface ThemeContextValue {
     setCustomBackgroundImage: (image: string | null) => void
     setOverlayStrength: (strength: OverlayStrength) => void
     setTextTone: (tone: TextTone) => void
+    setGlowStrength: (strength: GlowStrength) => void
     setAudioEnabled: (enabled: boolean) => void
     setUiVolume: (volume: number) => void
     setMusicVolume: (volume: number) => void
@@ -26,6 +27,29 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const [theme, setTheme] = useState<AppTheme>(defaultTheme)
     const [remoteThemeReady, setRemoteThemeReady] = useState(() => !getStoredToken())
     const [allowThemeAutoSave, setAllowThemeAutoSave] = useState(false)
+    const saveInFlightRef = useRef(false)
+    const pendingThemeRef = useRef<AppTheme | null>(null)
+
+    const queueThemeSave = useCallback((nextTheme: AppTheme) => {
+        pendingThemeRef.current = nextTheme
+        if (saveInFlightRef.current) return
+
+        saveInFlightRef.current = true
+        void (async () => {
+            while (pendingThemeRef.current) {
+                const themeToSave = pendingThemeRef.current
+                pendingThemeRef.current = null
+
+                try {
+                    await saveUserTheme(themeToSave)
+                } catch (error) {
+                    console.error("Kunne ikke lagre theme", error)
+                }
+            }
+
+            saveInFlightRef.current = false
+        })()
+    }, [])
 
     useEffect(() => {
         const loadRemoteTheme = async () => {
@@ -77,26 +101,36 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (getStoredToken() && remoteThemeReady && allowThemeAutoSave) {
-            saveUserTheme(theme).catch(error => console.error("Kunne ikke lagre theme", error))
+            queueThemeSave(theme)
         }
-    }, [allowThemeAutoSave, theme, remoteThemeReady])
+    }, [allowThemeAutoSave, queueThemeSave, theme, remoteThemeReady])
+
+    const palette = useMemo(
+        () => getPaletteTheme(theme.paletteId, theme.glowStrength),
+        [theme.glowStrength, theme.paletteId]
+    )
+
+    useEffect(() => {
+        document.documentElement.style.setProperty("--spellstack-glow-rgb", palette.glowColor)
+    }, [palette.glowColor])
 
     const value = useMemo<ThemeContextValue>(() => ({
         theme,
         isThemeReady: remoteThemeReady,
         background: getBackgroundTheme(theme.backgroundId),
-        palette: getPaletteTheme(theme.paletteId),
+        palette,
         textTone: getTextTone(theme.textTone),
         setBackground: backgroundId => updateTheme(current => ({ ...current, backgroundId, customBackgroundImage: null })),
         setPalette: paletteId => updateTheme(current => ({ ...current, paletteId })),
         setCustomBackgroundImage: customBackgroundImage => updateTheme(current => ({ ...current, customBackgroundImage })),
         setOverlayStrength: overlayStrength => updateTheme(current => ({ ...current, overlayStrength })),
         setTextTone: textTone => updateTheme(current => ({ ...current, textTone })),
+        setGlowStrength: glowStrength => updateTheme(current => ({ ...current, glowStrength })),
         setAudioEnabled: audioEnabled => updateAudio({ audioEnabled }),
         setUiVolume: uiVolume => updateAudio({ uiVolume: clampVolume(uiVolume) }),
         setMusicVolume: musicVolume => updateAudio({ musicVolume: clampVolume(musicVolume) }),
         setAudioPreset: (key, value) => updateAudio({ [key]: value } as Partial<AudioSettings>)
-    }), [remoteThemeReady, theme])
+    }), [palette, remoteThemeReady, theme])
 
     return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
 }

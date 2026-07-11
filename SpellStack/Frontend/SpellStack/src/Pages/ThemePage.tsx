@@ -9,7 +9,7 @@ import PageContentTransition from "../components/PageContentTransition"
 import AudioThemePanel from "../components/theme/AudioThemePanel"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
-import { backgroundThemes, getOverlayOpacity, overlayStrengths, paletteThemes } from "../theme/themes"
+import { backgroundThemes, getOverlayOpacity, overlayStrengths, paletteThemes, type GlowStrength } from "../theme/themes"
 import { resolveAssetUrl } from "../utils/assetUrl"
 
 type ThemeMode = "visual" | "audio"
@@ -112,7 +112,7 @@ function VisualThemeSettings({
     getOverlayLabel: (id: string) => string
 }) {
     const { t } = useI18n()
-    const { theme, palette, setBackground, setPalette, setCustomBackgroundImage, setOverlayStrength } = useTheme()
+    const { theme, palette, setBackground, setPalette, setCustomBackgroundImage, setOverlayStrength, setGlowStrength } = useTheme()
     const { playHoverSound } = useUISound()
     const customBackgroundSrc = resolveAssetUrl(theme.customBackgroundImage)
 
@@ -266,7 +266,7 @@ function VisualThemeSettings({
                                     onClick={() => setPalette(option.id)}
                                     onMouseEnter={playHoverSound}
                                     className={`flex h-full flex-col rounded-lg border-2 p-4 text-left transition ${
-                                        selected ? `${option.border} ${option.glow}` : "border-white/10 hover:border-white/40"
+                                        selected ? `${option.border} ${palette.glow}` : "border-white/10 hover:border-white/40"
                                     }`}
                                 >
                                     <div className={`h-14 rounded-md ${option.preview}`} />
@@ -288,6 +288,39 @@ function VisualThemeSettings({
                                 className="invisible h-full rounded-lg border-2 p-4"
                             />
                         ))}
+                    </div>
+                </section>
+            </FadeIn>
+
+            <FadeIn>
+                <section className="mt-12">
+                    <SectionHeader title={t.themePage.glow} />
+                    <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-white/62">{t.themePage.glowDescription}</p>
+                    <div className="mt-5 inline-flex flex-wrap rounded-full border border-white/10 bg-black/25 p-1">
+                        {(["off", "low", "medium", "high"] as GlowStrength[]).map(strength => {
+                            const selected = theme.glowStrength === strength
+                            const label = strength === "off"
+                                ? t.themePage.off
+                                : strength === "low"
+                                    ? t.themePage.low
+                                    : strength === "medium"
+                                        ? t.themePage.medium
+                                        : t.themePage.high
+
+                            return (
+                                <button
+                                    key={strength}
+                                    type="button"
+                                    onClick={() => setGlowStrength(strength)}
+                                    onMouseEnter={playHoverSound}
+                                    className={`rounded-full px-5 py-2 text-sm font-black transition ${
+                                        selected ? `${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}` : "text-white/55 hover:text-white"
+                                    }`}
+                                >
+                                    {label}
+                                </button>
+                            )
+                        })}
                     </div>
                 </section>
             </FadeIn>
