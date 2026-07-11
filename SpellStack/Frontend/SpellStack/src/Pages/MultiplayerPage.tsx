@@ -15,7 +15,8 @@ import JoinRoomModal from "../components/multiplayer/JoinRoomModal"
 import LibraryPageToolbar from "../components/navigation/LibraryPageToolbar"
 import PageContentTransition from "../components/PageContentTransition"
 import ProfileImage from "../components/ProfileImage"
-import { countries, languages } from "../data/languages"
+import { countries } from "../data/countries"
+import { languages } from "../data/languages"
 import type { MultiplayerPlayer } from "../multiplayer/multiplayerTypes"
 import { type MultiplayerConnectionStatus } from "../multiplayer/multiplayerConnection"
 import { useMultiplayerRoom } from "../multiplayer/useMultiplayerRoom"
@@ -51,7 +52,7 @@ function getLanguage(code: string) {
 
 function getCountryFlag(code?: string) {
     if (!code) return undefined
-    return countries.find(country => country.code === code)?.flagUrl
+    return countries.find(country => country.code === code.toUpperCase())?.flagUrl
 }
 
 function getMultiplayerStatusMessage(status: MultiplayerConnectionStatus) {

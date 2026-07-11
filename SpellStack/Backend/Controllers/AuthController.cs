@@ -26,6 +26,7 @@ namespace SpellStack.Api.Controllers {
         public async Task<IActionResult> Register([FromBody] RegisterRequest request) {
             var email = request.Email.Trim().ToLowerInvariant();
             var username = request.Username.Trim();
+            var country = NormalizeCountry(request.Country);
 
             if (username.Length < 2) return BadRequest("Username er for kort");
             if (request.Password.Length < 6) return BadRequest("Passord må være minst 6 tegn");
@@ -41,7 +42,8 @@ namespace SpellStack.Api.Controllers {
                 Email = email,
                 PasswordSalt = salt,
                 PasswordHash = PasswordHasher.HashPassword(request.Password, salt),
-                FavoriteLanguage = request.FavoriteLanguage?.Trim() ?? "Spanish"
+                FavoriteLanguage = request.FavoriteLanguage?.Trim() ?? "Spanish",
+                Country = country
             };
 
             _context.Users.Add(user);
@@ -220,15 +222,21 @@ namespace SpellStack.Api.Controllers {
                 user.Username,
                 user.Email,
                 user.FavoriteLanguage,
+                user.Country,
                 user.CreatedAt,
                 user.ProfileImageUrl,
                 user.CustomLoginSplashSoundUrl,
                 user.CustomMainMenuMusicUrl
             );
         }
+
+        private static string NormalizeCountry(string? country) {
+            var normalized = country?.Trim().ToUpperInvariant();
+            return normalized is { Length: 2 } && normalized.All(char.IsLetter) ? normalized : "NO";
+        }
     }
 
-    public record RegisterRequest(string Username, string Email, string Password, string? FavoriteLanguage);
+    public record RegisterRequest(string Username, string Email, string Password, string? FavoriteLanguage, string? Country);
     public record LoginRequest(string Email, string Password);
     public record ForgotPasswordRequest(string Email);
     public record ResetPasswordRequest(string Token, string NewPassword);
@@ -238,6 +246,7 @@ namespace SpellStack.Api.Controllers {
         string Username,
         string Email,
         string FavoriteLanguage,
+        string Country,
         DateTime CreatedAt,
         string? ProfileImageUrl,
         string? CustomLoginSplashSoundUrl,

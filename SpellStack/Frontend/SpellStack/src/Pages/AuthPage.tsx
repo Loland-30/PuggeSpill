@@ -8,27 +8,18 @@ import AuthWelcomeSplash from "../components/auth/AuthWelcomeSplash"
 import LoginForm from "../components/auth/LoginForm"
 import SignupFlow from "../components/auth/SignupFlow"
 import type { AuthCountryOption } from "../components/auth/SignupStepProfile"
+import { countries, getCountryFlag, getCountryName } from "../data/countries"
 import { resolveAssetUrl } from "../utils/assetUrl"
 
 const welcomeDelayMs = 1200
 const welcomeExitMs = 260
-const profileRegionStorageKey = "spellstack_profile_region"
-
-const countryOptions: AuthCountryOption[] = [
-    { code: "no", name: "Norway", flag: "\u{1F1F3}\u{1F1F4}" },
-    { code: "se", name: "Sweden", flag: "\u{1F1F8}\u{1F1EA}" },
-    { code: "dk", name: "Denmark", flag: "\u{1F1E9}\u{1F1F0}" },
-    { code: "gb", name: "United Kingdom", flag: "\u{1F1EC}\u{1F1E7}" },
-    { code: "us", name: "United States", flag: "\u{1F1FA}\u{1F1F8}" },
-    { code: "es", name: "Spain", flag: "\u{1F1EA}\u{1F1F8}" },
-    { code: "jp", name: "Japan", flag: "\u{1F1EF}\u{1F1F5}" },
-    { code: "de", name: "Germany", flag: "\u{1F1E9}\u{1F1EA}" },
-    { code: "fr", name: "France", flag: "\u{1F1EB}\u{1F1F7}" }
-]
-
-function getProfileCountryKey(userId: number) {
-    return `spellstack_profile_country_${userId}`
-}
+const countryOptions: AuthCountryOption[] = countries
+    .map(country => ({
+        code: country.code,
+        name: getCountryName(country.code, "en"),
+        flag: getCountryFlag(country.code)
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name, "en"))
 
 function isValidEmail(value: string) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
@@ -43,7 +34,7 @@ export default function AuthPage() {
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
     const [username, setUsername] = useState("")
-    const [countryCode, setCountryCode] = useState("no")
+    const [countryCode, setCountryCode] = useState("NO")
     const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null)
     const [profileImageFile, setProfileImageFile] = useState<File | null>(null)
     const [rememberMe, setRememberMe] = useState(true)
@@ -136,10 +127,7 @@ export default function AuthPage() {
         setSubmitting(true)
 
         try {
-            const user = await registerUser(username.trim(), email, password, "Spansk")
-            localStorage.setItem(getProfileCountryKey(user.id), countryCode)
-            localStorage.setItem(profileRegionStorageKey, countryCode)
-            window.dispatchEvent(new Event("spellstack-auth-changed"))
+            const user = await registerUser(username.trim(), email, password, "es", countryCode)
 
             const userWithImage = profileImageFile
                 ? await uploadProfileImage(profileImageFile)

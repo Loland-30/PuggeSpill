@@ -3,7 +3,8 @@ import { KeyRound, Save } from "lucide-react"
 
 import { changePassword } from "../api/auth"
 import { useAuth } from "../auth/AuthContext"
-import { appLanguages, countries } from "../data/languages"
+import { countries, getCountryName } from "../data/countries"
+import { appLanguages } from "../data/languages"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
 import { getStoredLargerText, setGlobalLargerText } from "../utils/accessibilitySettings"
@@ -54,12 +55,6 @@ const appLanguageOptions: SettingsSelectOption[] = appLanguages.map(language => 
     flagUrl: language.flagUrl
 }))
 
-const countryOptions: SettingsSelectOption[] = countries.map(country => ({
-    value: country.code,
-    label: country.label,
-    flagUrl: country.flagUrl
-}))
-
 export default function SettingsPage() {
     const { user, updateAccountProfile } = useAuth()
     const { palette } = useTheme()
@@ -74,6 +69,7 @@ export default function SettingsPage() {
         setUseRegionLanguage
     } = useI18n()
     const [activeTab, setActiveTab] = useState<SectionId>("account")
+    const [accountCountry, setAccountCountry] = useState(() => user?.country ?? countryRegion)
     const [savedMessage, setSavedMessage] = useState("")
     const [saveError, setSaveError] = useState("")
     const [isSaving, setIsSaving] = useState(false)
@@ -103,6 +99,13 @@ export default function SettingsPage() {
     })
 
     const copy = t.settings
+    const countryOptions: SettingsSelectOption[] = countries
+        .map(country => ({
+            value: country.code,
+            label: getCountryName(country.code, appLanguage),
+            flagUrl: country.flagUrl
+        }))
+        .sort((left, right) => left.label.localeCompare(right.label, appLanguage))
     const selectedAppLanguage = appLanguages.find(language => language.code === appLanguage) ?? appLanguages[0]
     const tabs: SettingsTab[] = [
         { id: "account", label: copy.tabs.account },
@@ -160,6 +163,7 @@ export default function SettingsPage() {
         setSavedMessage("")
         setSaveError("")
         setCountryRegion(value)
+        setAccountCountry(value)
     }
 
     const updateUseRegionLanguage = (value: boolean) => {
@@ -197,9 +201,10 @@ export default function SettingsPage() {
         try {
             const usernameChanged = settings.username.trim() !== (user?.username ?? "")
             const emailChanged = settings.email.trim().toLowerCase() !== (user?.email ?? "").toLowerCase()
+            const countryChanged = accountCountry !== (user?.country ?? "NO")
 
-            if (user && (usernameChanged || emailChanged)) {
-                const updatedUser = await updateAccountProfile(settings.username, settings.email)
+            if (user && (usernameChanged || emailChanged || countryChanged)) {
+                const updatedUser = await updateAccountProfile(settings.username, settings.email, accountCountry)
                 setSettings(current => ({
                     ...current,
                     username: updatedUser.username,
@@ -287,7 +292,7 @@ export default function SettingsPage() {
 
                                 <SettingRow label={copy.account.countryRegion} description={copy.account.countryRegionDescription}>
                                     <SettingsSelect
-                                        value={countryRegion}
+                                        value={accountCountry}
                                         onChange={updateCountryRegion}
                                         options={countryOptions}
                                         palette={palette}

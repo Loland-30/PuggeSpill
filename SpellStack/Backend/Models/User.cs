@@ -11,6 +11,7 @@ namespace SpellStack.Api.Models {
         [JsonIgnore]
         public string PasswordSalt { get; set; } = "";
         public string FavoriteLanguage { get; set; } = "Spanish";
+        public string Country { get; set; } = "NO";
         [JsonIgnore]
         public string ThemeJson { get; set; } = "";
         public string? ProfileImageUrl { get; set; }

@@ -8,19 +8,16 @@ import AchievementsPage from "../components/ProfileComponents/AchievementsPage"
 import PerformancePage from "../components/ProfileComponents/PerformancePage"
 import ProfilePage from "../components/ProfileComponents/ProfilePage"
 import type { ProfileLanguage } from "../components/ProfileComponents/types"
-import { countries, languages } from "../data/languages"
+import { countries, getCountryName, normalizeCountryCode } from "../data/countries"
+import { languages } from "../data/languages"
 import { useTheme } from "../theme/ThemeContext"
 
 const profilePages = ["Profile", "Performance", "Achievements"] as const
 const PROFILE_REGION_STORAGE_KEY = "spellstack_profile_region"
 
 function getCountryFromValue(value: string) {
-    const normalized = value.trim().toLowerCase()
-
-    return countries.find(country =>
-        country.label.toLowerCase() === normalized ||
-        country.code.toLowerCase() === normalized
-    )
+    const normalized = normalizeCountryCode(value)
+    return countries.find(country => country.code === normalized)
 }
 function getLanguageFromValue(value: string) {
     const normalized = value.trim().toLowerCase()
@@ -116,7 +113,7 @@ export default function ProfileContainer() {
 
     const currentLanguage = profileLanguages.find(language => language.code === selectedLanguageCode) ?? profileLanguages[0]
     const createdAt = new Intl.DateTimeFormat("nb-NO").format(new Date(user.createdAt))
-    const profileRegionCode = localStorage.getItem(PROFILE_REGION_STORAGE_KEY) ?? "no"
+    const profileRegionCode = user.country ?? localStorage.getItem(PROFILE_REGION_STORAGE_KEY) ?? "NO"
     const profileRegion = getCountryFromValue(profileRegionCode)
     const favoriteLanguageFlag = profileRegion?.flagUrl
 
@@ -169,7 +166,7 @@ export default function ProfileContainer() {
         profileImage,
         createdAt,
         favoriteLanguageFlag,
-        profileRegionLabel: profileRegion?.label,
+        profileRegionLabel: getCountryName(profileRegionCode),
         profileLanguages,
         currentLanguage,
         onSelectLanguage: setSelectedLanguageCode,

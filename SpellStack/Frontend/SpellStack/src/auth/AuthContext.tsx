@@ -12,13 +12,13 @@ interface AuthContextValue {
     setProfileImage: (image: File | null) => Promise<AuthUser | null>
     uploadProfileImage: (image: File) => Promise<AuthUser>
     deleteProfileImage: () => Promise<AuthUser | null>
-    updateAccountProfile: (username: string, email: string) => Promise<AuthUser>
+    updateAccountProfile: (username: string, email: string, country: string) => Promise<AuthUser>
     uploadLoginSplashSound: (file: File) => Promise<AuthUser>
     deleteLoginSplashSound: () => Promise<AuthUser | null>
     uploadMainMenuMusic: (file: File) => Promise<AuthUser>
     deleteMainMenuMusic: () => Promise<AuthUser | null>
     loginUser: (email: string, password: string) => Promise<AuthUser>
-    registerUser: (username: string, email: string, password: string, favoriteLanguage: string) => Promise<AuthUser>
+    registerUser: (username: string, email: string, password: string, favoriteLanguage: string, country: string) => Promise<AuthUser>
     logoutUser: () => Promise<void>
 }
 
@@ -67,8 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return deleteProfileImage()
     }, [deleteProfileImage, uploadProfileImage, user])
 
-    const updateAccountProfile = useCallback(async (username: string, email: string) => {
-        const updatedUser = await updateAccountProfileRequest(username, email)
+    const updateAccountProfile = useCallback(async (username: string, email: string, country: string) => {
+        const updatedUser = await updateAccountProfileRequest(username, email, country)
         setUser(updatedUser)
         window.dispatchEvent(new Event("spellstack-auth-changed"))
         return updatedUser
@@ -120,8 +120,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             window.dispatchEvent(new Event("spellstack-auth-changed"))
             return result.user
         },
-        registerUser: async (username, email, password, favoriteLanguage) => {
-            const result = await register(username, email, password, favoriteLanguage)
+        registerUser: async (username, email, password, favoriteLanguage, country) => {
+            const result = await register(username, email, password, favoriteLanguage, country)
             storeToken(result.token)
             setUser(result.user)
             window.dispatchEvent(new Event("spellstack-auth-changed"))

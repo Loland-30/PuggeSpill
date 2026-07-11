@@ -113,6 +113,7 @@ namespace SpellStack.Api.Controllers {
 
             user.Username = username;
             user.Email = email;
+            user.Country = NormalizeCountry(request.Country);
             await _context.SaveChangesAsync();
 
             return Ok(ToUserResponse(user));
@@ -265,16 +266,22 @@ namespace SpellStack.Api.Controllers {
                 user.Username,
                 user.Email,
                 user.FavoriteLanguage,
+                user.Country,
                 user.CreatedAt,
                 user.ProfileImageUrl,
                 user.CustomLoginSplashSoundUrl,
                 user.CustomMainMenuMusicUrl
             );
         }
+
+        private static string NormalizeCountry(string? country) {
+            var normalized = country?.Trim().ToUpperInvariant();
+            return normalized is { Length: 2 } && normalized.All(char.IsLetter) ? normalized : "NO";
+        }
     }
 
     public record ProfileSummaryResponse(int RunsPlayed, int LongestStreak, int WordsLearned);
     public record LanguageStatsResponse(string LanguageCode, int RunsPlayed, int LongestStreak, int WordsLearned);
-    public record UpdateAccountRequest(string Username, string Email);
+    public record UpdateAccountRequest(string Username, string Email, string? Country);
     public record UpdatePasswordRequest(string CurrentPassword, string NewPassword, string ConfirmPassword);
 }

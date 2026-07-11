@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
 
-import { countries } from "../data/languages"
+import { normalizeCountryCode } from "../data/countries"
 import { en, type Dictionary } from "./dictionaries/en"
 import { es } from "./dictionaries/es"
 import { ja } from "./dictionaries/ja"
@@ -31,11 +31,7 @@ interface I18nContextValue {
 const I18nContext = createContext<I18nContextValue | null>(null)
 
 function normalizeCountryRegion(value: string | null | undefined) {
-    const normalized = value?.trim().toLowerCase()
-    return countries.find(country =>
-        country.code.toLowerCase() === normalized ||
-        country.label.toLowerCase() === normalized
-    )?.code ?? "no"
+    return normalizeCountryCode(value)
 }
 
 function getStoredUseRegionLanguage() {

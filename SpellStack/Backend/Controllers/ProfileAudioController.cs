@@ -231,6 +231,7 @@ namespace SpellStack.Api.Controllers {
                 user.Username,
                 user.Email,
                 user.FavoriteLanguage,
+                user.Country,
                 user.CreatedAt,
                 user.ProfileImageUrl,
                 user.CustomLoginSplashSoundUrl,

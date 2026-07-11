@@ -7,6 +7,7 @@ export interface AuthUser {
     username: string
     email: string
     favoriteLanguage: string
+    country: string
     createdAt: string
     profileImageUrl?: string | null
     customLoginSplashSoundUrl?: string | null
@@ -61,11 +62,11 @@ async function readErrorMessage(response: Response, fallback: string) {
     return message || fallback
 }
 
-export async function register(username: string, email: string, password: string, favoriteLanguage: string): Promise<AuthResponse> {
+export async function register(username: string, email: string, password: string, favoriteLanguage: string, country: string): Promise<AuthResponse> {
     const response = await fetchAuth(`${API_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password, favoriteLanguage })
+        body: JSON.stringify({ username, email, password, favoriteLanguage, country })
     })
     if (!response.ok) throw new Error(await readErrorMessage(response, "Could not create your account. Please try again."))
     return response.json()
@@ -119,11 +120,11 @@ export async function logout(): Promise<void> {
     clearStoredToken()
 }
 
-export async function updateAccountProfile(username: string, email: string): Promise<AuthUser> {
+export async function updateAccountProfile(username: string, email: string, country: string): Promise<AuthUser> {
     const response = await fetch(`${API_URL}/profile/account`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ username, email })
+        body: JSON.stringify({ username, email, country })
     })
     if (!response.ok) {
         const message = await response.text()
