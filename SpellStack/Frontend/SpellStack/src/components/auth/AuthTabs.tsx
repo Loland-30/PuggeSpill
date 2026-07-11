@@ -1,19 +1,14 @@
-import { useUISound } from "../../audio/useUISound"
-
 interface AuthTabsProps {
     mode: "login" | "signup"
     onModeChange: (mode: "login" | "signup") => void
 }
 
 export default function AuthTabs({ mode, onModeChange }: AuthTabsProps) {
-    const { playHoverSound } = useUISound()
-
     return (
         <div className="mx-auto flex w-fit items-center gap-16 text-base font-medium text-white/65">
             <button
                 type="button"
                 onClick={() => onModeChange("login")}
-                onMouseEnter={playHoverSound}
                 className={`relative pb-2 transition ${mode === "login" ? "text-white" : "hover:text-white"}`}
             >
                 Sign in
@@ -22,7 +17,6 @@ export default function AuthTabs({ mode, onModeChange }: AuthTabsProps) {
             <button
                 type="button"
                 onClick={() => onModeChange("signup")}
-                onMouseEnter={playHoverSound}
                 className={`relative pb-2 transition ${mode === "signup" ? "text-white" : "hover:text-white"}`}
             >
                 Sign up

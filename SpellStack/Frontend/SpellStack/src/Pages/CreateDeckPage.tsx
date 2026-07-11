@@ -72,6 +72,7 @@ export default function CreateDeckPage() {
     const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
     const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
     const [showPresets, setShowPresets] = useState(false)
+    const hasCompleteWordPair = words.some(word => word.original.trim() && word.translation.trim())
 
     useEffect(() => {
         if (!isEditing) return
@@ -227,6 +228,9 @@ export default function CreateDeckPage() {
     const handleSubmit = async () => {
         if (!deckName || !language) return
 
+        const validWords = words.filter(word => word.original.trim() && word.translation.trim())
+        if (!isEditing && validWords.length === 0) return
+
         const learningLanguage = learningLanguageSide === "source" ? language : translationLanguage
 
         if (isEditing) {
@@ -247,8 +251,6 @@ export default function CreateDeckPage() {
         }
         else {
             const deck = await createDeck(deckName, language, translationLanguage, learningLanguage, description)
-            const validWords = words.filter(word => word.original && word.translation)
-
             await Promise.all(validWords.map(word =>
                 addWord(
                     word.original,
@@ -500,9 +502,14 @@ export default function CreateDeckPage() {
                 </FadeIn>
 
                 <FadeIn className="relative z-0 mx-auto w-full max-w-2xl">
+                    {!isEditing && !hasCompleteWordPair && (
+                        <p className="mb-3 text-center text-sm font-semibold text-white/62">
+                            Add at least one complete word pair to create the deck.
+                        </p>
+                    )}
                     <button
                         onClick={handleSubmit}
-                        disabled={!deckName || !language}
+                        disabled={!deckName.trim() || !language || (!isEditing && !hasCompleteWordPair)}
                         className={`w-full rounded-full py-3 font-semibold ${palette.primaryButtonText} transition disabled:opacity-50 ${palette.primaryButton}`}
                     >
                         {isEditing ? "Save changes" : "Create deck"}
