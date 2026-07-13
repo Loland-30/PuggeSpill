@@ -47,7 +47,7 @@ export default function JoinRoomModal({ isOpen, onClose, onJoin, isLoading = fal
         <AnimatePresence>
             {isOpen && (
                 <motion.div
-                    className="fixed inset-0 z-[900] grid place-items-center bg-black/55 px-6 backdrop-blur-sm"
+                    className="fixed inset-0 z-[900] grid place-items-center overflow-y-auto bg-black/55 px-3 py-4 backdrop-blur-sm sm:px-6"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -57,7 +57,7 @@ export default function JoinRoomModal({ isOpen, onClose, onJoin, isLoading = fal
                     <motion.form
                         onSubmit={handleSubmit}
                         onMouseDown={event => event.stopPropagation()}
-                        className={`relative w-full max-w-xl rounded-[2rem] border ${palette.border} ${palette.card} ${palette.glow} p-8 shadow-2xl backdrop-blur-xl`}
+                        className={`relative max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-2xl border ${palette.border} ${palette.card} ${palette.glow} p-4 shadow-2xl backdrop-blur-xl sm:rounded-[2rem] sm:p-8`}
                         initial={{ opacity: 0, scale: 0.94, y: 16 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.96, y: 10 }}
@@ -73,13 +73,13 @@ export default function JoinRoomModal({ isOpen, onClose, onJoin, isLoading = fal
                             <X size={22} strokeWidth={2.6} />
                         </button>
 
-                        <h2 className="pr-12 text-3xl font-black text-white">Enter room code</h2>
+                        <h2 className="pr-12 text-2xl font-black text-white sm:text-3xl">Enter room code</h2>
 
                         <div className={`mt-8 flex items-center gap-3 rounded-2xl border ${palette.border} bg-slate-950/70 px-5 py-4 shadow-inner focus-within:ring-2 focus-within:ring-white/20`}>
                             <input
                                 value={roomCode}
                                 onChange={event => setRoomCode(event.target.value.toUpperCase())}
-                                className="min-w-0 flex-1 bg-transparent text-2xl font-black uppercase tracking-wide text-white outline-none placeholder:text-white/30 disabled:cursor-wait"
+                                className="min-w-0 flex-1 bg-transparent text-lg font-black uppercase tracking-wide text-white outline-none placeholder:text-white/30 disabled:cursor-wait sm:text-2xl"
                                 placeholder="T6@XA2"
                                 autoFocus
                                 disabled={isLoading}

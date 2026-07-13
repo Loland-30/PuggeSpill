@@ -246,8 +246,8 @@ export default function MultiplayerPage() {
             )}
 
             <AppPageShell
-                className="!min-h-[calc(100vh-4rem)] overflow-hidden"
-                contentClassName="mt-14 flex h-[calc(100vh-8rem)] min-h-0 flex-col"
+                className="!min-h-[calc(100dvh-2rem)] overflow-x-hidden xl:!min-h-[calc(100dvh-4rem)] xl:overflow-hidden"
+                contentClassName="mt-4 flex min-h-[calc(100dvh-7rem)] flex-col sm:mt-14 xl:h-[calc(100dvh-8rem)] xl:min-h-0"
             >
                 <LibraryPageToolbar reserveActionsSlot />
 
@@ -392,12 +392,12 @@ function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConf
     const statusMessage = connectionError ?? getMultiplayerStatusMessage(connectionStatus)
 
     return (
-        <FadeIn className="relative flex min-h-0 flex-1 flex-col gap-8">
-            <header className="w-fit max-w-full rounded-[1.75rem] border border-white/10 bg-black/35 px-6 py-5 shadow-2xl shadow-black/35 backdrop-blur-md sm:px-7">
+        <FadeIn className="relative flex min-h-0 flex-1 flex-col gap-6 sm:gap-8">
+            <header className="w-full max-w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-4 shadow-2xl shadow-black/35 backdrop-blur-md sm:w-fit sm:rounded-[1.75rem] sm:px-7 sm:py-5">
                 <div className="flex flex-wrap items-start justify-between gap-5">
                     <div>
                         <p className={`text-sm font-black uppercase tracking-[0.28em] ${palette.accentText}`}>Multiplayer room</p>
-                        <h1 className="mt-3 text-5xl font-black text-white">Room code: {roomCode}</h1>
+                        <h1 className="mt-2 break-all text-3xl font-black text-white sm:mt-3 sm:text-5xl">Room code: {roomCode}</h1>
                         <p className="mt-3 text-base font-semibold text-white/62">
                             Send this code to your friends to let them join your room
                         </p>
@@ -439,7 +439,7 @@ function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConf
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 2xl:grid-cols-3">
                     {decks.map(deck => (
                         <MultiplayerDeckCard
                             key={deck.id}
@@ -511,14 +511,14 @@ function MultiplayerDeckCard({ deck, selected, ready, disabled, onSelect, palett
 
                     <div className="mt-auto grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4 pt-4">
                         <div className="min-w-0">
-                            <h3 className="truncate text-2xl font-black text-white">{deck.name}</h3>
+                            <h3 className="line-clamp-2 break-words text-xl font-black text-white sm:text-2xl">{deck.name}</h3>
                             <div className="mt-2 flex items-center gap-2 text-sm font-bold text-white/72">
                                 <Trophy size={19} strokeWidth={2.8} className={palette.accentText} />
                                 {deck.highScore.toLocaleString("nb-NO")}
                             </div>
                         </div>
                         <div className="text-right leading-none">
-                            <p className="text-5xl font-black text-white">{deck.words.length}</p>
+                            <p className="text-4xl font-black text-white sm:text-5xl">{deck.words.length}</p>
                             <p className="mt-1 text-sm font-semibold text-white/65">Words</p>
                         </div>
                     </div>
@@ -556,7 +556,7 @@ function PlayersPanel({ players, currentHostId, maxPlayers, palette }: {
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
     return (
-        <div className={`h-fit w-full rounded-[2rem] border ${palette.border} ${palette.card} p-5 shadow-2xl backdrop-blur-xl`}>
+        <div className={`h-fit w-full rounded-2xl border ${palette.border} ${palette.card} p-4 shadow-2xl backdrop-blur-xl sm:rounded-[2rem] sm:p-5`}>
             <div className="flex items-center justify-between gap-4">
                 <h2 className="text-2xl font-black text-white">Players {players.length}/{maxPlayers}</h2>
                 <UsersRound size={26} strokeWidth={2.5} className="text-white/50" />

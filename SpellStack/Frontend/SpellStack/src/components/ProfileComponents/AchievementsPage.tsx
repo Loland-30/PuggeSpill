@@ -110,7 +110,7 @@ export default function AchievementsPage() {
                     <p className={`text-sm font-black uppercase tracking-[0.35em] ${palette.accentText}`}>
                         Progress
                     </p>
-                    <h1 className="mt-3 text-5xl font-black text-white">Achievements</h1>
+                    <h1 className="mt-3 text-3xl font-black text-white sm:text-5xl">Achievements</h1>
                     <p className="mt-3 max-w-2xl text-base leading-7 text-white/68">
                         Milestones for mastery, streaks, speed, languages, and special challenge runs.
                     </p>

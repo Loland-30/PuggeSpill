@@ -103,7 +103,7 @@ export default function SettingsSelect({ value, onChange, options, palette, disa
     }, [open])
 
     return (
-        <div ref={rootRef} className="relative w-full min-w-64">
+        <div ref={rootRef} className="relative w-full min-w-0 sm:min-w-64">
             {open && searchable ? (
                 <div className={`flex w-full items-center gap-3 rounded-2xl border ${palette.border} bg-slate-950/90 px-4 py-3 text-left text-sm font-bold text-white shadow-xl outline-none backdrop-blur transition focus-within:ring-2 focus-within:ring-white/20`}>
                     {searchTerm ? (

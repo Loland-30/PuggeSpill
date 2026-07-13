@@ -28,7 +28,7 @@ export default function ProfilePage({
     const learningLanguageLabel = learningLanguageLabels[appLanguage]
 
     return (
-        <div className="mx-auto flex min-h-[calc(100vh-12rem)] w-full max-w-[102rem] items-center justify-center px-6">
+        <div className="mx-auto flex min-h-[calc(100dvh-12rem)] w-full max-w-[102rem] items-center justify-center px-0 py-8 sm:px-6">
             <div className="w-full max-w-7xl">
                 <section className="flex flex-col justify-start gap-6 md:flex-row md:items-center">
                     <div className="flex flex-col items-center gap-3">
@@ -70,8 +70,8 @@ export default function ProfilePage({
                     </div>
 
                     <div>
-                        <div className="flex flex-wrap items-center gap-4">
-                            <h1 className="text-5xl font-black">{user.username}</h1>
+                        <div className="flex flex-wrap items-center justify-center gap-3 md:justify-start md:gap-4">
+                            <h1 className="break-all text-center text-3xl font-black sm:text-5xl md:text-left">{user.username}</h1>
 
                             {favoriteLanguageFlag && (
                                 <img
@@ -82,18 +82,18 @@ export default function ProfilePage({
                             )}
                         </div>
 
-                        <p className="mt-2 text-2xl text-white/85">
+                        <p className="mt-2 text-center text-xl text-white/85 sm:text-2xl md:text-left">
                             {learningLanguageLabel}: {currentLanguage.label}
                         </p>
 
-                        <p className="mt-4 text-white/70">
+                        <p className="mt-4 text-center text-white/70 md:text-left">
                             Account created: {createdAt}
                         </p>
                     </div>
                 </section>
 
-                <section className="mt-24">
-                    <h2 className="text-4xl font-black">Stats</h2>
+                <section className="mt-12 sm:mt-24">
+                    <h2 className="text-3xl font-black sm:text-4xl">Stats</h2>
 
                     <div className="mt-6 flex flex-wrap gap-4 text-lg text-white/80">
                         {profileLanguages.map(language => {

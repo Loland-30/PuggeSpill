@@ -23,13 +23,13 @@ export default function TrialQuestionCard({
     return (
         <form
             onSubmit={handleSubmit}
-            className="w-full rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-xl"
+            className="w-full rounded-2xl border border-gray-200 bg-white p-4 text-center shadow-xl sm:rounded-3xl sm:p-8"
         >
             <p className="text-xs font-black uppercase tracking-[0.3em] text-orange-400">
                 {title}
             </p>
 
-            <h1 className="mt-6 text-6xl font-black text-gray-800">
+            <h1 className="mt-5 break-words text-4xl font-black text-gray-800 sm:mt-6 sm:text-6xl">
                 {source}
             </h1>
 

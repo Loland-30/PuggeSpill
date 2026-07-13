@@ -247,7 +247,7 @@ export default function SettingsPage() {
         settings.wrongAnswerRevealDuration
     ])
 
-    const inputClassName = `w-full min-w-64 rounded-2xl border ${palette.border} bg-slate-950/90 px-4 py-3 text-sm font-bold text-white placeholder:text-white/35 outline-none backdrop-blur transition focus:ring-2 focus:ring-white/20`
+    const inputClassName = `w-full min-w-0 rounded-2xl border ${palette.border} bg-slate-950/90 px-4 py-3 text-sm font-bold text-white placeholder:text-white/35 outline-none backdrop-blur transition focus:ring-2 focus:ring-white/20 sm:min-w-64`
 
     return (
         <>
@@ -261,7 +261,7 @@ export default function SettingsPage() {
                 <AppPageShell contentClassName="max-w-5xl pb-20">
                     <FadeIn className="mb-8">
                         <p className={`text-sm font-black uppercase tracking-[0.35em] ${palette.accentText}`}>{copy.pageKicker}</p>
-                        <h1 className="mt-3 text-5xl font-black text-white">{copy.title}</h1>
+                        <h1 className="mt-3 text-3xl font-black text-white sm:text-5xl">{copy.title}</h1>
                         <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-white/62">
                             {copy.intro}
                         </p>
@@ -335,7 +335,7 @@ export default function SettingsPage() {
 
                                 <SettingRow label={copy.account.appLanguage} description={useRegionLanguage ? copy.account.appLanguageControlledDescription : copy.account.appLanguageDescription}>
                                     {useRegionLanguage ? (
-                                        <div className={`flex min-w-64 items-center gap-3 rounded-2xl border ${palette.border} bg-slate-950/80 px-4 py-3 text-white shadow-xl backdrop-blur`}>
+                                        <div className={`flex min-w-0 items-center gap-3 rounded-2xl border ${palette.border} bg-slate-950/80 px-4 py-3 text-white shadow-xl backdrop-blur sm:min-w-64`}>
                                             <img src={selectedAppLanguage.flagUrl} alt="" className="h-6 w-9 rounded-md object-cover" />
                                             <div>
                                                 <p className="text-sm font-black">{selectedAppLanguage.label}</p>
@@ -430,7 +430,7 @@ export default function SettingsPage() {
                     </FadeIn>
 
                     {(savedMessage || saveError || isSavingAccount) && (
-                    <div className="mt-8 flex items-center justify-end gap-4 rounded-3xl border border-white/10 bg-slate-950/80 px-5 py-4 shadow-2xl backdrop-blur-xl">
+                    <div className="mt-8 flex flex-wrap items-center justify-end gap-3 rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 shadow-2xl backdrop-blur-xl sm:gap-4 sm:rounded-3xl sm:px-5 sm:py-4">
                         {savedMessage && <p className="text-sm font-semibold text-white/62">{savedMessage}</p>}
                         {saveError && <p className="text-sm font-semibold text-red-300">{saveError}</p>}
                         {isSavingAccount && <p className="text-sm font-semibold text-white/62">Saving...</p>}

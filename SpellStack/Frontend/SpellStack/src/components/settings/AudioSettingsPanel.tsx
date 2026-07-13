@@ -25,7 +25,7 @@ function AudioPanel({ title, icon, children }: { title: string; icon: ReactNode;
     const { palette } = useTheme()
 
     return (
-        <section className={`rounded-[2rem] border ${palette.border} ${palette.card} p-6 shadow-2xl backdrop-blur-xl`}>
+        <section className={`rounded-2xl border ${palette.border} ${palette.card} p-4 shadow-2xl backdrop-blur-xl sm:rounded-[2rem] sm:p-6`}>
             <div className="mb-6 flex items-center gap-3">
                 <span className={`grid h-11 w-11 place-items-center rounded-2xl ${palette.primaryButton} ${palette.primaryButtonText}`}>
                     {icon}

@@ -84,7 +84,7 @@ export default function ProfileContainer() {
             type="button"
             onClick={closeProfile}
             aria-label="Close profile"
-            className={`fixed right-8 top-8 z-40 grid h-11 w-11 place-items-center rounded-full border ${palette.border} ${palette.card} text-white/80 shadow-2xl transition hover:-translate-y-0.5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70`}
+            className={`fixed right-4 top-4 z-40 grid h-11 w-11 place-items-center rounded-full border ${palette.border} ${palette.card} text-white/80 shadow-2xl transition hover:-translate-y-0.5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 sm:right-8 sm:top-8`}
         >
             <X size={20} strokeWidth={2.5} aria-hidden="true" />
         </button>
@@ -258,10 +258,10 @@ export default function ProfileContainer() {
         <AppPageShell contentClassName="max-w-[102rem]">
             <div
                 onWheel={handleWheel}
-                className="flex h-[calc(100vh-4rem)] w-full flex-col overflow-hidden"
+                className="flex min-h-[calc(100dvh-7rem)] w-full flex-col md:h-[calc(100dvh-4rem)] md:overflow-hidden"
             >
-            <header className="flex items-center justify-center">
-                <nav className="hidden gap-10 text-lg text-white/80 md:flex">
+            <header className="flex items-center justify-center overflow-x-auto pb-2">
+                <nav className="flex min-w-max gap-6 text-sm text-white/80 sm:gap-10 sm:text-lg">
                     {profilePages.map((page, index) => (
                         <button
                             key={page}
@@ -276,11 +276,11 @@ export default function ProfileContainer() {
                 </nav>
             </header>
 
-            <main className="relative flex-1">
+            <main className="relative min-h-0 flex-1">
                 <motion.div
                     animate={{ opacity: isPageFading ? 0 : 1 }}
                     transition={{ duration: 0.28, ease: "easeOut" }}
-                    className="absolute inset-0"
+                    className="relative min-h-full md:absolute md:inset-0 md:overflow-y-auto"
                 >
                     {pageIndex === 0 && (
                         <ProfilePage {...sharedProps} />

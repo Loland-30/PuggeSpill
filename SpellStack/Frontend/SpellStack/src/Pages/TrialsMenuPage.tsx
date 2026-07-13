@@ -39,7 +39,7 @@ export default function TrialsMenuPage() {
 
     if (authLoading) {
         return (
-            <ThemedPage className="px-6 py-8 text-white">
+            <ThemedPage className="px-4 py-4 text-white sm:px-6 sm:py-8">
                 <div className="relative z-10 mt-20 text-center text-gray-400">
                     Loading...
                 </div>
@@ -50,11 +50,11 @@ export default function TrialsMenuPage() {
     if (!firstTrial) return null
 
     return (
-        <AppPageShell contentClassName="mt-14 flex h-[calc(100vh-8rem)] flex-col overflow-hidden">
+        <AppPageShell contentClassName="mt-4 flex min-h-[calc(100dvh-7rem)] flex-col sm:mt-14 lg:h-[calc(100dvh-8rem)] lg:overflow-hidden">
             <LibraryPageToolbar reserveActionsSlot />
 
             <PageContentTransition className="flex flex-1">
-                <main className="flex flex-1 items-center justify-center overflow-hidden">
+                <main className="flex flex-1 items-center justify-center overflow-x-hidden py-6 lg:overflow-hidden lg:py-0">
                     <TrialsShowcase
                         trial={firstTrial}
                         onStart={() => navigate(`/trials/${firstTrial.id}`)}
@@ -74,10 +74,10 @@ function TrialsShowcase({ trial, onStart }: {
     const trialRank = getTestingTrialRank(trial.id)
 
     return (
-        <FadeIn className="grid w-full max-w-7xl grid-cols-1 items-center gap-16 px-4 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.82fr)] lg:gap-20 lg:px-12 xl:gap-28">
+        <FadeIn className="grid w-full max-w-7xl grid-cols-1 items-center gap-10 px-0 sm:px-4 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.82fr)] lg:gap-20 lg:px-12 xl:gap-28">
             <section className="flex flex-col items-start justify-center text-left">
-                <div className="flex items-center gap-5 whitespace-nowrap">
-                    <h1 className="text-7xl font-black tracking-tight text-white sm:text-8xl">
+                <div className="flex flex-wrap items-center gap-4 sm:gap-5">
+                    <h1 className="text-5xl font-black tracking-tight text-white sm:text-8xl">
                         Trials
                     </h1>
 
@@ -89,14 +89,14 @@ function TrialsShowcase({ trial, onStart }: {
                     )}
                 </div>
 
-                <div className="mt-8 max-w-2xl space-y-5 text-2xl font-medium leading-relaxed text-white/90">
+                <div className="mt-6 max-w-2xl space-y-4 text-lg font-medium leading-relaxed text-white/90 sm:mt-8 sm:space-y-5 sm:text-2xl">
                     <p>No enemies, no timer, no SFX.</p>
                     <p>Translate enough words to unlock higher Trials</p>
                 </div>
 
                 <button
                     onClick={onStart}
-                    className={`mt-14 flex min-w-56 items-center justify-center gap-3 rounded-3xl px-10 py-4 text-3xl font-black ${palette.primaryButtonText} shadow-2xl transition hover:-translate-y-1 ${palette.primaryButton}`}
+                    className={`mt-8 flex min-h-12 w-full items-center justify-center gap-3 rounded-2xl px-8 py-3 text-xl font-black sm:mt-14 sm:w-auto sm:min-w-56 sm:rounded-3xl sm:px-10 sm:py-4 sm:text-3xl ${palette.primaryButtonText} shadow-2xl transition hover:-translate-y-1 ${palette.primaryButton}`}
                 >
                     <Play size={26} fill="currentColor" strokeWidth={2.6} />
                     Play

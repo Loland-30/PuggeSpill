@@ -72,7 +72,7 @@ export default function ChangePasswordModal({ isOpen, onClose, onSave, palette }
         <AnimatePresence onExitComplete={resetFields}>
             {isOpen && (
                 <motion.div
-                    className="fixed inset-0 z-[1000] grid place-items-center bg-black/65 px-6 backdrop-blur-sm"
+                    className="fixed inset-0 z-[1000] grid place-items-center overflow-y-auto bg-black/65 px-3 py-4 backdrop-blur-sm sm:px-6"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -80,7 +80,7 @@ export default function ChangePasswordModal({ isOpen, onClose, onSave, palette }
                 >
                     <motion.form
                         onSubmit={handleSubmit}
-                        className={`relative w-full max-w-lg rounded-3xl border ${palette.border} ${palette.card} ${palette.glow} p-6 shadow-2xl backdrop-blur-xl`}
+                        className={`relative max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl border ${palette.border} ${palette.card} ${palette.glow} p-4 shadow-2xl backdrop-blur-xl sm:rounded-3xl sm:p-6`}
                         initial={{ opacity: 0, scale: 0.86, y: 18 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 12 }}

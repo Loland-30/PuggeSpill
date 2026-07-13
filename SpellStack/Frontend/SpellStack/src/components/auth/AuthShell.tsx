@@ -10,11 +10,11 @@ interface AuthShellProps {
 
 export default function AuthShell({ mode, onModeChange, children }: AuthShellProps) {
     return (
-        <div className="fixed inset-0 overflow-y-auto bg-[#020617] text-white">
+        <div className="fixed inset-0 overflow-x-hidden overflow-y-auto bg-[#020617] text-white">
             <AuthStarfallBackground />
-            <div className="relative z-10 flex min-h-screen flex-col px-6 py-9">
+            <div className="relative z-10 flex min-h-screen min-h-dvh flex-col px-4 py-[max(1rem,env(safe-area-inset-top))] sm:px-6 sm:py-9">
                 <AuthTabs mode={mode} onModeChange={onModeChange} />
-                <main className="mx-auto flex w-full max-w-5xl flex-1 items-center justify-center pb-12 pt-10">
+                <main className="mx-auto flex w-full max-w-5xl flex-1 items-center justify-center pb-16 pt-6 sm:pb-12 sm:pt-10">
                     {children}
                 </main>
             </div>
@@ -23,7 +23,7 @@ export default function AuthShell({ mode, onModeChange, children }: AuthShellPro
                 target="_blank"
                 rel="noreferrer"
                 aria-label="View SpellStack source on GitHub"
-                className="fixed bottom-5 right-5 z-30 grid h-12 w-12 place-items-center text-white/82 drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] transition hover:text-white focus-visible:rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/70"
+                className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-30 grid h-12 w-12 place-items-center text-white/82 drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] transition hover:text-white focus-visible:rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/70"
             >
                 <svg
                     aria-hidden="true"
