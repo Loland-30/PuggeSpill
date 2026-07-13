@@ -34,7 +34,7 @@ function App() {
                     <Route path="/trials/:trialId" element={<TrialPage />} />
                 </Routes>
                 ) : (
-                    <ThemedPage className={`px-6 py-8 text-white ${lockPageScroll ? "h-screen overflow-hidden" : ""}`}>
+                    <ThemedPage className={`px-4 py-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] text-white sm:px-6 sm:py-8 lg:pb-8 ${lockPageScroll ? "h-dvh overflow-hidden" : ""}`}>
                         <MainMenuAudio />
                         {showSideNav && <AppSideNav />}
                         <AnimatePresence mode="wait">
@@ -44,7 +44,7 @@ function App() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 }}
                                 transition={{ duration: prefersReducedMotion ? 0 : 0.22, ease: "easeOut" }}
-                                className="relative z-10 min-h-[calc(100vh-4rem)] w-full"
+                                className="relative z-10 min-h-[calc(100dvh-2rem)] w-full sm:min-h-[calc(100dvh-4rem)]"
                             >
                                 <Routes location={location}>
                                     <Route path="/" element={<DeckPage />} />

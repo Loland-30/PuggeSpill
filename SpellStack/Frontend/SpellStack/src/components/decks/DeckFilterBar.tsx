@@ -61,13 +61,13 @@ export default function DeckFilterBar({
     ]
 
     return (
-        <div className={`relative z-[1000] mx-auto mb-8 flex w-full max-w-3xl flex-wrap items-center justify-center rounded-full border text-white shadow-lg backdrop-blur-md ${palette.border} ${palette.card} ${palette.glow}`}>
+        <div className={`relative z-[1000] mx-auto mb-6 flex w-full max-w-3xl flex-col items-stretch overflow-visible rounded-2xl border text-white shadow-lg backdrop-blur-md sm:mb-8 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:rounded-full ${palette.border} ${palette.card} ${palette.glow}`}>
             <FilterDropdown
                 value={selectedLanguage}
                 options={languageOptions}
                 onChange={onLanguageChange}
                 palette={palette}
-                className="min-w-56 rounded-l-full"
+                className="w-full sm:min-w-56 sm:flex-1 sm:rounded-l-full"
             />
 
             <FilterDivider />
@@ -77,7 +77,7 @@ export default function DeckFilterBar({
                 options={lengthOptions}
                 onChange={onLengthChange}
                 palette={palette}
-                className="min-w-48"
+                className="w-full sm:min-w-48 sm:flex-1"
             />
 
             <FilterDivider />
@@ -87,7 +87,7 @@ export default function DeckFilterBar({
                 options={sortOptions}
                 onChange={onSortChange}
                 palette={palette}
-                className="min-w-44"
+                className="w-full sm:min-w-44 sm:flex-1"
             />
 
             <FilterDivider />
@@ -96,7 +96,7 @@ export default function DeckFilterBar({
                 type="button"
                 onClick={onReset}
                 disabled={!canReset}
-                className="flex h-16 min-w-36 items-center justify-center gap-2 rounded-r-full px-6 text-lg font-bold text-white transition disabled:cursor-not-allowed disabled:text-white/35"
+                className="flex min-h-14 items-center justify-center gap-2 border-t border-white/15 px-6 text-base font-bold text-white transition disabled:cursor-not-allowed disabled:text-white/35 sm:h-16 sm:min-w-36 sm:rounded-r-full sm:border-t-0 sm:text-lg"
             >
                 <RotateCcw size={20} strokeWidth={2.6} />
                 {t.common.reset}
@@ -138,7 +138,7 @@ function FilterDropdown<T extends string>({
             <button
                 type="button"
                 onClick={() => setOpen(current => !current)}
-                className="flex h-16 w-full items-center gap-3 px-6 text-left text-lg font-bold text-white transition"
+                className="flex min-h-14 w-full items-center gap-3 px-4 text-left text-base font-bold text-white transition sm:h-16 sm:px-6 sm:text-lg"
                 aria-expanded={open}
             >
                 {selected.flagUrl && (
@@ -156,7 +156,7 @@ function FilterDropdown<T extends string>({
 
             <div
                 aria-hidden={!open}
-                className={`absolute left-0 top-full z-[1001] mt-2 w-64 origin-top overflow-hidden rounded-xl border bg-slate-950/95 p-1 shadow-2xl backdrop-blur-xl transition-all duration-200 ease-out ${palette.border} ${open ? "translate-y-0 scale-y-100 opacity-100" : "pointer-events-none -translate-y-3 scale-y-95 opacity-0"}`}
+                className={`absolute left-2 right-2 top-full z-[1001] mt-2 max-h-64 origin-top overflow-y-auto rounded-xl border bg-slate-950/95 p-1 shadow-2xl backdrop-blur-xl transition-all duration-200 ease-out sm:left-0 sm:right-auto sm:w-64 ${palette.border} ${open ? "translate-y-0 scale-y-100 opacity-100" : "pointer-events-none -translate-y-3 scale-y-95 opacity-0"}`}
             >
                 {options.map(option => {
                     const isSelected = option.value === value

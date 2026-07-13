@@ -92,7 +92,8 @@ export default function AppSideNav() {
     }
 
     return (
-        <aside className="fixed left-8 top-8 z-40 hidden h-[calc(100vh-4rem)] w-44 flex-col text-white lg:flex">
+        <>
+        <aside className="fixed left-8 top-8 z-40 hidden h-[calc(100dvh-4rem)] w-44 flex-col text-white lg:flex">
             <button
                 type="button"
                 onClick={() => navigate(user ? "/profile" : "/login")}
@@ -146,5 +147,56 @@ export default function AppSideNav() {
                 <span className="transition-transform duration-200 group-hover:translate-x-1">{t.nav.signOut}</span>
             </button>
         </aside>
+
+        <nav
+            aria-label="Main navigation"
+            className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 grid min-h-16 grid-cols-5 items-stretch overflow-hidden rounded-2xl border border-white/15 bg-slate-950/90 px-1 py-1 text-white shadow-2xl backdrop-blur-xl lg:hidden"
+        >
+            {navItems.map(item => {
+                const active = item.match(location.pathname)
+                const Icon = item.icon
+
+                return (
+                    <button
+                        key={item.path}
+                        type="button"
+                        onClick={() => navigate(item.path)}
+                        aria-current={active ? "page" : undefined}
+                        className={`relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[0.65rem] font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-white/60 ${active ? "text-white" : "text-white/60"}`}
+                    >
+                        {active && <span aria-hidden="true" className={`absolute inset-x-2 top-0 h-0.5 rounded-full ${palette.primaryButton}`} />}
+                        <Icon size={20} strokeWidth={2.5} aria-hidden="true" />
+                        <span className="w-full truncate text-center">{item.label}</span>
+                    </button>
+                )
+            })}
+
+            <button
+                type="button"
+                onClick={() => navigate(user ? "/profile" : "/login")}
+                aria-label={t.nav.openProfile}
+                aria-current={location.pathname.startsWith("/profile") ? "page" : undefined}
+                className="relative grid min-h-11 place-items-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            >
+                <span className={`relative grid h-9 w-9 place-items-center overflow-hidden rounded-full border ${palette.border} ${profileImage ? "bg-slate-900" : palette.primaryButton} text-sm font-black`}>
+                    {user ? user.username.slice(0, 1).toUpperCase() : <UserRound size={19} strokeWidth={2.5} />}
+                    <ProfileImage
+                        src={profileImage}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover"
+                    />
+                </span>
+            </button>
+
+            <button
+                type="button"
+                onClick={handleLogout}
+                aria-label={t.nav.signOut}
+                className="grid min-h-11 place-items-center rounded-xl text-white/60 outline-none transition hover:text-white focus-visible:ring-2 focus-visible:ring-white/60"
+            >
+                <LogOut size={21} strokeWidth={2.5} />
+            </button>
+        </nav>
+        </>
     )
 }

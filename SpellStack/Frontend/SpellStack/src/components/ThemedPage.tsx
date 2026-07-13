@@ -9,7 +9,7 @@ export default function ThemedPage({ children, className = "" }: { children: Rea
     const customBackgroundImage = resolveAssetUrl(theme.customBackgroundImage)
 
     return (
-        <div className={`relative isolate min-h-screen overflow-hidden ${background.pageClass} ${className}`}>
+        <div className={`relative isolate min-h-screen min-h-dvh overflow-x-hidden ${background.pageClass} ${className}`}>
             <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
                 {customBackgroundImage ? (
                     <>
