@@ -16,6 +16,7 @@ import DeckFilterBar, { type DeckLengthFilter, type DeckSortOption } from "../co
 import DeckGridView from "../components/decks/DeckGridView"
 import DeckListView from "../components/decks/DeckListView"
 import DeckViewToggle, { type DeckViewMode } from "../components/decks/DeckViewToggle"
+import useMediaQuery from "../hooks/useMediaQuery"
 
 const deckViewStorageKey = "spellstack_deck_view"
 
@@ -39,6 +40,8 @@ export default function DeckPage() {
     const [selectedLength, setSelectedLength] = useState<DeckLengthFilter>("any")
     const [selectedSort, setSelectedSort] = useState<DeckSortOption>("newest")
     const [viewMode, setViewMode] = useState<DeckViewMode>(getStoredDeckViewMode)
+    const isPhoneViewport = useMediaQuery("(max-width: 639px)")
+    const effectiveViewMode: DeckViewMode = isPhoneViewport ? "grid" : viewMode
 
     useEffect(() => {
         if (authLoading) return
@@ -159,11 +162,13 @@ export default function DeckPage() {
                                 </span>
                             </button>
 
-                            <DeckViewToggle
-                                value={viewMode}
-                                onChange={setViewMode}
-                                palette={palette}
-                            />
+                            <div className="hidden sm:block">
+                                <DeckViewToggle
+                                    value={viewMode}
+                                    onChange={setViewMode}
+                                    palette={palette}
+                                />
+                            </div>
                             </>
                         }
                     />
@@ -204,7 +209,7 @@ export default function DeckPage() {
                             </GradientFrame>
                         </FadeIn>
                     ) : (
-                        viewMode === "list" ? (
+                        effectiveViewMode === "list" ? (
                             <DeckListView
                                 decks={filteredDecks}
                                 onPlay={handlePlay}
