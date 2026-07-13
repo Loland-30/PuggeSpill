@@ -12,6 +12,7 @@ import SettingsPage from "./Pages/SettingsPage"
 import TrialPage from "./Pages/TrialPage"
 import TrialsMenuPage from "./Pages/TrialsMenuPage"
 import MultiplayerPage from "./Pages/MultiplayerPage"
+import UpdatesPage from "./Pages/UpdatesPage"
 import ThemedPage from "./components/ThemedPage"
 import AppSideNav from "./components/AppSideNav"
 import AppStartupGate from "./components/startup/AppStartupGate"
@@ -56,6 +57,7 @@ function App() {
                                     <Route path="/profile/:userId" element={<ProfileContainer />} />
                                     <Route path="/theme" element={<ThemePage />} />
                                     <Route path="/settings" element={<SettingsPage />} />
+                                    <Route path="/updates" element={<UpdatesPage />} />
                                     <Route path="/multiplayer" element={<MultiplayerPage />} />
                                     <Route path="/trials" element={<TrialsMenuPage />} />
                                     <Route path="/decks" element={<DeckPage />} />

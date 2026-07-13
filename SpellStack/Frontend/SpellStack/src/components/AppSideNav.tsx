@@ -1,5 +1,5 @@
 import type { ComponentType, MouseEventHandler } from "react"
-import { FolderOpen, LogOut, Palette, Settings, UserRound } from "lucide-react"
+import { FolderOpen, LogOut, Newspaper, Palette, Settings, UserRound } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
 
 import { useUISound } from "../audio/useUISound"
@@ -81,6 +81,12 @@ export default function AppSideNav() {
             match: pathname => pathname.startsWith("/theme")
         },
         {
+            label: t.nav.updates,
+            path: "/updates",
+            icon: Newspaper,
+            match: pathname => pathname.startsWith("/updates")
+        },
+        {
             label: t.nav.settings,
             path: "/settings",
             icon: Settings,
@@ -152,7 +158,7 @@ export default function AppSideNav() {
 
         {!mobileNavigationHidden && <nav
             aria-label="Main navigation"
-            className="pointer-events-none fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-40 grid grid-cols-4 items-center gap-2 px-1 text-white max-sm:rounded-2xl max-sm:border max-sm:border-white/15 max-sm:bg-slate-950/80 max-sm:px-2 max-sm:py-1 max-sm:shadow-2xl max-sm:backdrop-blur-xl lg:hidden"
+            className="pointer-events-none fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-40 grid grid-cols-5 items-center gap-1 px-1 text-white max-sm:rounded-2xl max-sm:border max-sm:border-white/15 max-sm:bg-slate-950/80 max-sm:px-2 max-sm:py-1 max-sm:shadow-2xl max-sm:backdrop-blur-xl sm:gap-2 lg:hidden"
         >
             {navItems.map(item => {
                 const active = item.match(location.pathname)
