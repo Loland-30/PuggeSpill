@@ -13,6 +13,12 @@ body {
     overflow-x: hidden;
 }
 
+@media (max-width: 1023px) {
+    html {
+        scroll-padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+    }
+}
+
 :root.spellstack-larger-text {
     font-size: 112.5%;
 }
