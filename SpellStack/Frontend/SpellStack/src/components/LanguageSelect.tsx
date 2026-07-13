@@ -53,7 +53,7 @@ export default function LanguageSelect({ value, onChange, placeholder = "Select 
             </button>
 
             {open && (
-                <div className={`absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border ${isRedPurple ? "border-fuchsia-400/80" : palette.border} bg-slate-950/95 p-1 shadow-2xl backdrop-blur-xl`}>
+                <div className={`absolute left-0 right-0 top-full z-50 mt-2 max-h-[min(18rem,40dvh)] overflow-y-auto overscroll-contain rounded-xl border ${isRedPurple ? "border-fuchsia-400/80" : palette.border} bg-slate-950/95 p-1 shadow-2xl backdrop-blur-xl`}>
                     {languages.map(language => {
                         const isSelected = language.code === value
 

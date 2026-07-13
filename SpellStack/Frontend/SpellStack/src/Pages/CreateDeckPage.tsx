@@ -274,10 +274,10 @@ export default function CreateDeckPage() {
 
     return (
         <PageContentTransition>
-            <AppPageShell contentClassName="max-w-[82rem]">
+            <AppPageShell contentClassName="max-w-[82rem] pb-8">
                 <div className="mx-auto w-full max-w-2xl">
                     <FadeIn>
-                        <h1 className={`mb-8 text-3xl font-bold ${palette.accentText}`}>
+                        <h1 className={`mb-6 text-2xl font-bold sm:mb-8 sm:text-3xl ${palette.accentText}`}>
                             {isEditing ? "Edit Deck" : "Create Deck"}
                         </h1>
                     </FadeIn>
@@ -324,7 +324,7 @@ export default function CreateDeckPage() {
                                     glow
                                     radius={16}
                                     radiusClass="mt-3 rounded-2xl"
-                                    contentClassName="rounded-[inherit] p-5"
+                                    contentClassName="rounded-[inherit] p-3 sm:p-5"
                                 >
                                     <div className="grid gap-3 sm:grid-cols-2">
                                         {spanishDeckPresets.map(preset => {
@@ -383,7 +383,7 @@ export default function CreateDeckPage() {
                         </div>
                     </FadeIn>
 
-                    <FadeIn className="relative z-[100] mb-4 grid grid-cols-2 gap-4 px-1">
+                    <FadeIn className="relative z-[100] mb-4 grid grid-cols-1 gap-4 px-1 sm:grid-cols-2">
                         <div className="space-y-2">
                             <LearningLanguageToggle
                                 active={learningLanguageSide === "source"}
@@ -426,7 +426,7 @@ export default function CreateDeckPage() {
                         return (
                             <FadeIn key={word.clientId} className="w-full">
                                 <div className="relative mx-auto w-full max-w-2xl">
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                         <GradientFrame glass radius={8} radiusClass="rounded-lg" className="w-full" contentClassName="rounded-[inherit]">
                                             <input
                                                 type="text"
@@ -449,7 +449,7 @@ export default function CreateDeckPage() {
                                     </div>
 
                                     {isExpanded && (
-                                        <div className="absolute left-full top-0 ml-3 w-72">
+                                        <div className="mt-3 w-full xl:absolute xl:left-full xl:top-0 xl:mt-0 xl:ml-3 xl:w-72">
                                             <GradientFrame glass radius={8} radiusClass="rounded-lg" className="w-full" contentClassName="rounded-[inherit]">
                                                 <input
                                                     type="text"
@@ -463,7 +463,7 @@ export default function CreateDeckPage() {
                                     )}
 
                                     <div
-                                        className={`absolute top-0 flex gap-3 ${isExpanded ? "left-[calc(100%_+_19.5rem)]" : "left-[calc(100%_+_0.75rem)]"}`}
+                                        className={`mt-3 flex justify-end gap-3 xl:absolute xl:top-0 xl:mt-0 xl:justify-start ${isExpanded ? "xl:left-[calc(100%_+_19.5rem)]" : "xl:left-[calc(100%_+_0.75rem)]"}`}
                                     >
                                         <button
                                             type="button"
@@ -492,7 +492,7 @@ export default function CreateDeckPage() {
                     })}
                 </div>
 
-                <FadeIn className="relative z-0 mx-auto w-full max-w-2xl">
+                <FadeIn className="relative z-0 mx-auto w-full max-w-2xl scroll-mb-28">
                     <button
                         onClick={addWordRow}
                         className={addWordClass}
@@ -510,7 +510,7 @@ export default function CreateDeckPage() {
                     <button
                         onClick={handleSubmit}
                         disabled={!deckName.trim() || !language || (!isEditing && !hasCompleteWordPair)}
-                        className={`w-full rounded-full py-3 font-semibold ${palette.primaryButtonText} transition disabled:opacity-50 ${palette.primaryButton}`}
+                        className={`min-h-12 w-full rounded-full py-3 font-semibold ${palette.primaryButtonText} transition disabled:opacity-50 ${palette.primaryButton}`}
                     >
                         {isEditing ? "Save changes" : "Create deck"}
                     </button>

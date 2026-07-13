@@ -68,6 +68,17 @@ export default function GameModeModal({
         }
     }, [isOpen, deck])
 
+    useEffect(() => {
+        if (!isOpen) return
+
+        const previousOverflow = document.body.style.overflow
+        document.body.style.overflow = "hidden"
+
+        return () => {
+            document.body.style.overflow = previousOverflow
+        }
+    }, [isOpen])
+
     const activeDeck = deck ?? displayDeck
 
     if (!activeDeck) return null
@@ -134,7 +145,7 @@ export default function GameModeModal({
             {isOpen && (
                 <motion.div
                     key="game-mode-backdrop"
-                    className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/65 px-4 py-8 backdrop-blur-sm"
+                    className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/65 p-2 backdrop-blur-sm sm:px-4 sm:py-8"
                     initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
                     animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
                     exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
@@ -142,7 +153,7 @@ export default function GameModeModal({
                     onClick={onClose}
                 >
                     <motion.div
-                        className="w-[min(94vw,82rem)]"
+                        className="max-h-[calc(100dvh-1rem)] w-full max-w-[82rem] overflow-y-auto overscroll-contain rounded-[1.5rem] sm:max-h-[calc(100dvh-4rem)] sm:w-[min(94vw,82rem)] sm:rounded-[2rem]"
                         initial={{ opacity: 0, y: 10, filter: "blur(3px)" }}
                         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                         exit={{ opacity: 0, y: 8, filter: "blur(3px)" }}
@@ -155,12 +166,12 @@ export default function GameModeModal({
                             radius={32}
                             radiusClass="rounded-[2rem]"
                             className="shadow-2xl"
-                            contentClassName="p-6 md:p-8"
+                            contentClassName="p-4 sm:p-6 md:p-8"
                         >
-                <div className="flex flex-col gap-7">
+                <div className="flex flex-col gap-5 sm:gap-7">
                     <header className="flex items-start justify-between gap-5">
                         <div>
-                            <h2 className="text-4xl font-black tracking-tight text-white md:text-5xl">
+                            <h2 className="text-2xl font-black tracking-tight text-white sm:text-4xl md:text-5xl">
                                 Set up your game
                             </h2>
                             <p className="mt-2 max-w-xl text-sm font-semibold text-white/65 md:text-base">
@@ -189,7 +200,7 @@ export default function GameModeModal({
                                     </span>
                                 )}
                             </div>
-                            <div className="mt-3 grid gap-4 md:grid-cols-3">
+                            <div className="mt-3 grid gap-3 sm:grid-cols-2 md:grid-cols-3 md:gap-4">
                                 {modeOptions.map(option => (
                                     <ModeCard
                                         key={option.direction}
@@ -227,7 +238,7 @@ export default function GameModeModal({
                         </section>
                     </div>
 
-                    <section className="rounded-[1.75rem] border border-white/10 bg-black/20 p-5 backdrop-blur-md md:p-6">
+                    <section className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-md sm:rounded-[1.75rem] sm:p-5 md:p-6">
                         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
                             <div>
                                 <SectionHeading label={t.gameMode.mods} />
@@ -267,7 +278,7 @@ export default function GameModeModal({
                         </div>
                     </section>
 
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="sticky -bottom-4 z-10 flex flex-col gap-3 border-t border-white/10 bg-slate-950/90 px-1 py-3 backdrop-blur-xl sm:static sm:flex-row sm:items-center sm:justify-between sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
                         <p className="text-sm font-semibold text-white/45">
                             {roundLimit === null ? t.gameMode.endless : `${roundLimit} ${t.gameMode.questions}`} | {formatScoreMultiplier(scoreMultiplier)}
                         </p>
@@ -276,7 +287,7 @@ export default function GameModeModal({
                             type="button"
                             onClick={() => onSelect(selectedDirection, activeModifiers, roundLimit)}
                             onMouseEnter={playHoverSound}
-                            className={`inline-flex items-center justify-center gap-3 rounded-2xl px-8 py-4 text-base font-black uppercase tracking-[0.18em] shadow-xl transition hover:-translate-y-0.5 ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`}
+                            className={`inline-flex min-h-12 w-full items-center justify-center gap-3 rounded-2xl px-6 py-3 text-sm font-black uppercase tracking-[0.14em] shadow-xl transition hover:-translate-y-0.5 sm:w-auto sm:px-8 sm:py-4 sm:text-base sm:tracking-[0.18em] ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`}
                         >
                             {primaryActionLabel}
                             <Play size={18} fill="currentColor" strokeWidth={2.4} />
@@ -314,7 +325,7 @@ function ModeCard({ option, selected, onSelect, disabled = false, palette }: {
             onClick={() => onSelect(option.direction)}
             onMouseEnter={playHoverSound}
             disabled={disabled}
-            className={`group relative min-h-[15rem] rounded-3xl border p-5 text-left transition duration-200 ${
+            className={`group relative min-h-[11rem] rounded-2xl border p-4 text-left transition duration-200 sm:min-h-[13rem] sm:rounded-3xl sm:p-5 md:min-h-[15rem] ${
                 disabled ? "cursor-not-allowed opacity-70" : "hover:bg-white/[0.07]"
             } ${
                 selected
@@ -328,10 +339,10 @@ function ModeCard({ option, selected, onSelect, disabled = false, palette }: {
                 </span>
             )}
 
-            <div className="flex h-full flex-col items-center justify-center gap-5 text-center">
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-center sm:gap-5">
                 {option.visual}
                 <div>
-                    <p className="text-2xl font-black tracking-tight text-white">{option.title}</p>
+                    <p className="text-xl font-black tracking-tight text-white sm:text-2xl">{option.title}</p>
                     <p className="mt-2 text-sm font-semibold leading-5 text-white/58">{option.description}</p>
                 </div>
             </div>
@@ -383,7 +394,7 @@ function ModifierCategorySwitch({ activeCategory, onChange, palette }: {
     ]
 
     return (
-        <div className="inline-flex h-11 items-center rounded-full border border-white/10 bg-black/30 p-1 backdrop-blur-md">
+        <div className="inline-flex h-11 w-full items-center rounded-full border border-white/10 bg-black/30 p-1 backdrop-blur-md sm:w-auto">
             {options.map(option => {
                 const isActive = activeCategory === option.value
 
@@ -393,7 +404,7 @@ function ModifierCategorySwitch({ activeCategory, onChange, palette }: {
                         type="button"
                         onClick={() => onChange(option.value)}
                         onMouseEnter={playHoverSound}
-                        className={`flex h-9 min-w-[6rem] items-center justify-center rounded-full px-4 text-sm font-black transition ${
+                        className={`flex h-9 min-w-0 flex-1 items-center justify-center rounded-full px-4 text-sm font-black transition sm:min-w-[6rem] ${
                             isActive
                                 ? `${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`
                                 : "text-white/55 hover:text-white"
@@ -447,7 +458,7 @@ function ModifierChip({ modifier, selected, onToggle, disabled, palette }: {
             onClick={() => onToggle(modifier.id)}
             onMouseEnter={playHoverSound}
             disabled={disabled}
-            className={`min-h-24 rounded-2xl border p-4 text-left transition ${
+            className={`min-h-24 rounded-2xl border p-3 text-left transition sm:p-4 ${
                 disabled
                     ? "cursor-not-allowed border-white/10 bg-white/[0.02] opacity-45"
                     : "hover:bg-white/[0.07]"
@@ -492,7 +503,7 @@ function LanguageDot({ flagUrl, label }: { flagUrl?: string; label: string }) {
         return (
             <div
                 aria-label={label}
-                className="h-16 w-16 rounded-full bg-white/10 shadow-lg"
+                className="h-12 w-12 rounded-full bg-white/10 shadow-lg sm:h-16 sm:w-16"
             />
         )
     }
@@ -501,7 +512,7 @@ function LanguageDot({ flagUrl, label }: { flagUrl?: string; label: string }) {
         <img
             src={flagUrl}
             alt={label}
-            className="h-16 w-16 rounded-full object-cover shadow-lg"
+            className="h-12 w-12 rounded-full object-cover shadow-lg sm:h-16 sm:w-16"
         />
     )
 }
