@@ -3,6 +3,7 @@ import GradientFrame from "../GradientFrame"
 import ProfileImage from "../ProfileImage"
 import type { ProfileComponentProps } from "./types"
 import { useI18n } from "../../i18n/I18nContext"
+import { LogOut } from "lucide-react"
 
 const learningLanguageLabels = {
     en: "Learning language",
@@ -22,9 +23,10 @@ export default function ProfilePage({
     onSelectLanguage,
     onProfileImageUpload,
     onProfileImageRemove,
+    onLogout,
     profileImageError
 }: ProfileComponentProps) {
-    const { appLanguage } = useI18n()
+    const { appLanguage, t } = useI18n()
     const learningLanguageLabel = learningLanguageLabels[appLanguage]
 
     return (
@@ -89,6 +91,15 @@ export default function ProfilePage({
                         <p className="mt-4 text-center text-white/70 md:text-left">
                             Account created: {createdAt}
                         </p>
+
+                        <button
+                            type="button"
+                            onClick={onLogout}
+                            className="mx-auto mt-4 flex min-h-11 items-center gap-2 rounded-full border border-white/20 bg-black/25 px-4 py-2 text-sm font-bold text-white/80 shadow-lg transition hover:border-white/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 md:mx-0 lg:hidden"
+                        >
+                            <LogOut size={17} strokeWidth={2.5} aria-hidden="true" />
+                            {t.nav.signOut}
+                        </button>
                     </div>
                 </section>
 

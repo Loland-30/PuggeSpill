@@ -47,7 +47,7 @@ export default function ProfileContainer() {
     const navigate = useNavigate()
     const location = useLocation()
     const { userId } = useParams()
-    const { user, loading, profileImage, setProfileImage } = useAuth()
+    const { user, loading, profileImage, setProfileImage, logoutUser } = useAuth()
     const { palette } = useTheme()
     const { appLanguage } = useI18n()
     const locale = getAppLanguageLocale(appLanguage)
@@ -214,6 +214,11 @@ export default function ProfileContainer() {
         }
     }
 
+    const handleLogout = async () => {
+        await logoutUser()
+        navigate("/login")
+    }
+
     const setProfilePage = (nextIndex: number) => {
         if (nextIndex === pageIndex || isPageFading) return
 
@@ -249,6 +254,7 @@ export default function ProfileContainer() {
         onSelectLanguage: setSelectedLanguageCode,
         onProfileImageUpload: handleProfileImageUpload,
         onProfileImageRemove: handleProfileImageRemove,
+        onLogout: handleLogout,
         profileImageError
     }
 
