@@ -192,7 +192,7 @@ export default function AppSideNav() {
                 {location.pathname.startsWith("/profile") && (
                     <span aria-hidden="true" className={`absolute left-1/2 top-0 h-0.5 w-6 -translate-x-1/2 rounded-full sm:hidden ${palette.primaryButton}`} />
                 )}
-                <span className={`relative grid h-10 w-10 place-items-center overflow-hidden rounded-full border ${palette.border} ${profileImage ? "bg-slate-900" : palette.primaryButton} text-sm font-black transition sm:h-9 sm:w-9 sm:drop-shadow-none ${location.pathname.startsWith("/profile") ? "shadow-none" : "drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]"}`}>
+                <span className={`relative grid h-[2.625rem] w-[2.625rem] place-items-center overflow-hidden rounded-full border ${palette.border} ${profileImage ? "bg-slate-900" : palette.primaryButton} text-sm font-black transition sm:h-9 sm:w-9 sm:drop-shadow-none ${location.pathname.startsWith("/profile") ? "shadow-none" : "drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]"}`}>
                     {user ? user.username.slice(0, 1).toUpperCase() : <UserRound size={19} strokeWidth={2.5} />}
                     <ProfileImage
                         src={profileImage}
