@@ -152,7 +152,7 @@ export default function AppSideNav() {
 
         {!mobileNavigationHidden && <nav
             aria-label="Main navigation"
-            className="pointer-events-none fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-40 grid grid-cols-4 items-stretch gap-2 px-1 text-white lg:hidden"
+            className="pointer-events-none fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-40 grid grid-cols-4 items-center gap-2 px-1 text-white max-sm:rounded-2xl max-sm:border max-sm:border-white/15 max-sm:bg-slate-950/80 max-sm:px-2 max-sm:py-1 max-sm:shadow-2xl max-sm:backdrop-blur-xl lg:hidden"
         >
             {navItems.map(item => {
                 const active = item.match(location.pathname)
@@ -163,12 +163,15 @@ export default function AppSideNav() {
                         key={item.path}
                         type="button"
                         onClick={() => navigate(item.path)}
+                        aria-label={item.label}
                         aria-current={active ? "page" : undefined}
-                        className={`pointer-events-auto relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2 text-[0.65rem] font-bold shadow-lg backdrop-blur-md outline-none transition focus-visible:ring-2 focus-visible:ring-white/60 ${active ? `${palette.border} bg-slate-950/90 text-white ${palette.glow}` : "border-white/10 bg-slate-950/75 text-white/70"}`}
+                        className={`pointer-events-auto relative flex min-h-11 min-w-0 items-center justify-center bg-transparent text-white/70 outline-none transition focus-visible:rounded-xl focus-visible:ring-2 focus-visible:ring-white/70 sm:min-h-14 sm:flex-col sm:gap-1 sm:rounded-xl sm:border sm:px-1 sm:py-2 sm:text-[0.65rem] sm:font-bold sm:shadow-lg sm:backdrop-blur-md ${active ? `${palette.border} text-white sm:bg-slate-950/90 ${palette.glow} max-sm:border-transparent max-sm:bg-transparent max-sm:shadow-none` : "border-white/10 sm:bg-slate-950/75"}`}
                     >
-                        {active && <span aria-hidden="true" className={`absolute inset-x-2 top-0 h-0.5 rounded-full ${palette.primaryButton}`} />}
-                        <Icon size={20} strokeWidth={2.5} aria-hidden="true" />
-                        <span className="w-full truncate text-center">{item.label}</span>
+                        {active && <span aria-hidden="true" className={`absolute inset-x-2 top-0 hidden h-0.5 rounded-full sm:block ${palette.primaryButton}`} />}
+                        <span className={`grid h-11 w-11 place-items-center rounded-full transition sm:h-auto sm:w-auto sm:bg-transparent sm:text-inherit sm:shadow-none sm:drop-shadow-none ${active ? "bg-cyan-300/15 text-cyan-100 shadow-[0_0_18px_rgba(56,189,248,0.58)]" : "drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]"}`}>
+                            <Icon size={21} strokeWidth={2.5} aria-hidden="true" />
+                        </span>
+                        <span className="hidden w-full truncate text-center sm:block">{item.label}</span>
                     </button>
                 )
             })}
@@ -178,9 +181,9 @@ export default function AppSideNav() {
                 onClick={() => navigate(user ? "/profile" : "/login")}
                 aria-label={t.nav.openProfile}
                 aria-current={location.pathname.startsWith("/profile") ? "page" : undefined}
-                className={`pointer-events-auto relative grid min-h-14 place-items-center rounded-xl border bg-slate-950/80 shadow-lg backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${location.pathname.startsWith("/profile") ? `${palette.border} ${palette.glow}` : "border-white/10"}`}
+                className={`pointer-events-auto relative grid min-h-11 place-items-center bg-transparent outline-none focus-visible:rounded-xl focus-visible:ring-2 focus-visible:ring-white/70 sm:min-h-14 sm:rounded-xl sm:border sm:bg-slate-950/80 sm:shadow-lg sm:backdrop-blur-md ${location.pathname.startsWith("/profile") ? `${palette.border} ${palette.glow} max-sm:border-transparent max-sm:shadow-none` : "border-white/10"}`}
             >
-                <span className={`relative grid h-9 w-9 place-items-center overflow-hidden rounded-full border ${palette.border} ${profileImage ? "bg-slate-900" : palette.primaryButton} text-sm font-black`}>
+                <span className={`relative grid h-10 w-10 place-items-center overflow-hidden rounded-full border ${palette.border} ${profileImage ? "bg-slate-900" : palette.primaryButton} text-sm font-black transition sm:h-9 sm:w-9 sm:drop-shadow-none ${location.pathname.startsWith("/profile") ? "ring-2 ring-cyan-200/75 shadow-[0_0_18px_rgba(56,189,248,0.58)] sm:ring-0 sm:shadow-none" : "drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]"}`}>
                     {user ? user.username.slice(0, 1).toUpperCase() : <UserRound size={19} strokeWidth={2.5} />}
                     <ProfileImage
                         src={profileImage}
