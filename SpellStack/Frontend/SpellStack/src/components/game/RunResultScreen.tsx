@@ -170,7 +170,7 @@ function GameRunResultScreen({
     }, [finalScore, correctAnswers, wrongAnswers, bestCombo, accuracy])
 
     return (
-        <div className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+        <div className="relative min-h-screen min-h-dvh overflow-x-hidden bg-slate-950 text-white">
             {statPopupSoundKey > 0 && <ResultStatPopupSound key={statPopupSoundKey} />}
 
             <img
@@ -182,16 +182,16 @@ function GameRunResultScreen({
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.72)_0%,rgba(0,0,0,0.34)_45%,rgba(0,0,0,0.58)_100%)]" />
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.18)_0%,rgba(0,0,0,0.12)_42%,rgba(0,0,0,0.62)_100%)]" />
 
-            <main className="relative z-10 mx-auto grid min-h-screen w-[min(92vw,96rem)] grid-rows-[auto_1fr] py-8">
-                <h1 className="text-center text-4xl font-black tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.45)] md:text-5xl">
+            <main className="relative z-10 mx-auto grid min-h-dvh w-[calc(100%_-_2rem)] max-w-[96rem] grid-rows-[auto_1fr] py-4 sm:w-[min(92vw,96rem)] sm:py-8">
+                <h1 className="text-center text-3xl font-black tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.45)] sm:text-4xl md:text-5xl">
                     Results
                 </h1>
 
-                <section className="grid min-h-0 items-center gap-10 py-8 lg:grid-cols-[minmax(0,1fr)_minmax(25rem,34rem)] lg:gap-20 xl:grid-cols-[minmax(46rem,1fr)_clamp(30rem,34vw,38rem)] xl:gap-28 2xl:gap-32">
-                    <div className="flex min-h-0 flex-col justify-center gap-20 lg:gap-28">
+                <section className="grid min-h-0 items-center gap-10 py-5 sm:py-8 lg:grid-cols-[minmax(0,1fr)_minmax(25rem,34rem)] lg:gap-20 xl:grid-cols-[minmax(46rem,1fr)_clamp(30rem,34vw,38rem)] xl:gap-28 2xl:gap-32">
+                    <div className="flex min-h-0 min-w-0 flex-col justify-center gap-10 sm:gap-16 lg:gap-28">
                         <div className="max-w-3xl text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.45)]">
-                            <div className="flex flex-wrap items-end gap-4">
-                                <h2 className="text-4xl font-black tracking-tight md:text-5xl">
+                            <div className="flex flex-wrap items-end gap-3 sm:gap-4">
+                                <h2 className="min-w-0 break-words text-2xl font-black tracking-tight sm:text-4xl md:text-5xl">
                                     {deck?.name ?? "Deck name"}
                                 </h2>
 
@@ -201,20 +201,20 @@ function GameRunResultScreen({
                                 </div>
                             </div>
 
-                            <div className="mt-5 space-y-2 text-xl font-semibold text-white/90">
+                            <div className="mt-4 space-y-2 text-base font-semibold text-white/90 sm:mt-5 sm:text-xl">
                                 <InfoLine icon={<Box size={23} />} label={directionLabel} />
                                 <InfoLine icon={<Clock size={24} />} label={lengthLabel} />
                             </div>
                         </div>
 
                         <div className="max-w-[64rem]">
-                            <div className="mb-5 flex items-center gap-10">
+                            <div className="mb-5 flex items-center gap-6 sm:gap-10">
                                 <TabButton label="General" active={activeTab === "general"} onClick={() => setActiveTab("general")} />
                                 <TabButton label="Rush hour" active={activeTab === "rushHour"} onClick={() => setActiveTab("rushHour")} />
                             </div>
 
                             {activeTab === "general" ? (
-                                <div className="grid gap-4 sm:grid-cols-2 xl:[grid-template-columns:repeat(4,minmax(13rem,1fr))]">
+                                <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:[grid-template-columns:repeat(4,minmax(13rem,1fr))]">
                                     <StatCard label="Answered correctly" value={correctAnswers} revealed={revealStep >= 1} />
                                     <StatCard label="Answered incorrectly" value={wrongAnswers} revealed={revealStep >= 2} />
                                     <StatCard label="Highest Combo" value={bestCombo} revealed={revealStep >= 3} />
@@ -238,14 +238,14 @@ function GameRunResultScreen({
                                 onClick={() => {
                                     if (showContinue) setActionsOpen(true)
                                 }}
-                                className={`mt-10 rounded-full px-10 py-3 text-lg font-bold shadow-[0_18px_45px_rgba(0,0,0,0.26)] transition-all duration-300 ease-out ${showContinue ? `translate-y-0 opacity-100 hover:-translate-y-0.5 ${palette.primaryButton} ${palette.primaryButtonText}` : "pointer-events-none translate-y-2 bg-white/20 text-white/40 opacity-0"}`}
+                                className={`mt-8 min-h-12 w-full rounded-full px-8 py-3 text-base font-bold shadow-[0_18px_45px_rgba(0,0,0,0.26)] transition-all duration-300 ease-out sm:mt-10 sm:w-auto sm:px-10 sm:text-lg ${showContinue ? `translate-y-0 opacity-100 hover:-translate-y-0.5 ${palette.primaryButton} ${palette.primaryButtonText}` : "pointer-events-none translate-y-2 bg-white/20 text-white/40 opacity-0"}`}
                             >
                                 Continue
                             </button>
                         </div>
                     </div>
 
-                    <aside className="flex flex-col items-center justify-center gap-10 text-center">
+                    <aside className="flex min-w-0 flex-col items-center justify-center gap-6 text-center sm:gap-10">
                         <GradeRing
                             rank={rank}
                             accuracy={accuracy}
@@ -253,15 +253,15 @@ function GameRunResultScreen({
                             animationDurationMs={RING_FILL_DURATION_MS}
                             fillVisible={showRingFill}
                             onAnimationComplete={handleRingAnimationComplete}
-                            sizeClassName="h-[clamp(24rem,34vw,36rem)] w-[clamp(24rem,34vw,36rem)]"
+                            sizeClassName="h-[min(17rem,86vw)] w-[min(17rem,86vw)] sm:h-[clamp(24rem,34vw,36rem)] sm:w-[clamp(24rem,34vw,36rem)]"
                         />
 
                         <div className="text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.48)]">
-                            <p className="text-3xl font-medium">Final Score</p>
-                            <p className={`mt-3 text-6xl font-black tracking-wide transition-all duration-300 ease-out md:text-7xl ${revealStep >= 5 ? "translate-y-0 scale-100 opacity-100" : "translate-y-1 scale-90 opacity-0"}`}>
+                            <p className="text-xl font-medium sm:text-3xl">Final Score</p>
+                            <p className={`mt-2 break-all text-4xl font-black tracking-wide transition-all duration-300 ease-out sm:mt-3 sm:text-6xl md:text-7xl ${revealStep >= 5 ? "translate-y-0 scale-100 opacity-100" : "translate-y-1 scale-90 opacity-0"}`}>
                                 {formatResultNumber(finalScore)}
                             </p>
-                            <p className={`mt-7 flex items-center justify-center gap-4 text-2xl font-semibold text-white/85 transition-all duration-300 ease-out ${revealStep >= 5 ? "translate-y-0 scale-100 opacity-100" : "translate-y-1 scale-90 opacity-0"}`}>
+                            <p className={`mt-4 flex items-center justify-center gap-3 text-lg font-semibold text-white/85 transition-all duration-300 ease-out sm:mt-7 sm:gap-4 sm:text-2xl ${revealStep >= 5 ? "translate-y-0 scale-100 opacity-100" : "translate-y-1 scale-90 opacity-0"}`}>
                                 <Award size={30} strokeWidth={2.2} />
                                 <span>{formatResultNumber(highScoreValue)}</span>
                             </p>
@@ -277,7 +277,7 @@ function GameRunResultScreen({
 
             {actionsOpen && (
                 <div
-                    className="fixed inset-0 z-50 grid place-items-center bg-black/62 px-6 backdrop-blur-md"
+                    className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/62 px-4 py-[max(1rem,env(safe-area-inset-top))] backdrop-blur-md sm:px-6"
                     role="dialog"
                     aria-modal="true"
                     aria-label="Run actions"
@@ -288,7 +288,7 @@ function GameRunResultScreen({
                     <div
                         ref={overlayRef}
                         tabIndex={-1}
-                        className="flex w-full max-w-[26rem] flex-col items-stretch gap-12 outline-none"
+                        className="flex w-full max-w-[26rem] flex-col items-stretch gap-6 outline-none sm:gap-12"
                     >
                         <ActionButton
                             icon={<Play size={28} strokeWidth={2.2} />}
@@ -377,7 +377,7 @@ function LegacyRunResultScreen({
                 </div>
             )}
 
-            <div className="flex gap-4">
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:gap-4">
                 <button
                     onClick={onPrimaryAction}
                     className="rounded-full bg-orange-400 px-8 py-3 font-semibold text-white transition hover:bg-orange-500"
@@ -397,8 +397,8 @@ function LegacyRunResultScreen({
 
 function FlagStack({ flagUrl, label }: { flagUrl?: string; label?: string }) {
     return (
-        <span className="grid min-w-[4.25rem] justify-items-center gap-1 text-xs font-semibold text-white/90">
-            {flagUrl && <img src={flagUrl} alt="" className="h-11 w-[4.25rem] rounded-md object-cover shadow-[0_8px_18px_rgba(0,0,0,0.32)]" />}
+        <span className="grid min-w-[3rem] justify-items-center gap-1 text-[0.65rem] font-semibold text-white/90 sm:min-w-[4.25rem] sm:text-xs">
+            {flagUrl && <img src={flagUrl} alt="" className="h-8 w-12 rounded-md object-cover shadow-[0_8px_18px_rgba(0,0,0,0.32)] sm:h-11 sm:w-[4.25rem]" />}
             {label && <span>{label}</span>}
         </span>
     )
@@ -420,7 +420,7 @@ function TabButton({ label, active, onClick }: { label: string; active: boolean;
         <button
             type="button"
             onClick={onClick}
-            className={`text-xl font-semibold transition md:text-2xl ${active ? palette.accentText : "text-white hover:text-white/80"}`}
+            className={`min-h-11 text-base font-semibold transition sm:text-xl md:text-2xl ${active ? palette.accentText : "text-white hover:text-white/80"}`}
         >
             {label}
         </button>
@@ -429,9 +429,9 @@ function TabButton({ label, active, onClick }: { label: string; active: boolean;
 
 function StatCard({ label, value, revealed }: { label: string; value: number | string; revealed: boolean }) {
     return (
-        <div className="min-h-32 min-w-52 rounded-xl border border-white/5 bg-black/32 px-6 py-5 text-center shadow-[0_18px_45px_rgba(0,0,0,0.24)] backdrop-blur-md">
-            <p className="whitespace-nowrap text-base font-medium leading-snug text-white/90 md:text-lg">{label}</p>
-            <p className={`mt-4 text-5xl font-black text-white transition-all duration-300 ease-out md:text-6xl ${revealed ? "translate-y-0 scale-100 opacity-100" : "translate-y-1 scale-90 opacity-0"}`}>
+        <div className="min-h-28 min-w-0 rounded-xl border border-white/5 bg-black/32 px-3 py-4 text-center shadow-[0_18px_45px_rgba(0,0,0,0.24)] backdrop-blur-md sm:min-h-32 sm:px-6 sm:py-5">
+            <p className="text-sm font-medium leading-snug text-white/90 sm:text-base md:text-lg">{label}</p>
+            <p className={`mt-3 text-3xl font-black text-white transition-all duration-300 ease-out sm:mt-4 sm:text-5xl md:text-6xl ${revealed ? "translate-y-0 scale-100 opacity-100" : "translate-y-1 scale-90 opacity-0"}`}>
                 {value}
             </p>
         </div>
@@ -464,7 +464,7 @@ const ActionButton = forwardRef<HTMLButtonElement, {
             onMouseLeave={onInactive}
             onFocus={onActive}
             onBlur={onInactive}
-            className="group relative h-16 w-full text-center text-3xl font-medium text-white outline-none md:text-4xl"
+            className="group relative min-h-14 w-full text-center text-2xl font-medium text-white outline-none sm:h-16 sm:text-3xl md:text-4xl"
         >
             <span
                 aria-hidden="true"

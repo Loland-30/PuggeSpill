@@ -153,7 +153,7 @@ export default function GradeRing({
                 ))}
             </svg>
 
-            <p className={`text-8xl font-black text-white drop-shadow-[0_0_24px_rgba(255,255,255,0.2)] transition-transform duration-200 ease-out md:text-9xl ${rankPop ? "scale-110" : "scale-100"}`}>
+            <p className={`text-6xl font-black text-white drop-shadow-[0_0_24px_rgba(255,255,255,0.2)] transition-transform duration-200 ease-out sm:text-8xl md:text-9xl ${rankPop ? "scale-110" : "scale-100"}`}>
                 {displayRank}
             </p>
         </div>
