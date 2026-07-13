@@ -133,7 +133,7 @@ export default function AppStartupGate({ children }: AppStartupGateProps) {
                             {step === "startup-tip" && (
                                 <motion.div
                                     key="startup-tip"
-                                    className="max-w-4xl text-center text-2xl font-medium leading-relaxed text-white sm:text-3xl"
+                                    className="mx-auto w-full max-w-[22rem] whitespace-normal break-words px-2 text-center text-xl font-medium leading-relaxed text-white sm:max-w-4xl sm:text-3xl"
                                     initial={prefersReducedMotion ? false : { opacity: 0 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
@@ -196,7 +196,7 @@ function StartupOverlay({
 
     return (
         <motion.div
-            className="fixed inset-0 z-[10000] grid min-h-screen place-items-center overflow-hidden bg-slate-950 px-6 text-white"
+            className="fixed inset-0 z-[10000] flex min-h-screen min-h-dvh items-center justify-center overflow-hidden bg-slate-950 px-4 text-white sm:px-6"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -218,7 +218,7 @@ function StartupOverlay({
             )}
             {useThemeBackground && <div className="absolute inset-0 bg-black" style={{ opacity: overlayOpacity }} />}
             {!forceBlack && <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-cyan-950/30 to-transparent" />}
-            <div className="relative z-10">{children}</div>
+            <div className="relative z-10 w-full min-w-0">{children}</div>
         </motion.div>
     )
 }
