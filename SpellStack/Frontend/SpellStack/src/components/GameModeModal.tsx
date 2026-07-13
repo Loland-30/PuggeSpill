@@ -11,6 +11,7 @@ import { readGameplaySettings, resolveDefaultGameDirection, toRoundLimit } from 
 import GradientFrame from "./GradientFrame"
 import { MODIFIER_DEFINITIONS, type ModifierCategory, type ModifierDefinition } from "./mods/modifierData"
 import { formatScoreMultiplier, getModifierScoreLabel, getModifierScoreMultiplier, toggleModifier } from "./mods/modifierUtils"
+import { useMobileNavigation } from "./navigation/MobileNavigationContext"
 
 interface Props {
     isOpen: boolean
@@ -58,6 +59,7 @@ export default function GameModeModal({
     const { t } = useI18n()
     const { palette } = useTheme()
     const { playHoverSound } = useUISound()
+    const { setHidden: setMobileNavigationHidden } = useMobileNavigation()
 
     useEffect(() => {
         if (isOpen && deck) {
@@ -71,13 +73,15 @@ export default function GameModeModal({
     useEffect(() => {
         if (!isOpen) return
 
+        setMobileNavigationHidden(true)
         const previousOverflow = document.body.style.overflow
         document.body.style.overflow = "hidden"
 
         return () => {
+            setMobileNavigationHidden(false)
             document.body.style.overflow = previousOverflow
         }
-    }, [isOpen])
+    }, [isOpen, setMobileNavigationHidden])
 
     const activeDeck = deck ?? displayDeck
 

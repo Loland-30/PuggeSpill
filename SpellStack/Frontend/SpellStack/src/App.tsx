@@ -17,6 +17,7 @@ import AppSideNav from "./components/AppSideNav"
 import AppStartupGate from "./components/startup/AppStartupGate"
 import MainMenuAudio from "./components/audio/MainMenuAudio"
 import { AchievementNotificationProvider } from "./achievements/AchievementNotificationContext"
+import { MobileNavigationProvider } from "./components/navigation/MobileNavigationContext"
 
 function App() {
     const location = useLocation()
@@ -26,6 +27,7 @@ function App() {
     const lockPageScroll = location.pathname === "/trials" || location.pathname === "/multiplayer"
 
     return (
+        <MobileNavigationProvider>
         <AppStartupGate>
             <AchievementNotificationProvider>
                 {isGameplay ? (
@@ -66,6 +68,7 @@ function App() {
                 )}
             </AchievementNotificationProvider>
         </AppStartupGate>
+        </MobileNavigationProvider>
     )
 }
 

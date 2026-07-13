@@ -7,6 +7,7 @@ import { useAuth } from "../auth/AuthContext"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
 import ProfileImage from "./ProfileImage"
+import { useMobileNavigation } from "./navigation/MobileNavigationContext"
 
 interface NavItem {
     label: string
@@ -64,6 +65,7 @@ export default function AppSideNav() {
     const { t } = useI18n()
     const { palette } = useTheme()
     const { playHoverSound } = useUISound()
+    const { hidden: mobileNavigationHidden } = useMobileNavigation()
 
     const navItems: NavItem[] = [
         {
@@ -148,9 +150,9 @@ export default function AppSideNav() {
             </button>
         </aside>
 
-        <nav
+        {!mobileNavigationHidden && <nav
             aria-label="Main navigation"
-            className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 grid min-h-16 grid-cols-5 items-stretch overflow-hidden rounded-2xl border border-white/15 bg-slate-950/90 px-1 py-1 text-white shadow-2xl backdrop-blur-xl lg:hidden"
+            className="pointer-events-none fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-40 grid grid-cols-4 items-stretch gap-2 px-1 text-white lg:hidden"
         >
             {navItems.map(item => {
                 const active = item.match(location.pathname)
@@ -162,7 +164,7 @@ export default function AppSideNav() {
                         type="button"
                         onClick={() => navigate(item.path)}
                         aria-current={active ? "page" : undefined}
-                        className={`relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[0.65rem] font-bold outline-none transition focus-visible:ring-2 focus-visible:ring-white/60 ${active ? "text-white" : "text-white/60"}`}
+                        className={`pointer-events-auto relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2 text-[0.65rem] font-bold shadow-lg backdrop-blur-md outline-none transition focus-visible:ring-2 focus-visible:ring-white/60 ${active ? `${palette.border} bg-slate-950/90 text-white ${palette.glow}` : "border-white/10 bg-slate-950/75 text-white/70"}`}
                     >
                         {active && <span aria-hidden="true" className={`absolute inset-x-2 top-0 h-0.5 rounded-full ${palette.primaryButton}`} />}
                         <Icon size={20} strokeWidth={2.5} aria-hidden="true" />
@@ -176,7 +178,7 @@ export default function AppSideNav() {
                 onClick={() => navigate(user ? "/profile" : "/login")}
                 aria-label={t.nav.openProfile}
                 aria-current={location.pathname.startsWith("/profile") ? "page" : undefined}
-                className="relative grid min-h-11 place-items-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                className={`pointer-events-auto relative grid min-h-14 place-items-center rounded-xl border bg-slate-950/80 shadow-lg backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${location.pathname.startsWith("/profile") ? `${palette.border} ${palette.glow}` : "border-white/10"}`}
             >
                 <span className={`relative grid h-9 w-9 place-items-center overflow-hidden rounded-full border ${palette.border} ${profileImage ? "bg-slate-900" : palette.primaryButton} text-sm font-black`}>
                     {user ? user.username.slice(0, 1).toUpperCase() : <UserRound size={19} strokeWidth={2.5} />}
@@ -188,15 +190,7 @@ export default function AppSideNav() {
                 </span>
             </button>
 
-            <button
-                type="button"
-                onClick={handleLogout}
-                aria-label={t.nav.signOut}
-                className="grid min-h-11 place-items-center rounded-xl text-white/60 outline-none transition hover:text-white focus-visible:ring-2 focus-visible:ring-white/60"
-            >
-                <LogOut size={21} strokeWidth={2.5} />
-            </button>
-        </nav>
+        </nav>}
         </>
     )
 }
