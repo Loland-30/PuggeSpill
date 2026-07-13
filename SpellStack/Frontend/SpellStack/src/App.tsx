@@ -17,7 +17,7 @@ import AppSideNav from "./components/AppSideNav"
 import AppStartupGate from "./components/startup/AppStartupGate"
 import MainMenuAudio from "./components/audio/MainMenuAudio"
 import { AchievementNotificationProvider } from "./achievements/AchievementNotificationContext"
-import { MobileNavigationProvider } from "./components/navigation/MobileNavigationContext"
+import MobileNavigationProvider from "./components/navigation/MobileNavigationProvider"
 
 function App() {
     const location = useLocation()

@@ -11,7 +11,7 @@ import { readGameplaySettings, resolveDefaultGameDirection, toRoundLimit } from 
 import GradientFrame from "./GradientFrame"
 import { MODIFIER_DEFINITIONS, type ModifierCategory, type ModifierDefinition } from "./mods/modifierData"
 import { formatScoreMultiplier, getModifierScoreLabel, getModifierScoreMultiplier, toggleModifier } from "./mods/modifierUtils"
-import { useMobileNavigation } from "./navigation/MobileNavigationContext"
+import useMobileNavigation from "./navigation/useMobileNavigation"
 
 interface Props {
     isOpen: boolean
