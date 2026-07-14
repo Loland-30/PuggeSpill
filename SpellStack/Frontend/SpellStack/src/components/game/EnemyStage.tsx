@@ -37,7 +37,7 @@ function EnemyStage({
 
                 <div aria-hidden="true" className="hidden min-h-24 sm:block" />
 
-                <div className="relative flex min-w-0 justify-center md:justify-start">
+                <div className="relative flex w-full min-w-0 justify-center sm:w-auto md:justify-start">
                     <div className="absolute -top-14 left-1/2 z-10 w-[min(18rem,82vw)] -translate-x-1/2 text-white sm:-top-16 sm:w-72 md:left-10 md:translate-x-0 lg:-top-20">
                         <div className="flex items-end justify-between gap-2 text-sm font-black drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)] sm:gap-3 sm:text-2xl">
                             <span className="truncate">{enemy.name}</span>
