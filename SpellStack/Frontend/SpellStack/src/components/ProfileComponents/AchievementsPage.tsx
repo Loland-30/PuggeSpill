@@ -103,7 +103,7 @@ export default function AchievementsPage() {
     return (
         <div
             onWheel={event => event.stopPropagation()}
-            className="mx-auto flex h-full w-full max-w-[102rem] flex-col overflow-y-auto pb-10 pt-12 pr-2"
+            className="mx-auto flex w-full max-w-[102rem] flex-col pb-10 pt-12 pr-2 min-[1400px]:h-full min-[1400px]:overflow-y-auto"
         >
             <header className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-end">
                 <div>

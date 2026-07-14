@@ -50,7 +50,7 @@ export default function TrialsMenuPage() {
     if (!firstTrial) return null
 
     return (
-        <AppPageShell contentClassName="mt-4 flex min-h-[calc(100dvh-7rem)] flex-col sm:mt-14 lg:h-[calc(100dvh-8rem)] lg:overflow-hidden">
+        <AppPageShell contentClassName="mt-4 flex min-h-[calc(100dvh-7rem)] flex-col sm:mt-14 min-[1400px]:h-[calc(100dvh-8rem)] min-[1400px]:overflow-hidden">
             <LibraryPageToolbar reserveActionsSlot />
 
             <PageContentTransition className="flex flex-1">

@@ -246,8 +246,8 @@ export default function MultiplayerPage() {
             )}
 
             <AppPageShell
-                className="!min-h-[calc(100dvh-2rem)] overflow-x-hidden xl:!min-h-[calc(100dvh-4rem)] xl:overflow-hidden"
-                contentClassName="mt-4 flex min-h-[calc(100dvh-7rem)] flex-col sm:mt-14 xl:h-[calc(100dvh-8rem)] xl:min-h-0"
+                className="!min-h-[calc(100dvh-2rem)] overflow-x-hidden min-[1400px]:!min-h-[calc(100dvh-4rem)] min-[1400px]:overflow-hidden"
+                contentClassName="mt-4 flex min-h-[calc(100dvh-7rem)] flex-col sm:mt-14 min-[1400px]:h-[calc(100dvh-8rem)] min-[1400px]:min-h-0"
             >
                 <LibraryPageToolbar reserveActionsSlot />
 
@@ -286,7 +286,7 @@ export default function MultiplayerPage() {
             </AppPageShell>
 
             {room && (
-                <aside className="fixed right-9 top-[calc(50%+0.75rem)] z-30 hidden w-80 -translate-y-1/2 xl:block 2xl:w-[21rem]">
+                <aside className="fixed right-9 top-[calc(50%+0.75rem)] z-30 hidden w-80 -translate-y-1/2 min-[1400px]:block 2xl:w-[21rem]">
                     <PlayersPanel
                         players={players}
                         currentHostId={currentHostId}
@@ -454,7 +454,7 @@ function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConf
                 </div>
             </section>
 
-            <aside className="mt-8 w-full xl:hidden">
+            <aside className="mt-8 w-full min-[1400px]:hidden">
                 <PlayersPanel players={players} currentHostId={currentHostId} maxPlayers={maxPlayers} palette={palette} />
             </aside>
         </FadeIn>

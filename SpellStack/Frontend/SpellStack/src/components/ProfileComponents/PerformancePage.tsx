@@ -73,9 +73,9 @@ export default function PerformancePage({
     })
 
     return (
-        <div className="mx-auto flex min-h-[calc(100dvh-12rem)] w-full max-w-[102rem] items-center justify-center py-8 sm:pt-20">
-            <div className="grid w-full max-w-[84rem] items-center justify-center gap-10 lg:grid-cols-[minmax(0,52rem)_minmax(26rem,34rem)] xl:gap-16">
-            <div className="self-start">
+        <div className="mx-auto flex min-h-[calc(100dvh-12rem)] w-full max-w-[102rem] items-center justify-center py-8 sm:pt-14 min-[1400px]:pt-20">
+            <div className="grid w-full max-w-[84rem] min-w-0 items-center justify-center gap-12 min-[1180px]:grid-cols-[minmax(30rem,1fr)_minmax(22rem,32rem)] min-[1180px]:gap-10 2xl:gap-16">
+            <div className="min-w-0 self-start">
                 <PerformanceTabs
                     activeTab={activeTab}
                     onSelectTab={setActiveTab}
@@ -111,10 +111,11 @@ export default function PerformancePage({
                 )}
             </div>
 
-            <div className="flex min-w-0 flex-col items-center justify-center justify-self-center lg:justify-self-end">
+            <div className="flex min-w-0 flex-col items-center justify-center justify-self-center min-[1180px]:justify-self-end">
                 <GradeRing
                     rank={performance.rank}
                     accuracy={performance.averageAccuracy}
+                    sizeClassName="h-[clamp(17rem,60vw,24rem)] w-[clamp(17rem,60vw,24rem)] min-[1180px]:h-[clamp(20rem,26vw,24rem)] min-[1180px]:w-[clamp(20rem,26vw,24rem)] 2xl:h-[clamp(22rem,30vw,32rem)] 2xl:w-[clamp(22rem,30vw,32rem)]"
                 />
 
                 <div className="mt-8 max-w-full text-center">
@@ -140,7 +141,7 @@ function PerformanceTabs({
     const { palette } = useTheme()
 
     return (
-        <div className="flex flex-wrap gap-6 text-xl text-white/80 sm:gap-14 sm:text-3xl">
+        <div className="flex flex-wrap gap-x-6 gap-y-3 text-xl text-white/80 sm:gap-x-10 sm:text-3xl min-[1180px]:gap-x-14">
             {performanceTabs.map(tab => (
                 <button
                     key={tab}
@@ -235,7 +236,7 @@ function GeneralPanel({
 }) {
     return (
         <>
-            <div className="mt-10 grid max-w-[44rem] gap-5 sm:grid-cols-2">
+            <div className="mt-10 grid w-full max-w-[44rem] grid-cols-[repeat(auto-fit,minmax(min(15rem,100%),1fr))] gap-5">
                 <PerformanceStat
                     label="Average response time"
                     value={`${performance.responseTime}s`}
@@ -266,7 +267,7 @@ function GeneralPanel({
 
 function RushHourPanel({ performance }: { performance: PerformanceSnapshot }) {
     return (
-        <div className="mt-10 grid max-w-[44rem] gap-5 sm:grid-cols-2">
+        <div className="mt-10 grid w-full max-w-[44rem] grid-cols-[repeat(auto-fit,minmax(min(15rem,100%),1fr))] gap-5">
             <PerformanceStat
                 label="Rush Hours triggered"
                 value={performance.rushHoursTriggered.toString()}
@@ -289,7 +290,7 @@ function RushHourPanel({ performance }: { performance: PerformanceSnapshot }) {
 
 function TrialsPanel({ performance }: { performance: PerformanceSnapshot }) {
     return (
-        <div className="mt-10 grid max-w-[44rem] gap-5 sm:grid-cols-2">
+        <div className="mt-10 grid w-full max-w-[44rem] grid-cols-[repeat(auto-fit,minmax(min(15rem,100%),1fr))] gap-5">
             <PerformanceStat
                 label="Trials attempted"
                 value={performance.trialsAttempted.toString()}
@@ -317,8 +318,8 @@ function PerformanceStat({ label, value }: { label: string; value: string }) {
     const { palette } = useTheme()
 
     return (
-        <div className={`rounded-lg border ${palette.border} ${palette.card} px-6 py-5 text-center ${palette.glow}`}>
-            <p className="text-xl text-white">{label}</p>
+        <div className={`min-w-0 rounded-lg border ${palette.border} ${palette.card} px-5 py-5 text-center sm:px-6 ${palette.glow}`}>
+            <p className="text-lg leading-7 text-white sm:text-xl">{label}</p>
             <p className="mt-3 text-3xl font-semibold text-white">{value}</p>
         </div>
     )

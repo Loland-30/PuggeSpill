@@ -101,7 +101,7 @@ export default function AppSideNav() {
 
     return (
         <>
-        <aside className="fixed left-8 top-8 z-40 hidden h-[calc(100dvh-4rem)] w-44 flex-col text-white lg:flex">
+        <aside className="fixed left-8 top-8 z-40 hidden h-[calc(100dvh-4rem)] w-44 flex-col text-white min-[1400px]:flex">
             <button
                 type="button"
                 onClick={() => navigate(user ? "/profile" : "/login")}
@@ -158,7 +158,7 @@ export default function AppSideNav() {
 
         {!mobileNavigationHidden && <nav
             aria-label="Main navigation"
-            className="pointer-events-none fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-40 grid grid-cols-5 items-center gap-1 px-1 text-white max-sm:rounded-2xl max-sm:border max-sm:border-white/15 max-sm:bg-slate-950/80 max-sm:px-2 max-sm:py-1 max-sm:shadow-2xl max-sm:backdrop-blur-xl sm:gap-2 lg:hidden"
+            className="pointer-events-none fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-40 grid grid-cols-5 items-center gap-1 px-1 text-white max-sm:rounded-2xl max-sm:border max-sm:border-white/15 max-sm:bg-slate-950/80 max-sm:px-2 max-sm:py-1 max-sm:shadow-2xl max-sm:backdrop-blur-xl sm:left-1/2 sm:right-auto sm:w-[min(calc(100vw-2rem),42rem)] sm:-translate-x-1/2 sm:gap-2 sm:rounded-2xl sm:border sm:border-white/15 sm:bg-slate-950/80 sm:px-2 sm:py-1 sm:shadow-2xl sm:backdrop-blur-xl min-[1400px]:hidden"
         >
             {navItems.map(item => {
                 const active = item.match(location.pathname)

@@ -95,7 +95,7 @@ export default function ProfilePage({
                         <button
                             type="button"
                             onClick={onLogout}
-                            className="mx-auto mt-4 flex min-h-11 items-center gap-2 rounded-full border border-white/20 bg-black/25 px-4 py-2 text-sm font-bold text-white/80 shadow-lg transition hover:border-white/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 md:mx-0 lg:hidden"
+                            className="mx-auto mt-4 flex min-h-11 items-center gap-2 rounded-full border border-white/20 bg-black/25 px-4 py-2 text-sm font-bold text-white/80 shadow-lg transition hover:border-white/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 md:mx-0 min-[1400px]:hidden"
                         >
                             <LogOut size={17} strokeWidth={2.5} aria-hidden="true" />
                             {t.nav.signOut}
@@ -139,7 +139,7 @@ export default function ProfilePage({
                         )}
                     </div>
 
-                    <div className="mt-10 grid gap-8 md:grid-cols-3">
+                    <div className="mt-10 grid gap-8 sm:grid-cols-2 xl:grid-cols-3">
                         <ProfileStat label="Runs played" value={currentLanguage.stats.runsPlayed} />
                         <ProfileStat label="Longest streak" value={currentLanguage.stats.longestStreak} />
                         <ProfileStat label="Words learned" value={currentLanguage.stats.wordsLearned} />

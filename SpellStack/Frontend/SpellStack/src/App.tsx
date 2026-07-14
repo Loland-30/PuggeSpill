@@ -37,7 +37,7 @@ function App() {
                     <Route path="/trials/:trialId" element={<TrialPage />} />
                 </Routes>
                 ) : (
-                    <ThemedPage className={`px-4 py-4 text-white sm:px-6 sm:py-8 ${showSideNav ? "pb-[calc(5.75rem+env(safe-area-inset-bottom))] lg:pb-8" : "pb-4 sm:pb-8"} ${lockPageScroll ? "lg:h-dvh lg:overflow-hidden" : ""}`}>
+                    <ThemedPage className={`px-4 py-4 text-white sm:px-6 sm:py-8 ${showSideNav ? "pb-[calc(5.75rem+env(safe-area-inset-bottom))] min-[1400px]:pb-8" : "pb-4 sm:pb-8"} ${lockPageScroll ? "min-[1400px]:h-dvh min-[1400px]:overflow-hidden" : ""}`}>
                         <MainMenuAudio />
                         {showSideNav && <AppSideNav />}
                         <AnimatePresence mode="wait">

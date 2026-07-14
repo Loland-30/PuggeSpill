@@ -264,7 +264,7 @@ export default function ProfileContainer() {
         <AppPageShell contentClassName="max-w-[102rem]">
             <div
                 onWheel={handleWheel}
-                className="flex min-h-[calc(100dvh-7rem)] w-full flex-col md:h-[calc(100dvh-4rem)] md:overflow-hidden"
+                className="flex min-h-[calc(100dvh-7rem)] w-full flex-col min-[1400px]:h-[calc(100dvh-4rem)] min-[1400px]:overflow-hidden"
             >
             <header className="flex items-center justify-center overflow-x-auto pb-2">
                 <nav className="flex min-w-max gap-6 text-sm text-white/80 sm:gap-10 sm:text-lg">
@@ -286,7 +286,7 @@ export default function ProfileContainer() {
                 <motion.div
                     animate={{ opacity: isPageFading ? 0 : 1 }}
                     transition={{ duration: 0.28, ease: "easeOut" }}
-                    className="relative min-h-full md:absolute md:inset-0 md:overflow-y-auto"
+                    className="relative min-h-full min-[1400px]:absolute min-[1400px]:inset-0 min-[1400px]:overflow-y-auto"
                 >
                     {pageIndex === 0 && (
                         <ProfilePage {...sharedProps} />
