@@ -164,7 +164,7 @@ This is an early MVP, so some features are incomplete or planned.
 
 Current limitations include:
 
-* Multiplayer is currently mock/UI-first and not fully realtime yet
+* * Multiplayer currently supports realtime private lobbies, while gameplay modes are still planned
 * AI sentence generation is planned but not implemented yet
 * Some UI/UX areas are still being polished
 * User-generated content moderation features, such as reporting, blocking, and inappropriate content filtering, are not implemented yet
