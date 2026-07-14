@@ -40,8 +40,8 @@ export default function DeckPage() {
     const [selectedLength, setSelectedLength] = useState<DeckLengthFilter>("any")
     const [selectedSort, setSelectedSort] = useState<DeckSortOption>("newest")
     const [viewMode, setViewMode] = useState<DeckViewMode>(getStoredDeckViewMode)
-    const isPhoneViewport = useMediaQuery("(max-width: 639px)")
-    const effectiveViewMode: DeckViewMode = isPhoneViewport ? "grid" : viewMode
+    const usesFixedGridLayout = useMediaQuery("(max-width: 1399px)")
+    const effectiveViewMode: DeckViewMode = usesFixedGridLayout ? "grid" : viewMode
 
     useEffect(() => {
         if (authLoading) return
@@ -162,7 +162,7 @@ export default function DeckPage() {
                                 </span>
                             </button>
 
-                            <div className="hidden sm:block">
+                            <div className="hidden min-[1400px]:block">
                                 <DeckViewToggle
                                     value={viewMode}
                                     onChange={setViewMode}

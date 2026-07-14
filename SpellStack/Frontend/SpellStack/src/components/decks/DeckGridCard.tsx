@@ -63,7 +63,7 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
                 aria-label={`${t.common.play} ${deck.name}`}
             >
                 <div className="flex items-start justify-between gap-4">
-                    <div className="flex min-w-0 flex-wrap items-start gap-3 pr-0 sm:gap-4 sm:pr-24">
+                    <div className="flex min-w-0 flex-wrap items-start gap-3 pr-0 sm:gap-4 min-[1400px]:pr-24">
                         <FlagBlock
                             name={sourceLanguage?.label ?? deck.language}
                             flagUrl={sourceLanguage?.flagUrl}
@@ -78,7 +78,7 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
                         />
                     </div>
 
-                    <div className="flex shrink-0 items-start gap-1 opacity-100 transition-opacity duration-200 sm:absolute sm:right-0 sm:top-0 sm:gap-2 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                    <div className="flex shrink-0 items-start gap-1 opacity-100 transition-opacity duration-200 min-[1400px]:absolute min-[1400px]:right-0 min-[1400px]:top-0 min-[1400px]:gap-2 min-[1400px]:opacity-0 min-[1400px]:group-hover:opacity-100 min-[1400px]:group-focus-within:opacity-100">
                         <button
                             type="button"
                             onClick={event => handleActionClick(event, onEdit)}

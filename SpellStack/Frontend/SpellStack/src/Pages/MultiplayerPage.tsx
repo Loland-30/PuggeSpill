@@ -418,7 +418,7 @@ function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConf
                 )}
             </header>
 
-            <section className="min-w-0 self-start">
+            <section className="w-full min-w-0 self-start">
                 <div className="mb-4 flex items-end justify-between gap-4">
                     <div>
                         <h2 className="text-2xl font-black text-white">Choose deck</h2>
@@ -439,7 +439,7 @@ function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConf
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 2xl:grid-cols-3">
+                <div className="grid grid-cols-1 justify-items-center gap-4 sm:grid-cols-2 sm:justify-items-stretch sm:gap-5 2xl:grid-cols-3">
                     {decks.map(deck => (
                         <MultiplayerDeckCard
                             key={deck.id}
@@ -481,7 +481,7 @@ function MultiplayerDeckCard({ deck, selected, ready, disabled, onSelect, palett
             onClick={onSelect}
             onMouseEnter={playHoverSound}
             disabled={disabled}
-            className={`group relative h-full rounded-3xl text-left transition duration-200 ${disabled ? "cursor-not-allowed opacity-55" : "hover:-translate-y-1"}`}
+            className={`group relative h-full w-full max-w-[24rem] rounded-3xl text-left transition duration-200 sm:max-w-none ${disabled ? "cursor-not-allowed opacity-55" : "hover:-translate-y-1"}`}
         >
             <GradientFrame
                 glow={selected}

@@ -266,8 +266,8 @@ export default function ProfileContainer() {
                 onWheel={handleWheel}
                 className="flex min-h-[calc(100dvh-7rem)] w-full flex-col min-[1400px]:h-[calc(100dvh-4rem)] min-[1400px]:overflow-hidden"
             >
-            <header className="flex items-center justify-center overflow-x-auto pb-2">
-                <nav className="flex min-w-max gap-6 text-sm text-white/80 sm:gap-10 sm:text-lg">
+            <header className="-mx-4 overflow-x-auto overscroll-x-contain px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
+                <nav className="mx-auto flex w-max min-w-max flex-nowrap gap-6 px-1 text-sm text-white/80 sm:gap-10 sm:px-0 sm:text-lg">
                     {profilePages.map((page, index) => (
                         <button
                             key={page}
