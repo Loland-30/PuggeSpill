@@ -14,7 +14,11 @@ SpellStack is currently deployed as an early MVP / portfolio build. The hosted v
 
 ## Project Status
 
-SpellStack is actively developed. The current build focuses on the core loop:
+SpellStack is actively developed and currently in an early-access / portfolio-build phase.
+
+> **Branch note:** The live build and active development currently use the `dev` branch. The `main` branch is reserved for the first stable v1.0 release, once the core roadmap is complete, including realtime multiplayer gameplay, AI-assisted sentence generation, additional content, and final polish.
+
+The current build focuses on the core loop:
 
 * Create an account and sign in
 * Create and manage custom vocabulary decks
