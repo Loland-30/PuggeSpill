@@ -14,7 +14,7 @@ export default function SettingRow({ label, description, children, disabled = fa
                 <p className="text-base font-black text-white">{label}</p>
                 <p className="mt-1 text-sm leading-6 text-white/52">{description}</p>
             </div>
-            <div className="md:justify-self-end">
+            <div className="min-w-0 md:w-full md:max-w-[22rem] md:justify-self-end">
                 {children}
             </div>
         </div>

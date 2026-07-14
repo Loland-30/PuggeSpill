@@ -12,11 +12,13 @@ import SettingsPage from "./Pages/SettingsPage"
 import TrialPage from "./Pages/TrialPage"
 import TrialsMenuPage from "./Pages/TrialsMenuPage"
 import MultiplayerPage from "./Pages/MultiplayerPage"
+import UpdatesPage from "./Pages/UpdatesPage"
 import ThemedPage from "./components/ThemedPage"
 import AppSideNav from "./components/AppSideNav"
 import AppStartupGate from "./components/startup/AppStartupGate"
 import MainMenuAudio from "./components/audio/MainMenuAudio"
 import { AchievementNotificationProvider } from "./achievements/AchievementNotificationContext"
+import MobileNavigationProvider from "./components/navigation/MobileNavigationProvider"
 
 function App() {
     const location = useLocation()
@@ -26,6 +28,7 @@ function App() {
     const lockPageScroll = location.pathname === "/trials" || location.pathname === "/multiplayer"
 
     return (
+        <MobileNavigationProvider>
         <AppStartupGate>
             <AchievementNotificationProvider>
                 {isGameplay ? (
@@ -34,7 +37,7 @@ function App() {
                     <Route path="/trials/:trialId" element={<TrialPage />} />
                 </Routes>
                 ) : (
-                    <ThemedPage className={`px-6 py-8 text-white ${lockPageScroll ? "h-screen overflow-hidden" : ""}`}>
+                    <ThemedPage className={`px-4 py-4 text-white sm:px-6 sm:py-8 ${showSideNav ? "pb-[calc(5.75rem+env(safe-area-inset-bottom))] min-[1400px]:pb-8" : "pb-4 sm:pb-8"} ${lockPageScroll ? "min-[1400px]:h-dvh min-[1400px]:overflow-hidden" : ""}`}>
                         <MainMenuAudio />
                         {showSideNav && <AppSideNav />}
                         <AnimatePresence mode="wait">
@@ -44,7 +47,7 @@ function App() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 }}
                                 transition={{ duration: prefersReducedMotion ? 0 : 0.22, ease: "easeOut" }}
-                                className="relative z-10 min-h-[calc(100vh-4rem)] w-full"
+                                className="relative z-10 min-h-[calc(100dvh-2rem)] w-full sm:min-h-[calc(100dvh-4rem)]"
                             >
                                 <Routes location={location}>
                                     <Route path="/" element={<DeckPage />} />
@@ -54,6 +57,7 @@ function App() {
                                     <Route path="/profile/:userId" element={<ProfileContainer />} />
                                     <Route path="/theme" element={<ThemePage />} />
                                     <Route path="/settings" element={<SettingsPage />} />
+                                    <Route path="/updates" element={<UpdatesPage />} />
                                     <Route path="/multiplayer" element={<MultiplayerPage />} />
                                     <Route path="/trials" element={<TrialsMenuPage />} />
                                     <Route path="/decks" element={<DeckPage />} />
@@ -66,6 +70,7 @@ function App() {
                 )}
             </AchievementNotificationProvider>
         </AppStartupGate>
+        </MobileNavigationProvider>
     )
 }
 

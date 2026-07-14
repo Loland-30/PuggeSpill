@@ -717,7 +717,7 @@ export default function PlayPage() {
     )
 
     return (
-        <div className="relative min-h-screen overflow-hidden bg-[#101017] text-white">
+        <div className="relative h-screen h-dvh min-h-0 overflow-hidden bg-[#101017] text-white">
             <img
                 src={currentZone.backgroundUrl}
                 alt=""
@@ -734,13 +734,13 @@ export default function PlayPage() {
                 <div className="pointer-events-none fixed inset-0 z-50 grid place-items-center bg-black/25 text-white backdrop-blur-[2px]">
                     <div className="text-center">
                         <p className="text-sm font-black uppercase tracking-[0.4em] text-white/60">Get ready</p>
-                        <p className="mt-3 text-9xl font-black drop-shadow-[0_0_34px_rgba(255,255,255,0.22)]">
+                        <p className="mt-3 text-7xl font-black drop-shadow-[0_0_34px_rgba(255,255,255,0.22)] sm:text-9xl">
                             {startCountdown}
                         </p>
                     </div>
                 </div>
             )}
-            <div className="relative z-10 flex min-h-screen w-full flex-col px-6 py-6">
+            <div className="relative z-10 flex h-full min-h-0 w-full flex-col px-3 py-3 sm:px-6 sm:py-6">
                 <GameHud
                     lives={session.lives}
                     maxLives={maxLives}
@@ -807,7 +807,7 @@ export default function PlayPage() {
                             times: [0, 0.22, 0.76, 1]
                         }}
                 >
-                    <p className="text-center text-5xl font-black tracking-wide drop-shadow-[0_0_26px_rgba(255,255,255,0.22)] md:text-6xl">
+                    <p className="px-4 text-center text-3xl font-black tracking-wide drop-shadow-[0_0_26px_rgba(255,255,255,0.22)] sm:text-5xl md:text-6xl">
                         {runEndOutcome === "complete" ? "Run Complete" : "Run Failed"}
                     </p>
                 </motion.div>

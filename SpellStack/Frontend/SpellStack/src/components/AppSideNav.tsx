@@ -1,5 +1,5 @@
 import type { ComponentType, MouseEventHandler } from "react"
-import { FolderOpen, LogOut, Palette, Settings, UserRound } from "lucide-react"
+import { FolderOpen, LogOut, Newspaper, Palette, Settings, UserRound } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
 
 import { useUISound } from "../audio/useUISound"
@@ -7,6 +7,7 @@ import { useAuth } from "../auth/AuthContext"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
 import ProfileImage from "./ProfileImage"
+import useMobileNavigation from "./navigation/useMobileNavigation"
 
 interface NavItem {
     label: string
@@ -64,6 +65,7 @@ export default function AppSideNav() {
     const { t } = useI18n()
     const { palette } = useTheme()
     const { playHoverSound } = useUISound()
+    const { hidden: mobileNavigationHidden } = useMobileNavigation()
 
     const navItems: NavItem[] = [
         {
@@ -79,6 +81,12 @@ export default function AppSideNav() {
             match: pathname => pathname.startsWith("/theme")
         },
         {
+            label: t.nav.updates,
+            path: "/updates",
+            icon: Newspaper,
+            match: pathname => pathname.startsWith("/updates")
+        },
+        {
             label: t.nav.settings,
             path: "/settings",
             icon: Settings,
@@ -92,7 +100,8 @@ export default function AppSideNav() {
     }
 
     return (
-        <aside className="fixed left-8 top-8 z-40 hidden h-[calc(100vh-4rem)] w-44 flex-col text-white lg:flex">
+        <>
+        <aside className="fixed left-8 top-8 z-40 hidden h-[calc(100dvh-4rem)] w-44 flex-col text-white min-[1400px]:flex">
             <button
                 type="button"
                 onClick={() => navigate(user ? "/profile" : "/login")}
@@ -146,5 +155,54 @@ export default function AppSideNav() {
                 <span className="transition-transform duration-200 group-hover:translate-x-1">{t.nav.signOut}</span>
             </button>
         </aside>
+
+        {!mobileNavigationHidden && <nav
+            aria-label="Main navigation"
+            className="pointer-events-none fixed bottom-[max(0.5rem,env(safe-area-inset-bottom))] left-1/2 z-40 grid w-[min(calc(100vw-1rem),24rem)] -translate-x-1/2 grid-cols-5 items-center gap-1 rounded-2xl border border-white/15 bg-slate-950/80 px-2 py-1 text-white shadow-2xl backdrop-blur-xl min-[1400px]:hidden"
+        >
+            {navItems.map(item => {
+                const active = item.match(location.pathname)
+                const Icon = item.icon
+
+                return (
+                    <button
+                        key={item.path}
+                        type="button"
+                        onClick={() => navigate(item.path)}
+                        aria-label={item.label}
+                        aria-current={active ? "page" : undefined}
+                        className={`pointer-events-auto relative flex min-h-11 min-w-0 items-center justify-center bg-transparent text-white/70 outline-none transition focus-visible:rounded-xl focus-visible:ring-2 focus-visible:ring-white/70 ${active ? "text-cyan-100" : ""}`}
+                    >
+                        {active && <span aria-hidden="true" className={`absolute left-1/2 top-0 h-0.5 w-6 -translate-x-1/2 rounded-full ${palette.primaryButton}`} />}
+                        <span className={`grid h-11 w-11 place-items-center rounded-full bg-transparent transition ${active ? "text-cyan-100" : "drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]"}`}>
+                            <Icon size={21} strokeWidth={2.5} aria-hidden="true" />
+                        </span>
+                        <span className="sr-only">{item.label}</span>
+                    </button>
+                )
+            })}
+
+            <button
+                type="button"
+                onClick={() => navigate(user ? "/profile" : "/login")}
+                aria-label={t.nav.openProfile}
+                aria-current={location.pathname.startsWith("/profile") ? "page" : undefined}
+                className="pointer-events-auto relative grid min-h-11 place-items-center bg-transparent outline-none focus-visible:rounded-xl focus-visible:ring-2 focus-visible:ring-white/70"
+            >
+                {location.pathname.startsWith("/profile") && (
+                    <span aria-hidden="true" className={`absolute left-1/2 top-0 h-0.5 w-6 -translate-x-1/2 rounded-full ${palette.primaryButton}`} />
+                )}
+                <span className={`relative grid h-[2.625rem] w-[2.625rem] place-items-center overflow-hidden rounded-full border ${palette.border} ${profileImage ? "bg-slate-900" : palette.primaryButton} text-sm font-black transition sm:h-9 sm:w-9 ${location.pathname.startsWith("/profile") ? "shadow-none" : "drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)]"}`}>
+                    {user ? user.username.slice(0, 1).toUpperCase() : <UserRound size={19} strokeWidth={2.5} />}
+                    <ProfileImage
+                        src={profileImage}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover"
+                    />
+                </span>
+            </button>
+
+        </nav>}
+        </>
     )
 }

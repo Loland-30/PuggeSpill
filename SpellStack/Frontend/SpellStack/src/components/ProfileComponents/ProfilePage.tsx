@@ -3,6 +3,7 @@ import GradientFrame from "../GradientFrame"
 import ProfileImage from "../ProfileImage"
 import type { ProfileComponentProps } from "./types"
 import { useI18n } from "../../i18n/I18nContext"
+import { LogOut } from "lucide-react"
 
 const learningLanguageLabels = {
     en: "Learning language",
@@ -22,13 +23,14 @@ export default function ProfilePage({
     onSelectLanguage,
     onProfileImageUpload,
     onProfileImageRemove,
+    onLogout,
     profileImageError
 }: ProfileComponentProps) {
-    const { appLanguage } = useI18n()
+    const { appLanguage, t } = useI18n()
     const learningLanguageLabel = learningLanguageLabels[appLanguage]
 
     return (
-        <div className="mx-auto flex min-h-[calc(100vh-12rem)] w-full max-w-[102rem] items-center justify-center px-6">
+        <div className="mx-auto flex min-h-[calc(100dvh-12rem)] w-full max-w-[102rem] items-center justify-center px-0 py-8 sm:px-6">
             <div className="w-full max-w-7xl">
                 <section className="flex flex-col justify-start gap-6 md:flex-row md:items-center">
                     <div className="flex flex-col items-center gap-3">
@@ -70,8 +72,8 @@ export default function ProfilePage({
                     </div>
 
                     <div>
-                        <div className="flex flex-wrap items-center gap-4">
-                            <h1 className="text-5xl font-black">{user.username}</h1>
+                        <div className="flex flex-wrap items-center justify-center gap-3 md:justify-start md:gap-4">
+                            <h1 className="break-all text-center text-3xl font-black sm:text-5xl md:text-left">{user.username}</h1>
 
                             {favoriteLanguageFlag && (
                                 <img
@@ -82,18 +84,27 @@ export default function ProfilePage({
                             )}
                         </div>
 
-                        <p className="mt-2 text-2xl text-white/85">
+                        <p className="mt-2 text-center text-xl text-white/85 sm:text-2xl md:text-left">
                             {learningLanguageLabel}: {currentLanguage.label}
                         </p>
 
-                        <p className="mt-4 text-white/70">
+                        <p className="mt-4 text-center text-white/70 md:text-left">
                             Account created: {createdAt}
                         </p>
+
+                        <button
+                            type="button"
+                            onClick={onLogout}
+                            className="mx-auto mt-4 flex min-h-11 items-center gap-2 rounded-full border border-white/20 bg-black/25 px-4 py-2 text-sm font-bold text-white/80 shadow-lg transition hover:border-white/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 md:mx-0 min-[1400px]:hidden"
+                        >
+                            <LogOut size={17} strokeWidth={2.5} aria-hidden="true" />
+                            {t.nav.signOut}
+                        </button>
                     </div>
                 </section>
 
-                <section className="mt-24">
-                    <h2 className="text-4xl font-black">Stats</h2>
+                <section className="mt-12 sm:mt-24">
+                    <h2 className="text-3xl font-black sm:text-4xl">Stats</h2>
 
                     <div className="mt-6 flex flex-wrap gap-4 text-lg text-white/80">
                         {profileLanguages.map(language => {
@@ -128,7 +139,7 @@ export default function ProfilePage({
                         )}
                     </div>
 
-                    <div className="mt-10 grid gap-8 md:grid-cols-3">
+                    <div className="mt-10 grid gap-8 sm:grid-cols-2 xl:grid-cols-3">
                         <ProfileStat label="Runs played" value={currentLanguage.stats.runsPlayed} />
                         <ProfileStat label="Longest streak" value={currentLanguage.stats.longestStreak} />
                         <ProfileStat label="Words learned" value={currentLanguage.stats.wordsLearned} />

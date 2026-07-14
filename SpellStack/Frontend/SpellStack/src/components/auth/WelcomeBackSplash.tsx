@@ -31,7 +31,7 @@ export default function WelcomeBackSplash({
 
     return (
         <motion.div
-            className="text-center"
+            className="mx-auto flex w-full min-w-0 max-w-[calc(100vw-2rem)] flex-col items-center text-center"
             initial={{ opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 1.02, y: -10 }}
@@ -54,7 +54,7 @@ export default function WelcomeBackSplash({
             <p className="mt-8 text-2xl font-black text-white">
                 {title}
             </p>
-            <h1 className="mt-4 text-6xl font-black tracking-tight text-white sm:text-8xl">
+            <h1 className="mt-4 w-full max-w-6xl text-center text-[clamp(2.25rem,12vw,6rem)] font-black leading-[1.05] tracking-tight text-white [overflow-wrap:anywhere]">
                 {username}
             </h1>
         </motion.div>

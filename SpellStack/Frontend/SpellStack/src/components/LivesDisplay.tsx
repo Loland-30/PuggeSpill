@@ -11,7 +11,7 @@ export default function LivesDisplay({ lives, maxLives, size = "default", classN
         : "text-2xl"
 
     return (
-        <div className={`flex gap-3 ${className}`} aria-label={`${lives} lives left`}>
+        <div className={`flex gap-2.5 sm:gap-3 ${className}`} aria-label={`${lives} lives left`}>
             {Array.from({ length: maxLives }).map((_, i) => (
                 <span
                     key={i}

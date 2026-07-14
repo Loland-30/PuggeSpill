@@ -14,8 +14,8 @@ interface SettingsTabsProps {
 
 export default function SettingsTabs({ tabs, activeTab, onSelect, palette }: SettingsTabsProps) {
     return (
-        <div className="sticky top-6 z-20 -mx-1 mb-8 overflow-x-auto px-1 py-2 backdrop-blur-sm">
-            <div className="inline-flex rounded-full border border-white/15 bg-black/25 p-1 shadow-xl backdrop-blur-xl">
+        <div className="sticky top-2 z-20 -mx-1 mb-6 max-w-[calc(100vw-2rem)] overflow-x-auto overscroll-x-contain px-1 py-2 backdrop-blur-sm sm:top-6 sm:mb-8 sm:max-w-none">
+            <div className="inline-flex min-w-max rounded-full border border-white/15 bg-black/25 p-1 shadow-xl backdrop-blur-xl">
                 {tabs.map(tab => {
                     const active = tab.id === activeTab
 

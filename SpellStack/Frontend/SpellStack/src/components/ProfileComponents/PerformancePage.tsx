@@ -73,9 +73,9 @@ export default function PerformancePage({
     })
 
     return (
-        <div className="mx-auto flex min-h-[calc(100vh-12rem)] w-full max-w-[102rem] items-center justify-center pt-20">
-            <div className="grid w-full max-w-[84rem] items-center justify-center gap-10 lg:grid-cols-[minmax(0,52rem)_minmax(26rem,34rem)] xl:gap-16">
-            <div className="self-start">
+        <div className="mx-auto flex min-h-[calc(100dvh-12rem)] w-full max-w-[102rem] items-center justify-center py-8 sm:pt-14 min-[1400px]:pt-20">
+            <div className="grid w-full max-w-[84rem] min-w-0 items-center justify-center gap-12 min-[1180px]:grid-cols-[minmax(30rem,1fr)_minmax(22rem,32rem)] min-[1180px]:gap-10 2xl:gap-16">
+            <div className="min-w-0 self-start">
                 <PerformanceTabs
                     activeTab={activeTab}
                     onSelectTab={setActiveTab}
@@ -111,10 +111,11 @@ export default function PerformancePage({
                 )}
             </div>
 
-            <div className="flex min-w-0 flex-col items-center justify-center justify-self-center lg:justify-self-end">
+            <div className="flex min-w-0 flex-col items-center justify-center justify-self-center min-[1180px]:justify-self-end">
                 <GradeRing
                     rank={performance.rank}
                     accuracy={performance.averageAccuracy}
+                    sizeClassName="h-[clamp(17rem,60vw,24rem)] w-[clamp(17rem,60vw,24rem)] min-[1180px]:h-[clamp(20rem,26vw,24rem)] min-[1180px]:w-[clamp(20rem,26vw,24rem)] 2xl:h-[clamp(22rem,30vw,32rem)] 2xl:w-[clamp(22rem,30vw,32rem)]"
                 />
 
                 <div className="mt-8 max-w-full text-center">
@@ -140,7 +141,7 @@ function PerformanceTabs({
     const { palette } = useTheme()
 
     return (
-        <div className="flex flex-wrap gap-14 text-3xl text-white/80">
+        <div className="flex flex-wrap gap-x-6 gap-y-3 text-xl text-white/80 sm:gap-x-10 sm:text-3xl min-[1180px]:gap-x-14">
             {performanceTabs.map(tab => (
                 <button
                     key={tab}
@@ -171,11 +172,11 @@ function LanguageDropdown({
     const { palette } = useTheme()
 
     return (
-        <div className="relative mt-12 inline-block">
+        <div className="relative mt-8 inline-block max-w-full sm:mt-12">
             <button
                 type="button"
                 onClick={onToggle}
-                className={`inline-flex min-w-60 items-center justify-between gap-5 rounded-lg border-2 ${palette.border} bg-black/30 px-6 py-5 text-left ${palette.glow}`}
+                className={`inline-flex w-full min-w-0 items-center justify-between gap-3 rounded-lg border-2 ${palette.border} bg-black/30 px-4 py-4 text-left sm:min-w-60 sm:gap-5 sm:px-6 sm:py-5 ${palette.glow}`}
             >
                 <span className="flex items-center gap-4">
                     {currentLanguage.flagUrl && (
@@ -186,7 +187,7 @@ function LanguageDropdown({
                         />
                     )}
 
-                    <span className="text-3xl font-bold text-white">
+                    <span className="truncate text-xl font-bold text-white sm:text-3xl">
                         {currentLanguage.label}
                     </span>
                 </span>
@@ -235,7 +236,7 @@ function GeneralPanel({
 }) {
     return (
         <>
-            <div className="mt-10 grid max-w-[44rem] gap-5 sm:grid-cols-2">
+            <div className="mt-10 grid w-full max-w-[44rem] grid-cols-[repeat(auto-fit,minmax(min(15rem,100%),1fr))] gap-5">
                 <PerformanceStat
                     label="Average response time"
                     value={`${performance.responseTime}s`}
@@ -266,7 +267,7 @@ function GeneralPanel({
 
 function RushHourPanel({ performance }: { performance: PerformanceSnapshot }) {
     return (
-        <div className="mt-10 grid max-w-[44rem] gap-5 sm:grid-cols-2">
+        <div className="mt-10 grid w-full max-w-[44rem] grid-cols-[repeat(auto-fit,minmax(min(15rem,100%),1fr))] gap-5">
             <PerformanceStat
                 label="Rush Hours triggered"
                 value={performance.rushHoursTriggered.toString()}
@@ -289,7 +290,7 @@ function RushHourPanel({ performance }: { performance: PerformanceSnapshot }) {
 
 function TrialsPanel({ performance }: { performance: PerformanceSnapshot }) {
     return (
-        <div className="mt-10 grid max-w-[44rem] gap-5 sm:grid-cols-2">
+        <div className="mt-10 grid w-full max-w-[44rem] grid-cols-[repeat(auto-fit,minmax(min(15rem,100%),1fr))] gap-5">
             <PerformanceStat
                 label="Trials attempted"
                 value={performance.trialsAttempted.toString()}
@@ -317,8 +318,8 @@ function PerformanceStat({ label, value }: { label: string; value: string }) {
     const { palette } = useTheme()
 
     return (
-        <div className={`rounded-lg border ${palette.border} ${palette.card} px-6 py-5 text-center ${palette.glow}`}>
-            <p className="text-xl text-white">{label}</p>
+        <div className={`min-w-0 rounded-lg border ${palette.border} ${palette.card} px-5 py-5 text-center sm:px-6 ${palette.glow}`}>
+            <p className="text-lg leading-7 text-white sm:text-xl">{label}</p>
             <p className="mt-3 text-3xl font-semibold text-white">{value}</p>
         </div>
     )
@@ -356,11 +357,11 @@ function RecentRunsChart({
 
     return (
         <div className="mt-16">
-            <h2 className="text-3xl font-black text-white">10 Most Recent Runs</h2>
+            <h2 className="text-2xl font-black text-white sm:text-3xl">10 Most Recent Runs</h2>
 
             <div className="mt-8 max-w-[50rem]">
-                <div className="relative h-72 border-b-2 border-l-2 border-white/80 pl-6">
-                    <span className="absolute -left-14 top-0 text-sm text-white/75">
+                <div className="relative h-64 border-b-2 border-l-2 border-white/80 pl-3 sm:h-72 sm:pl-6">
+                    <span className="absolute left-2 top-2 text-xs text-white/75 sm:text-sm">
                         Result
                     </span>
 
@@ -381,7 +382,7 @@ function RecentRunsChart({
                     )}
 
                     {!loading && values.length > 0 && (
-                        <div className="flex h-full items-end gap-7">
+                        <div className="flex h-full items-end justify-around gap-1 sm:gap-3">
                             {values.map((value, index) => {
                                 const exactValue = sourceValues[index]
                                 const displayValue = chartMode === "accuracy"
@@ -392,7 +393,7 @@ function RecentRunsChart({
                                 return (
                                     <div
                                         key={`${chartMode}-${exactValue}-${index}`}
-                                        className="group relative flex h-full w-10 items-end justify-center"
+                                        className="group relative flex h-full min-w-0 flex-1 items-end justify-center"
                                         tabIndex={0}
                                         role="img"
                                         aria-label={ariaLabel}
@@ -405,7 +406,7 @@ function RecentRunsChart({
                                         </div>
 
                                         <div
-                                            className="w-7 origin-bottom rounded-t-sm shadow-lg transition-[transform,filter] duration-500 ease-out group-hover:brightness-125 group-focus-visible:brightness-125"
+                                            className="w-4 origin-bottom rounded-t-sm shadow-lg transition-[transform,filter] duration-500 ease-out group-hover:brightness-125 group-focus-visible:brightness-125 sm:w-7"
                                             style={{
                                                 height: `${value}%`,
                                                 transform: barsVisible ? "scaleY(1)" : "scaleY(0)",
@@ -420,7 +421,7 @@ function RecentRunsChart({
                     )}
                 </div>
 
-                <div className="mt-9 flex justify-center gap-16 text-lg text-white/80">
+                <div className="mt-9 flex flex-wrap justify-center gap-4 text-base text-white/80 sm:gap-16 sm:text-lg">
                     <ChartModeButton
                         label="Accuracy"
                         active={chartMode === "accuracy"}

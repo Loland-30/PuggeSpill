@@ -25,7 +25,7 @@ function AudioPanel({ title, icon, children }: { title: string; icon: ReactNode;
     const { palette } = useTheme()
 
     return (
-        <section className={`rounded-[2rem] border ${palette.border} ${palette.card} p-6 shadow-2xl backdrop-blur-xl`}>
+        <section className={`rounded-2xl border ${palette.border} ${palette.card} p-4 shadow-2xl backdrop-blur-xl sm:rounded-[2rem] sm:p-6`}>
             <div className="mb-6 flex items-center gap-3">
                 <span className={`grid h-11 w-11 place-items-center rounded-2xl ${palette.primaryButton} ${palette.primaryButtonText}`}>
                     {icon}
@@ -47,8 +47,8 @@ function ToggleRow({ title, description, checked, onChange }: {
     const { playHoverSound } = useUISound()
 
     return (
-        <div className="flex items-center justify-between gap-5 rounded-2xl border border-white/10 bg-black/15 p-4">
-            <div>
+        <div className="flex items-start justify-between gap-3 rounded-2xl border border-white/10 bg-black/15 p-4 sm:items-center sm:gap-5">
+            <div className="min-w-0">
                 <p className="font-black text-white">{title}</p>
                 <p className="mt-1 text-sm font-semibold text-white/48">{description}</p>
             </div>
@@ -56,7 +56,7 @@ function ToggleRow({ title, description, checked, onChange }: {
                 type="button"
                 onClick={() => onChange(!checked)}
                 onMouseEnter={playHoverSound}
-                className={`relative h-8 w-14 rounded-full transition ${checked ? palette.primaryButton : "bg-white/15"}`}
+                className={`relative h-8 w-14 min-w-14 shrink-0 overflow-hidden rounded-full p-0 transition ${checked ? palette.primaryButton : "bg-white/15"}`}
                 aria-pressed={checked}
             >
                 <span className={`absolute top-1 h-6 w-6 rounded-full bg-white transition ${checked ? "left-7" : "left-1"}`} />

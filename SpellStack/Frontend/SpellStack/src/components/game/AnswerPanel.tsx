@@ -109,9 +109,9 @@ export default function AnswerPanel({
     }
 
     return (
-        <section className="pointer-events-none absolute inset-x-0 bottom-6 top-24 z-30 flex flex-col items-center justify-between px-6 text-center sm:bottom-10 sm:top-28">
+        <section className="pointer-events-none absolute inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] top-16 z-30 flex flex-col items-center justify-between px-3 text-center sm:bottom-10 sm:top-28 sm:px-6 landscape:max-sm:top-12">
             <div className="pointer-events-auto flex max-w-4xl flex-col items-center gap-3">
-                <h1 className={`text-5xl font-black transition-all duration-300 sm:text-7xl ${
+                <h1 className={`max-w-[94vw] break-words text-[clamp(3rem,16vw,4.5rem)] font-black leading-[0.98] transition-all duration-300 sm:max-w-[95vw] sm:text-7xl sm:leading-tight ${
                     result === "correct" ? "text-green-400" :
                     result === "incorrect" ? "text-red-400" :
                     promptHidden ? "select-none text-transparent opacity-0 blur-md" : "text-white"
@@ -126,7 +126,7 @@ export default function AnswerPanel({
                 )}
             </div>
 
-            <div className="pointer-events-auto flex w-full max-w-3xl flex-col items-center gap-5">
+            <div className="pointer-events-auto flex w-full max-w-3xl flex-col items-center gap-2 sm:gap-5">
                 <div className="flex min-h-6 w-full max-w-xl items-center justify-center">
                     {timerHidden ? (
                         <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-white/45">
@@ -159,12 +159,12 @@ export default function AnswerPanel({
                     disabled={!!result}
                     placeholder="Type translation..."
                     autoFocus
-                    className="w-full max-w-2xl rounded-2xl border border-white/10 bg-white/[0.06] px-8 py-4 text-center text-3xl font-semibold tracking-wide text-white shadow-[0_18px_44px_rgba(0,0,0,0.35),inset_0_0_24px_rgba(255,255,255,0.035)] outline-none backdrop-blur-sm transition placeholder:text-white/20 focus:border-white/45 focus:bg-white/[0.09] focus:shadow-[0_0_28px_rgba(255,255,255,0.12),inset_0_0_24px_rgba(255,255,255,0.04)] disabled:opacity-60 sm:text-4xl"
+                    className="min-h-14 w-full max-w-2xl scroll-mb-4 rounded-xl border border-white/15 bg-white/[0.08] px-4 py-4 text-center text-2xl font-semibold tracking-wide text-white shadow-[0_18px_44px_rgba(0,0,0,0.35),inset_0_0_24px_rgba(255,255,255,0.035)] outline-none backdrop-blur-sm transition placeholder:text-white/40 focus:border-white/45 focus:bg-white/[0.09] focus:shadow-[0_0_28px_rgba(255,255,255,0.12),inset_0_0_24px_rgba(255,255,255,0.04)] disabled:opacity-60 sm:rounded-2xl sm:px-8 sm:text-4xl landscape:max-sm:min-h-12 landscape:max-sm:py-2"
                 />
 
                 <div className="min-h-8">
                     {feedbackWord && (
-                        <p className={`text-3xl font-black ${result === "correct" ? "text-green-400" : "text-white/75"}`}>
+                        <p className={`break-words text-xl font-black sm:text-3xl ${result === "correct" ? "text-green-400" : "text-white/75"}`}>
                             {feedbackWord}
                         </p>
                     )}

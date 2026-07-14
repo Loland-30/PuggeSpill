@@ -30,11 +30,11 @@ export default function DeckListRow({ deck, onPlay, onEdit, onDelete, palette }:
                 radius={28}
                 radiusClass="rounded-[28px]"
                 className="group w-full max-w-2xl rounded-[28px] transition-all duration-300 lg:hover:max-w-[52rem]"
-                contentClassName="relative min-h-24 overflow-hidden rounded-[inherit] px-8 py-5"
+                contentClassName="relative min-h-24 overflow-hidden rounded-[inherit] px-4 py-4 sm:px-8 sm:py-5"
             >
-                <div className="grid w-full max-w-[38rem] grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4">
+                <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 lg:max-w-[38rem] lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:gap-4">
                     <div className="min-w-0">
-                        <h2 className="truncate text-3xl font-black" title={deck.name}>{deck.name}</h2>
+                        <h2 className="line-clamp-2 break-words text-xl font-black sm:text-2xl lg:truncate lg:text-3xl" title={deck.name}>{deck.name}</h2>
                         <p className="mt-1 text-sm font-semibold text-white/80">
                             {t.deckPage.wordCount}: {deck.words.length}
                         </p>
@@ -43,29 +43,29 @@ export default function DeckListRow({ deck, onPlay, onEdit, onDelete, palette }:
                         </p>
                     </div>
 
-                    <div className="flex shrink-0 items-center gap-4">
+                    <div className="flex shrink-0 items-center gap-2 sm:gap-4">
                         <img
                             src={getLanguageFlag(deck.language)}
                             alt={`${deck.language} flag`}
-                            className="h-11 w-16 rounded-lg object-cover"
+                            className="h-8 w-11 rounded-md object-cover sm:h-11 sm:w-16 sm:rounded-lg"
                         />
                         <img
                             src={getLanguageFlag(deck.translationLanguage)}
                             alt={`${deck.translationLanguage} flag`}
-                            className="h-11 w-16 rounded-lg object-cover"
+                            className="h-8 w-11 rounded-md object-cover sm:h-11 sm:w-16 sm:rounded-lg"
                         />
                     </div>
 
                     <button
                         onClick={onPlay}
                         onMouseEnter={playHoverSound}
-                        className={`rounded-full px-5 py-2 text-sm font-black ${palette.primaryButtonText} opacity-100 shadow-lg transition ${palette.primaryButton}`}
+                        className={`col-span-2 min-h-11 rounded-full px-5 py-2 text-sm font-black lg:col-span-1 ${palette.primaryButtonText} opacity-100 shadow-lg transition ${palette.primaryButton}`}
                     >
                         {t.common.play}
                     </button>
                 </div>
 
-                <div className="pointer-events-none absolute right-5 top-1/2 flex w-40 -translate-y-1/2 items-center gap-3 opacity-0 transition-opacity duration-300 group-hover:pointer-events-auto group-hover:opacity-100">
+                <div className="mt-3 flex items-center justify-end gap-2 border-t border-white/10 pt-2 lg:pointer-events-none lg:absolute lg:right-5 lg:top-1/2 lg:mt-0 lg:w-40 lg:-translate-y-1/2 lg:border-0 lg:pt-0 lg:opacity-0 lg:transition-opacity lg:duration-300 lg:group-hover:pointer-events-auto lg:group-hover:opacity-100 lg:group-focus-within:pointer-events-auto lg:group-focus-within:opacity-100">
                     <button
                         onClick={onEdit}
                         onMouseEnter={playHoverSound}

@@ -34,6 +34,7 @@ export const es = {
     nav: {
         decks: "Mazos",
         themes: "Temas",
+        updates: "Actualizaciones",
         settings: "Ajustes",
         signOut: "Cerrar sesión",
         trials: "Pruebas",
@@ -42,6 +43,10 @@ export const es = {
         achievements: "Logros",
         multiplayer: "Multijugador",
         openProfile: "Abrir perfil"
+    },
+    updatesPage: {
+        title: "Actualizaciones",
+        description: "Las notas de la versión y las actualizaciones del producto aparecerán aquí."
     },
     deckPage: {
         deckCount: "Número de mazos",

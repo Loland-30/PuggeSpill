@@ -34,6 +34,7 @@ export const ja = {
     nav: {
         decks: "デッキ",
         themes: "テーマ",
+        updates: "更新情報",
         settings: "設定",
         signOut: "サインアウト",
         trials: "トライアル",
@@ -42,6 +43,10 @@ export const ja = {
         achievements: "実績",
         multiplayer: "マルチプレイ",
         openProfile: "プロフィールを開く"
+    },
+    updatesPage: {
+        title: "更新情報",
+        description: "リリースノートと製品アップデートはここに表示されます。"
     },
     deckPage: {
         deckCount: "デッキ数",

@@ -58,7 +58,7 @@ export default function ThemePage() {
         <PageContentTransition>
             <AppPageShell contentClassName="max-w-[70rem] pb-8">
                 <FadeIn className="mb-8">
-                    <h1 className="text-5xl font-black">Themes</h1>
+                    <h1 className="text-3xl font-black sm:text-5xl">Themes</h1>
                     <div className="mt-6">
                         <SegmentedControl
                             options={[
@@ -133,7 +133,7 @@ function VisualThemeSettings({
                     </div>
 
                     {backgroundMode === "color" ? (
-                        <div className="mt-5 grid gap-4 md:grid-cols-5">
+                        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5 md:gap-4">
                             {backgroundThemes.map(background => {
                                 const selected = theme.backgroundId === background.id
 
@@ -161,7 +161,7 @@ function VisualThemeSettings({
                         <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_320px]">
                             <div className={`rounded-lg border-2 ${customBackgroundSrc ? palette.border : "border-white/10"} p-4 ${customBackgroundSrc ? palette.glow : ""}`}>
                                 <div
-                                    className={`relative h-56 overflow-hidden rounded-lg bg-gradient-to-br ${backgroundThemes.find(background => background.id === theme.backgroundId)?.preview ?? "from-slate-950 to-slate-800"}`}
+                                    className={`relative h-44 overflow-hidden rounded-lg bg-gradient-to-br sm:h-56 ${backgroundThemes.find(background => background.id === theme.backgroundId)?.preview ?? "from-slate-950 to-slate-800"}`}
                                 >
                                     {customBackgroundSrc && (
                                         <>
@@ -256,7 +256,7 @@ function VisualThemeSettings({
                         <SegmentButton label={t.themePage.gradients} active={paletteView === "gradient"} onClick={() => setPaletteView("gradient")} />
                     </div>
 
-                    <div className="mt-5 grid auto-rows-[9.75rem] gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="mt-5 grid auto-rows-[8.5rem] gap-3 sm:auto-rows-[9.75rem] sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
                         {paletteThemes.filter(option => option.kind === paletteView).map(option => {
                             const selected = theme.paletteId === option.id
 

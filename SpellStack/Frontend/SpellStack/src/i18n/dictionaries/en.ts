@@ -32,6 +32,7 @@
     nav: {
         decks: "Decks",
         themes: "Themes",
+        updates: "Updates",
         settings: "Settings",
         signOut: "Sign out",
         trials: "Trials",
@@ -40,6 +41,10 @@
         achievements: "Achievements",
         multiplayer: "Multiplayer",
         openProfile: "Open profile"
+    },
+    updatesPage: {
+        title: "Updates",
+        description: "Release notes and product updates will appear here."
     },
     deckPage: {
         deckCount: "Deck count",

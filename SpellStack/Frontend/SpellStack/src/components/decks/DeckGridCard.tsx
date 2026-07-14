@@ -50,7 +50,7 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
             radius={24}
             radiusClass="rounded-3xl"
             className="group h-full rounded-3xl transition duration-300 hover:-translate-y-1"
-            contentClassName="h-full rounded-[inherit] px-4 py-3"
+            contentClassName="h-full rounded-[inherit] px-4 py-3 sm:px-4"
             hoverFillClassName="group-hover/gradient-frame:bg-black/30"
         >
             <div
@@ -63,7 +63,7 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
                 aria-label={`${t.common.play} ${deck.name}`}
             >
                 <div className="flex items-start justify-between gap-4">
-                    <div className="flex min-w-0 flex-wrap items-start gap-4 pr-24">
+                    <div className="flex min-w-0 flex-wrap items-start gap-3 pr-0 sm:gap-4 min-[1400px]:pr-24">
                         <FlagBlock
                             name={sourceLanguage?.label ?? deck.language}
                             flagUrl={sourceLanguage?.flagUrl}
@@ -78,7 +78,7 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
                         />
                     </div>
 
-                    <div className="absolute right-0 top-0 flex items-start gap-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+                    <div className="flex shrink-0 items-start gap-1 opacity-100 transition-opacity duration-200 min-[1400px]:absolute min-[1400px]:right-0 min-[1400px]:top-0 min-[1400px]:gap-2 min-[1400px]:opacity-0 min-[1400px]:group-hover:opacity-100 min-[1400px]:group-focus-within:opacity-100">
                         <button
                             type="button"
                             onClick={event => handleActionClick(event, onEdit)}
@@ -103,7 +103,7 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
 
                 <div className="mt-auto grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4 pt-3">
                     <div className="min-w-0">
-                        <h2 className="truncate text-2xl font-black text-white" title={deck.name}>{deck.name}</h2>
+                        <h2 className="line-clamp-2 break-words text-xl font-black text-white sm:text-2xl" title={deck.name}>{deck.name}</h2>
                         <div className="mt-2 flex items-center gap-2 text-base font-semibold text-white/80">
                             <Trophy size={22} strokeWidth={2.8} className={palette.accentText} />
                             <span>{formatScore(deck.highScore)}</span>
@@ -111,7 +111,7 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
                     </div>
 
                     <div className="text-right leading-none">
-                        <p className="text-5xl font-black text-white drop-shadow-sm">{deck.words.length}</p>
+                        <p className="text-4xl font-black text-white drop-shadow-sm sm:text-5xl">{deck.words.length}</p>
                         <p className="mt-1 text-sm font-semibold text-white/70">{t.deckPage.words}</p>
                     </div>
                 </div>

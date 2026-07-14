@@ -34,6 +34,7 @@ export const no = {
     nav: {
         decks: "Decks",
         themes: "Temaer",
+        updates: "Oppdateringer",
         settings: "Innstillinger",
         signOut: "Logg ut",
         trials: "Trials",
@@ -42,6 +43,10 @@ export const no = {
         achievements: "Prestasjoner",
         multiplayer: "Flerspiller",
         openProfile: "Åpne profil"
+    },
+    updatesPage: {
+        title: "Oppdateringer",
+        description: "Versjonsnotater og produktoppdateringer vil vises her."
     },
     deckPage: {
         deckCount: "Antall decks",

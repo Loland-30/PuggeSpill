@@ -47,7 +47,7 @@ export default function ProfileContainer() {
     const navigate = useNavigate()
     const location = useLocation()
     const { userId } = useParams()
-    const { user, loading, profileImage, setProfileImage } = useAuth()
+    const { user, loading, profileImage, setProfileImage, logoutUser } = useAuth()
     const { palette } = useTheme()
     const { appLanguage } = useI18n()
     const locale = getAppLanguageLocale(appLanguage)
@@ -84,7 +84,7 @@ export default function ProfileContainer() {
             type="button"
             onClick={closeProfile}
             aria-label="Close profile"
-            className={`fixed right-8 top-8 z-40 grid h-11 w-11 place-items-center rounded-full border ${palette.border} ${palette.card} text-white/80 shadow-2xl transition hover:-translate-y-0.5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70`}
+            className={`fixed right-4 top-4 z-40 grid h-11 w-11 place-items-center rounded-full border ${palette.border} ${palette.card} text-white/80 shadow-2xl transition hover:-translate-y-0.5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 sm:right-8 sm:top-8`}
         >
             <X size={20} strokeWidth={2.5} aria-hidden="true" />
         </button>
@@ -214,6 +214,11 @@ export default function ProfileContainer() {
         }
     }
 
+    const handleLogout = async () => {
+        await logoutUser()
+        navigate("/login")
+    }
+
     const setProfilePage = (nextIndex: number) => {
         if (nextIndex === pageIndex || isPageFading) return
 
@@ -249,6 +254,7 @@ export default function ProfileContainer() {
         onSelectLanguage: setSelectedLanguageCode,
         onProfileImageUpload: handleProfileImageUpload,
         onProfileImageRemove: handleProfileImageRemove,
+        onLogout: handleLogout,
         profileImageError
     }
 
@@ -258,10 +264,10 @@ export default function ProfileContainer() {
         <AppPageShell contentClassName="max-w-[102rem]">
             <div
                 onWheel={handleWheel}
-                className="flex h-[calc(100vh-4rem)] w-full flex-col overflow-hidden"
+                className="flex min-h-[calc(100dvh-7rem)] w-full flex-col min-[1400px]:h-[calc(100dvh-4rem)] min-[1400px]:overflow-hidden"
             >
-            <header className="flex items-center justify-center">
-                <nav className="hidden gap-10 text-lg text-white/80 md:flex">
+            <header className="-mx-4 overflow-x-auto overscroll-x-contain px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
+                <nav className="mx-auto flex w-max min-w-max flex-nowrap gap-6 px-1 text-sm text-white/80 sm:gap-10 sm:px-0 sm:text-lg">
                     {profilePages.map((page, index) => (
                         <button
                             key={page}
@@ -276,11 +282,11 @@ export default function ProfileContainer() {
                 </nav>
             </header>
 
-            <main className="relative flex-1">
+            <main className="relative min-h-0 flex-1">
                 <motion.div
                     animate={{ opacity: isPageFading ? 0 : 1 }}
                     transition={{ duration: 0.28, ease: "easeOut" }}
-                    className="absolute inset-0"
+                    className="relative min-h-full min-[1400px]:absolute min-[1400px]:inset-0 min-[1400px]:overflow-y-auto"
                 >
                     {pageIndex === 0 && (
                         <ProfilePage {...sharedProps} />

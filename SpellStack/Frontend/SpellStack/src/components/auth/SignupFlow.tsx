@@ -42,7 +42,7 @@ export default function SignupFlow(props: SignupFlowProps) {
         >
             <AuthBrandTitle />
             <SignupStepper step={props.step} />
-            <div className="mt-12 min-h-[31rem]">
+            <div className="mt-8 min-h-[31rem] sm:mt-12">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={props.step}

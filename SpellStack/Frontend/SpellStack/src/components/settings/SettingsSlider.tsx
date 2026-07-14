@@ -15,7 +15,7 @@ export default function SettingsSlider({ value, onChange, palette, disabled = fa
     const glowClass = palette.id === "red" ? "shadow-[0_0_12px_rgba(255,255,255,0.08)]" : "shadow-[0_0_18px_rgba(255,255,255,0.14)]"
 
     return (
-        <div className={`w-full min-w-64 ${disabled ? "opacity-50" : ""}`}>
+        <div className={`w-full min-w-0 sm:min-w-64 ${disabled ? "opacity-50" : ""}`}>
             <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-xs font-black uppercase tracking-[0.18em] text-white/45">
                     {label}

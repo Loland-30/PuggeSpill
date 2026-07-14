@@ -16,6 +16,7 @@ import DeckFilterBar, { type DeckLengthFilter, type DeckSortOption } from "../co
 import DeckGridView from "../components/decks/DeckGridView"
 import DeckListView from "../components/decks/DeckListView"
 import DeckViewToggle, { type DeckViewMode } from "../components/decks/DeckViewToggle"
+import useMediaQuery from "../hooks/useMediaQuery"
 
 const deckViewStorageKey = "spellstack_deck_view"
 
@@ -39,6 +40,8 @@ export default function DeckPage() {
     const [selectedLength, setSelectedLength] = useState<DeckLengthFilter>("any")
     const [selectedSort, setSelectedSort] = useState<DeckSortOption>("newest")
     const [viewMode, setViewMode] = useState<DeckViewMode>(getStoredDeckViewMode)
+    const usesFixedGridLayout = useMediaQuery("(max-width: 1399px)")
+    const effectiveViewMode: DeckViewMode = usesFixedGridLayout ? "grid" : viewMode
 
     useEffect(() => {
         if (authLoading) return
@@ -132,13 +135,13 @@ export default function DeckPage() {
                 onClose={() => setSelectedDeck(null)}
             />
 
-            <AppPageShell contentClassName="mt-14 flex h-[calc(100vh-8rem)] flex-col">
+            <AppPageShell contentClassName="mt-4 flex min-h-[calc(100dvh-7rem)] flex-col sm:mt-14 sm:min-h-[calc(100dvh-8rem)]">
                     <LibraryPageToolbar
                         actions={
                             <>
                             <button
                                 onClick={() => navigate("/decks/create")}
-                                className={`group relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full px-0 text-xs font-bold shadow-lg transition-[width,box-shadow] duration-300 ease-out hover:w-24 ${palette.primaryButton} ${palette.primaryButtonText}`}
+                                className={`group relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full px-0 text-xs font-bold shadow-lg transition-[width,box-shadow] duration-300 ease-out sm:hover:w-24 ${palette.primaryButton} ${palette.primaryButtonText}`}
                                 aria-label={t.common.createDeck}
                             >
                                 <Plus size={24} strokeWidth={3} className={`shrink-0 ${palette.primaryButtonText}`} />
@@ -159,17 +162,19 @@ export default function DeckPage() {
                                 </span>
                             </button>
 
-                            <DeckViewToggle
-                                value={viewMode}
-                                onChange={setViewMode}
-                                palette={palette}
-                            />
+                            <div className="hidden min-[1400px]:block">
+                                <DeckViewToggle
+                                    value={viewMode}
+                                    onChange={setViewMode}
+                                    palette={palette}
+                                />
+                            </div>
                             </>
                         }
                     />
 
                     <div
-                        className={`relative z-[1000] transition-[max-height,opacity,transform] duration-300 ease-out ${isFilterOpen ? "max-h-40 translate-y-0 overflow-visible opacity-100" : "pointer-events-none max-h-0 -translate-y-3 overflow-hidden opacity-0"}`}
+                        className={`relative z-[1000] transition-[max-height,opacity,transform] duration-300 ease-out ${isFilterOpen ? "max-h-[32rem] translate-y-0 overflow-visible opacity-100 sm:max-h-40" : "pointer-events-none max-h-0 -translate-y-3 overflow-hidden opacity-0"}`}
                         aria-hidden={!isFilterOpen}
                     >
                         <DeckFilterBar
@@ -190,7 +195,7 @@ export default function DeckPage() {
                         <FadeIn>
                             <GradientFrame
                                 glow
-                                contentClassName="p-10 text-center"
+                                contentClassName="p-6 text-center sm:p-10"
                             >
                                 <p className="text-2xl font-black">{decks.length === 0 ? t.deckPage.noDecksYet : t.deckPage.noDecksMatchFilters}</p>
                                 <p className="mt-2 text-white/70">{decks.length === 0 ? t.deckPage.createFirstDeck : t.deckPage.tryChangingFilters}</p>
@@ -204,7 +209,7 @@ export default function DeckPage() {
                             </GradientFrame>
                         </FadeIn>
                     ) : (
-                        viewMode === "list" ? (
+                        effectiveViewMode === "list" ? (
                             <DeckListView
                                 decks={filteredDecks}
                                 onPlay={handlePlay}
@@ -223,7 +228,7 @@ export default function DeckPage() {
                         )
                     )}
 
-                        <FadeIn className="mt-auto pb-16 pt-10 text-center text-lg text-white/80">
+                        <FadeIn className="mt-auto pb-6 pt-8 text-center text-base text-white/80 sm:pb-16 sm:pt-10 sm:text-lg">
                             {t.deckPage.deckCount}: {filteredDecks.length}
                         </FadeIn>
                     </div>

@@ -103,14 +103,14 @@ export default function AchievementsPage() {
     return (
         <div
             onWheel={event => event.stopPropagation()}
-            className="mx-auto flex h-full w-full max-w-[102rem] flex-col overflow-y-auto pb-10 pt-12 pr-2"
+            className="mx-auto flex w-full max-w-[102rem] flex-col pb-10 pt-12 pr-2 min-[1400px]:h-full min-[1400px]:overflow-y-auto"
         >
             <header className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-end">
                 <div>
                     <p className={`text-sm font-black uppercase tracking-[0.35em] ${palette.accentText}`}>
                         Progress
                     </p>
-                    <h1 className="mt-3 text-5xl font-black text-white">Achievements</h1>
+                    <h1 className="mt-3 text-3xl font-black text-white sm:text-5xl">Achievements</h1>
                     <p className="mt-3 max-w-2xl text-base leading-7 text-white/68">
                         Milestones for mastery, streaks, speed, languages, and special challenge runs.
                     </p>

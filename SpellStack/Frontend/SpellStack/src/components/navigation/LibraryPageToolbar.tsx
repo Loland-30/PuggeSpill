@@ -8,14 +8,14 @@ interface LibraryPageToolbarProps {
 
 export default function LibraryPageToolbar({ actions, reserveActionsSlot = false }: LibraryPageToolbarProps) {
     return (
-        <div className="mb-8 flex shrink-0 items-center justify-between gap-4">
+        <div className="mb-6 flex shrink-0 flex-col items-stretch gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
             <LibraryModeSwitcher />
 
             <div
-                className={`flex h-12 items-center gap-6 ${reserveActionsSlot ? "invisible pointer-events-none" : ""}`}
+                className={`flex min-h-12 flex-wrap items-center justify-end gap-3 sm:h-12 sm:gap-6 ${reserveActionsSlot ? "invisible pointer-events-none" : ""}`}
                 aria-hidden={reserveActionsSlot || undefined}
             >
-                {actions ?? <div className="h-12 w-[15rem]" />}
+                {actions ?? <div className="hidden h-12 w-[15rem] sm:block" />}
             </div>
         </div>
     )
