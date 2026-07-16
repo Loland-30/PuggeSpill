@@ -48,6 +48,10 @@ namespace SpellStack.Api.Auth {
                 new(ClaimTypes.Name, session.User.Username)
             };
 
+            if (session.User.IsAdmin) {
+                claims.Add(new Claim(ClaimTypes.Role, "Admin"));
+            }
+
             if (!string.IsNullOrWhiteSpace(session.User.ProfileImageUrl)) {
                 claims.Add(new Claim("profileImageUrl", session.User.ProfileImageUrl));
             }

@@ -46,7 +46,17 @@ export const no = {
     },
     updatesPage: {
         title: "Oppdateringer",
-        description: "Versjonsnotater og produktoppdateringer vil vises her."
+        description: "De siste endringene, feilrettingene og forbedringene i SpellStack.",
+        loading: "Laster oppdateringer",
+        loadError: "Kunne ikke laste oppdateringer. Prøv igjen.",
+        empty: "Ingen publiserte oppdateringer ennå.",
+        retry: "Prøv igjen",
+        readMore: "Les oppdateringen",
+        backToUpdates: "Tilbake til oppdateringer",
+        published: "Publisert",
+        otherUpdates: "Andre oppdateringer",
+        notFoundTitle: "Fant ikke oppdateringen",
+        notFoundDescription: "Oppdateringen finnes ikke eller er ikke publisert."
     },
     deckPage: {
         deckCount: "Antall decks",

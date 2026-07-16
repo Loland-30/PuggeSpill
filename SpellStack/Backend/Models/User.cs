@@ -10,6 +10,8 @@ namespace SpellStack.Api.Models {
         public string PasswordHash { get; set; } = "";
         [JsonIgnore]
         public string PasswordSalt { get; set; } = "";
+        [JsonIgnore]
+        public bool IsAdmin { get; set; }
         public string FavoriteLanguage { get; set; } = "Spanish";
         public string? Country { get; set; }
         [JsonIgnore]

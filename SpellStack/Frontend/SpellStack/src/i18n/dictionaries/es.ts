@@ -46,7 +46,17 @@ export const es = {
     },
     updatesPage: {
         title: "Actualizaciones",
-        description: "Las notas de la versión y las actualizaciones del producto aparecerán aquí."
+        description: "Los últimos cambios, correcciones y mejoras de SpellStack.",
+        loading: "Cargando actualizaciones",
+        loadError: "No se pudieron cargar las actualizaciones. Inténtalo de nuevo.",
+        empty: "Todavía no hay actualizaciones publicadas.",
+        retry: "Intentar de nuevo",
+        readMore: "Leer actualización",
+        backToUpdates: "Volver a Actualizaciones",
+        published: "Publicado",
+        otherUpdates: "Otras actualizaciones",
+        notFoundTitle: "Actualización no encontrada",
+        notFoundDescription: "Esta actualización no existe o no está publicada."
     },
     deckPage: {
         deckCount: "Número de mazos",

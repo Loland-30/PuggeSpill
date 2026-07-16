@@ -13,6 +13,7 @@ import TrialPage from "./Pages/TrialPage"
 import TrialsMenuPage from "./Pages/TrialsMenuPage"
 import MultiplayerPage from "./Pages/MultiplayerPage"
 import UpdatesPage from "./Pages/UpdatesPage"
+import UpdateDetailsPage from "./Pages/UpdateDetailsPage"
 import ThemedPage from "./components/ThemedPage"
 import AppSideNav from "./components/AppSideNav"
 import AppStartupGate from "./components/startup/AppStartupGate"
@@ -58,6 +59,7 @@ function App() {
                                     <Route path="/theme" element={<ThemePage />} />
                                     <Route path="/settings" element={<SettingsPage />} />
                                     <Route path="/updates" element={<UpdatesPage />} />
+                                    <Route path="/updates/:slug" element={<UpdateDetailsPage />} />
                                     <Route path="/multiplayer" element={<MultiplayerPage />} />
                                     <Route path="/trials" element={<TrialsMenuPage />} />
                                     <Route path="/decks" element={<DeckPage />} />

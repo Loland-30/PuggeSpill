@@ -46,7 +46,17 @@ export const ja = {
     },
     updatesPage: {
         title: "更新情報",
-        description: "リリースノートと製品アップデートはここに表示されます。"
+        description: "SpellStackの最新の変更、修正、改善情報です。",
+        loading: "更新情報を読み込み中",
+        loadError: "更新情報を読み込めませんでした。もう一度お試しください。",
+        empty: "公開済みの更新情報はまだありません。",
+        retry: "もう一度試す",
+        readMore: "詳細を見る",
+        backToUpdates: "更新情報へ戻る",
+        published: "公開日",
+        otherUpdates: "その他の更新情報",
+        notFoundTitle: "更新情報が見つかりません",
+        notFoundDescription: "この更新情報は存在しないか、公開されていません。"
     },
     deckPage: {
         deckCount: "デッキ数",

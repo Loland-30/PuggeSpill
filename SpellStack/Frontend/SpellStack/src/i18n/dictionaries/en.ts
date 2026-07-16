@@ -44,7 +44,17 @@
     },
     updatesPage: {
         title: "Updates",
-        description: "Release notes and product updates will appear here."
+        description: "Latest changes, fixes and improvements to SpellStack.",
+        loading: "Loading updates",
+        loadError: "Could not load updates. Please try again.",
+        empty: "No published updates yet.",
+        retry: "Try again",
+        readMore: "Read update",
+        backToUpdates: "Back to Updates",
+        published: "Published",
+        otherUpdates: "Other updates",
+        notFoundTitle: "Update not found",
+        notFoundDescription: "This update does not exist or is not published."
     },
     deckPage: {
         deckCount: "Deck count",
