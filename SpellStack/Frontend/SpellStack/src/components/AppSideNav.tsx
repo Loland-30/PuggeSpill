@@ -39,7 +39,7 @@ function NavItemLink({ item, active, activeIndicatorClass, onHover }: NavItemLin
                 event.preventDefault()
                 navigate(item.path)
             }}
-            className="group -my-3 flex w-full cursor-default items-center gap-3 rounded-lg py-4 pr-5 text-left text-lg font-medium text-white outline-none transition focus-visible:ring-2 focus-visible:ring-white/55"
+            className="group -my-3 grid w-full cursor-default grid-cols-[0.25rem_1.25rem_minmax(0,1fr)] items-center gap-2 rounded-lg py-4 text-left text-lg font-medium text-white outline-none transition focus-visible:ring-2 focus-visible:ring-white/55"
         >
             <span
                 aria-hidden="true"
@@ -49,7 +49,7 @@ function NavItemLink({ item, active, activeIndicatorClass, onHover }: NavItemLin
                 size={20}
                 strokeWidth={2.5}
                 aria-hidden="true"
-                className="pointer-events-none -ml-2 opacity-0 transition-all duration-200 group-hover:ml-0 group-hover:opacity-100 group-focus-visible:ml-0 group-focus-visible:opacity-100"
+                className={`pointer-events-none shrink-0 transition-opacity duration-200 ${active ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"}`}
             />
             <span className={`pointer-events-none transition-all duration-200 group-hover:translate-x-1 group-focus-visible:translate-x-1 ${active ? "text-white" : "text-white/85 group-hover:text-white group-focus-visible:text-white"}`}>
                 {item.label}

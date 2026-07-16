@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { RefreshCw } from "lucide-react"
 
 import { getUpdates, type UpdateListItem } from "../api/updates"
@@ -15,37 +15,39 @@ export default function UpdatesPage() {
     const [updates, setUpdates] = useState<UpdateListItem[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
+    const activeRequestRef = useRef<AbortController | null>(null)
 
     const loadUpdates = useCallback(async () => {
+        activeRequestRef.current?.abort()
+        const controller = new AbortController()
+        activeRequestRef.current = controller
+        setLoading(true)
+        setError("")
+
         try {
-            setUpdates(await getUpdates())
+            const nextUpdates = await getUpdates(controller.signal)
+            if (!controller.signal.aborted) setUpdates(nextUpdates)
         } catch (loadError) {
+            if (controller.signal.aborted) return
             console.error("Could not load updates", loadError)
             setError(t.updatesPage.loadError)
         } finally {
-            setLoading(false)
+            if (!controller.signal.aborted && activeRequestRef.current === controller) {
+                setLoading(false)
+            }
         }
     }, [t.updatesPage.loadError])
 
     useEffect(() => {
-        let cancelled = false
-
-        getUpdates()
-            .then(nextUpdates => {
-                if (!cancelled) setUpdates(nextUpdates)
-            })
-            .catch(loadError => {
-                console.error("Could not load updates", loadError)
-                if (!cancelled) setError(t.updatesPage.loadError)
-            })
-            .finally(() => {
-                if (!cancelled) setLoading(false)
-            })
+        const frameId = window.requestAnimationFrame(() => {
+            void loadUpdates()
+        })
 
         return () => {
-            cancelled = true
+            window.cancelAnimationFrame(frameId)
+            activeRequestRef.current?.abort()
         }
-    }, [t.updatesPage.loadError])
+    }, [loadUpdates])
 
     return (
         <PageContentTransition>
@@ -72,11 +74,7 @@ export default function UpdatesPage() {
                         <p className="text-lg font-bold text-white">{error}</p>
                         <button
                             type="button"
-                            onClick={() => {
-                                setLoading(true)
-                                setError("")
-                                void loadUpdates()
-                            }}
+                            onClick={() => void loadUpdates()}
                             className={`mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg border ${palette.border} bg-white/10 px-5 py-3 font-bold text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70`}
                         >
                             <RefreshCw size={18} aria-hidden="true" />

@@ -24,7 +24,7 @@ export default function SettingsTabs({ tabs, activeTab, onSelect, palette }: Set
                             key={tab.id}
                             type="button"
                             onClick={() => onSelect(tab.id)}
-                            className={`rounded-full px-5 py-2 text-sm font-black transition ${
+                            className={`whitespace-nowrap rounded-full px-5 py-2 text-sm font-black leading-5 transition ${
                                 active
                                     ? `${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`
                                     : "text-white/60 hover:bg-white/10 hover:text-white"
