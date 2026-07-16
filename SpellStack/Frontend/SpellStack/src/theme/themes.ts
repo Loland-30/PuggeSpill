@@ -5,6 +5,7 @@ export type OverlayStrength = "low" | "medium" | "high"
 export type TextTone = "light" | "dark"
 export type GlowStrength = "off" | "low" | "medium" | "high"
 export type AudioPresetKey = "ui_hover_soft_01" | "ui_hover_soft_02"
+export type FontThemeId = "default" | "sora" | "manrope" | "alexandria" | "poppins"
 
 export interface BackgroundTheme {
     id: BackgroundThemeId
@@ -40,6 +41,7 @@ export interface AppTheme {
     overlayStrength: OverlayStrength
     textTone: TextTone
     glowStrength: GlowStrength
+    fontId: FontThemeId
     audio: AudioSettings
 }
 
@@ -260,13 +262,42 @@ export const defaultAudioSettings: AudioSettings = {
     inGameMusic: null
 }
 
+export const fontThemes: Array<{ id: FontThemeId; name: string; family: string }> = [
+    {
+        id: "default",
+        name: "Default",
+        family: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+    },
+    {
+        id: "sora",
+        name: "Sora",
+        family: '"Sora", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+    },
+    {
+        id: "manrope",
+        name: "Manrope",
+        family: '"Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+    },
+    {
+        id: "alexandria",
+        name: "Alexandria",
+        family: '"Alexandria", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+    },
+    {
+        id: "poppins",
+        name: "Poppins",
+        family: '"Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+    }
+]
+
 export const defaultTheme: AppTheme = {
     backgroundId: "night",
-    paletteId: "purpleGradient",
+    paletteId: "blue",
     customBackgroundImage: null,
     overlayStrength: "medium",
     textTone: "light",
     glowStrength: "medium",
+    fontId: "default",
     audio: defaultAudioSettings
 }
 
@@ -282,17 +313,25 @@ export function normalizeTheme(theme: Partial<AppTheme> | null | undefined): App
     const glowStrength = validGlowStrengths.includes(theme?.glowStrength as GlowStrength)
         ? theme!.glowStrength as GlowStrength
         : legacyTheme?.reduceGlowEffects === true ? "off" : "medium"
+    const fontId = fontThemes.some(option => option.id === theme?.fontId)
+        ? theme!.fontId as FontThemeId
+        : defaultTheme.fontId
 
     return {
         ...defaultTheme,
         ...currentTheme,
         customBackgroundImage,
         glowStrength,
+        fontId,
         audio: {
             ...defaultAudioSettings,
             ...(theme?.audio ?? {})
         }
     }
+}
+
+export function getFontTheme(id: FontThemeId) {
+    return fontThemes.find(option => option.id === id) ?? fontThemes[0]
 }
 
 export const textTones: Array<{ id: TextTone; name: string; inputClass: string; placeholderClass: string; panelClass: string }> = [

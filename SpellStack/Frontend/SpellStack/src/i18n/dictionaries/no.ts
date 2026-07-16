@@ -113,6 +113,8 @@ export const no = {
         off: "Av",
         glow: "Glød",
         glowDescription: "Velg styrken på dekorativ glød i det aktive temaet.",
+        font: "Skrifttype",
+        fontDescription: "Velg skrifttypen som brukes i hele SpellStack.",
         blackOverlay: "{percent}% sort overlay",
         lowOverlayDescription: "30% sort overlay",
         mediumOverlayDescription: "50% sort overlay",

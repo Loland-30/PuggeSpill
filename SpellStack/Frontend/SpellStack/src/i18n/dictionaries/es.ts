@@ -113,6 +113,8 @@ export const es = {
         off: "Desactivado",
         glow: "Brillo",
         glowDescription: "Elige la intensidad del brillo decorativo del tema activo.",
+        font: "Fuente",
+        fontDescription: "Elige la fuente de texto utilizada en SpellStack.",
         blackOverlay: "Capa negra del {percent}%",
         lowOverlayDescription: "Capa negra del 30%",
         mediumOverlayDescription: "Capa negra del 50%",

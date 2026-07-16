@@ -111,6 +111,8 @@
         off: "Off",
         glow: "Glow",
         glowDescription: "Choose the strength of decorative glow across the active theme.",
+        font: "Font",
+        fontDescription: "Choose the text font used across SpellStack.",
         blackOverlay: "{percent}% black overlay",
         lowOverlayDescription: "30% black overlay",
         mediumOverlayDescription: "50% black overlay",

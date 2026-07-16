@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { ArrowLeft, CalendarDays, RefreshCw } from "lucide-react"
 import { Link, useParams } from "react-router-dom"
 
@@ -50,17 +50,29 @@ export default function UpdateDetailsPage() {
     const [loading, setLoading] = useState(true)
     const [notFound, setNotFound] = useState(false)
     const [error, setError] = useState("")
+    const activeRequestRef = useRef<AbortController | null>(null)
 
     const loadUpdate = useCallback(async () => {
+        activeRequestRef.current?.abort()
+        const controller = new AbortController()
+        activeRequestRef.current = controller
+
+        setLoading(true)
+        setError("")
+        setNotFound(false)
+
         try {
             const [nextUpdate, publishedUpdates] = await Promise.all([
-                getUpdateBySlug(slug),
-                getUpdates().catch(() => [])
+                getUpdateBySlug(slug, controller.signal),
+                getUpdates(controller.signal).catch(() => [])
             ])
 
+            if (controller.signal.aborted) return
             setUpdate(nextUpdate)
             setOtherUpdates(publishedUpdates.filter(item => item.slug !== nextUpdate.slug).slice(0, 3))
         } catch (loadError) {
+            if (controller.signal.aborted) return
+
             if (loadError instanceof UpdatesApiError && loadError.status === 404) {
                 setNotFound(true)
             } else {
@@ -68,41 +80,22 @@ export default function UpdateDetailsPage() {
                 setError(t.updatesPage.loadError)
             }
         } finally {
-            setLoading(false)
+            if (!controller.signal.aborted && activeRequestRef.current === controller) {
+                setLoading(false)
+            }
         }
     }, [slug, t.updatesPage.loadError])
 
     useEffect(() => {
-        let cancelled = false
-
-        Promise.all([
-            getUpdateBySlug(slug),
-            getUpdates().catch(() => [])
-        ])
-            .then(([nextUpdate, publishedUpdates]) => {
-                if (cancelled) return
-
-                setUpdate(nextUpdate)
-                setOtherUpdates(publishedUpdates.filter(item => item.slug !== nextUpdate.slug).slice(0, 3))
-            })
-            .catch(loadError => {
-                if (cancelled) return
-
-                if (loadError instanceof UpdatesApiError && loadError.status === 404) {
-                    setNotFound(true)
-                } else {
-                    console.error("Could not load update", loadError)
-                    setError(t.updatesPage.loadError)
-                }
-            })
-            .finally(() => {
-                if (!cancelled) setLoading(false)
-            })
+        const frame = window.requestAnimationFrame(() => {
+            void loadUpdate()
+        })
 
         return () => {
-            cancelled = true
+            window.cancelAnimationFrame(frame)
+            activeRequestRef.current?.abort()
         }
-    }, [slug, t.updatesPage.loadError])
+    }, [loadUpdate])
 
     const publishedDate = update?.publishedAt
         ? new Intl.DateTimeFormat(appLanguage, { year: "numeric", month: "long", day: "numeric" }).format(new Date(update.publishedAt))
@@ -136,9 +129,6 @@ export default function UpdateDetailsPage() {
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        setLoading(true)
-                                        setError("")
-                                        setNotFound(false)
                                         void loadUpdate()
                                     }}
                                     className={`mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg border ${palette.border} bg-white/10 px-5 py-3 font-bold text-white transition hover:bg-white/15`}

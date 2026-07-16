@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { getStoredToken } from "../api/auth"
 import { getUserTheme, saveUserTheme } from "../api/theme"
-import { defaultTheme, getBackgroundTheme, getPaletteTheme, getTextTone, normalizeTheme, type AppTheme, type AudioSettings, type BackgroundThemeId, type GlowStrength, type OverlayStrength, type PaletteThemeId, type TextTone } from "./themes"
+import { defaultTheme, getBackgroundTheme, getFontTheme, getPaletteTheme, getTextTone, normalizeTheme, type AppTheme, type AudioSettings, type BackgroundThemeId, type FontThemeId, type GlowStrength, type OverlayStrength, type PaletteThemeId, type TextTone } from "./themes"
 
 interface ThemeContextValue {
     theme: AppTheme
@@ -15,6 +15,7 @@ interface ThemeContextValue {
     setOverlayStrength: (strength: OverlayStrength) => void
     setTextTone: (tone: TextTone) => void
     setGlowStrength: (strength: GlowStrength) => void
+    setFont: (fontId: FontThemeId) => void
     setAudioEnabled: (enabled: boolean) => void
     setUiVolume: (volume: number) => void
     setMusicVolume: (volume: number) => void
@@ -114,6 +115,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         document.documentElement.style.setProperty("--spellstack-glow-rgb", palette.glowColor)
     }, [palette.glowColor])
 
+    useEffect(() => {
+        document.documentElement.style.setProperty("--app-font-family", getFontTheme(theme.fontId).family)
+    }, [theme.fontId])
+
     const value = useMemo<ThemeContextValue>(() => ({
         theme,
         isThemeReady: remoteThemeReady,
@@ -126,6 +131,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         setOverlayStrength: overlayStrength => updateTheme(current => ({ ...current, overlayStrength })),
         setTextTone: textTone => updateTheme(current => ({ ...current, textTone })),
         setGlowStrength: glowStrength => updateTheme(current => ({ ...current, glowStrength })),
+        setFont: fontId => updateTheme(current => ({ ...current, fontId })),
         setAudioEnabled: audioEnabled => updateAudio({ audioEnabled }),
         setUiVolume: uiVolume => updateAudio({ uiVolume: clampVolume(uiVolume) }),
         setMusicVolume: musicVolume => updateAudio({ musicVolume: clampVolume(musicVolume) }),

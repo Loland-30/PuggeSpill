@@ -113,6 +113,8 @@ export const ja = {
         off: "オフ",
         glow: "グロー",
         glowDescription: "現在のテーマの装飾的な発光の強さを選択します。",
+        font: "フォント",
+        fontDescription: "SpellStack全体で使用するテキストフォントを選択します。",
         blackOverlay: "黒オーバーレイ {percent}%",
         lowOverlayDescription: "黒オーバーレイ 30%",
         mediumOverlayDescription: "黒オーバーレイ 50%",

@@ -50,13 +50,13 @@ async function readResponse<T>(response: Response, fallbackMessage: string): Pro
     return response.json() as Promise<T>
 }
 
-export async function getUpdates(): Promise<UpdateListItem[]> {
-    const response = await fetch(`${API_URL}/updates`)
+export async function getUpdates(signal?: AbortSignal): Promise<UpdateListItem[]> {
+    const response = await fetch(`${API_URL}/updates`, { signal })
     return readResponse(response, "Could not load updates.")
 }
 
-export async function getUpdateBySlug(slug: string): Promise<UpdateDetails> {
-    const response = await fetch(`${API_URL}/updates/${encodeURIComponent(slug)}`)
+export async function getUpdateBySlug(slug: string, signal?: AbortSignal): Promise<UpdateDetails> {
+    const response = await fetch(`${API_URL}/updates/${encodeURIComponent(slug)}`, { signal })
     return readResponse(response, "Could not load this update.")
 }
 
