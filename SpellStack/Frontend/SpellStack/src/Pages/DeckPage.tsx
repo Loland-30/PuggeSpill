@@ -178,18 +178,16 @@ export default function DeckPage() {
                                 aria-pressed={trialModeActive}
                                 aria-label={trialModeActive ? t.trials.disableMode : t.trials.enableMode}
                                 title={trialModeActive ? t.trials.disableMode : t.trials.enableMode}
-                                className={`group relative flex h-12 items-center justify-center overflow-hidden rounded-full border px-0 text-xs font-bold shadow-lg transition-[width,background-color,box-shadow] duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
+                                className={`group relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full px-0 text-xs font-bold shadow-lg transition-[width,background-color,box-shadow] duration-300 ease-out hover:w-24 focus-visible:w-24 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
                                     trialModeActive
-                                        ? `w-12 border-transparent ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`
-                                        : `w-12 ${palette.border} bg-transparent text-white hover:w-24 focus:w-24`
+                                        ? `${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`
+                                        : `border ${palette.border} bg-transparent text-white`
                                 }`}
                             >
                                 <GraduationCap size={22} strokeWidth={2.6} className="shrink-0" />
-                                {!trialModeActive && (
-                                    <span className="ml-0 max-w-0 whitespace-nowrap opacity-0 transition-all duration-300 group-hover:ml-2 group-hover:max-w-16 group-hover:opacity-100 group-focus:ml-2 group-focus:max-w-16 group-focus:opacity-100">
-                                        {t.common.trials}
-                                    </span>
-                                )}
+                                <span className="ml-0 max-w-0 whitespace-nowrap opacity-0 transition-all duration-300 group-hover:ml-2 group-hover:max-w-16 group-hover:opacity-100 group-focus-visible:ml-2 group-focus-visible:max-w-16 group-focus-visible:opacity-100">
+                                    {t.common.trials}
+                                </span>
                             </button>
 
                             <button
