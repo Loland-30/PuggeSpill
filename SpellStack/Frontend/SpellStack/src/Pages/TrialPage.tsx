@@ -1,16 +1,23 @@
-import { useCallback, useEffect, useState } from "react"
-import { ArrowLeft, RefreshCw } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
+import { ArrowLeft } from "lucide-react"
 import { useNavigate, useParams } from "react-router-dom"
 
 import { getDeck, submitTrialResult, type Deck, type TrialResult } from "../api/decks"
 import FadeIn from "../components/FadeIn"
 import ThemedPage from "../components/ThemedPage"
+import TrialMistakeReview from "../components/trials/TrialMistakeReview"
 import TrialProgress from "../components/trials/TrialProgress"
 import TrialQuestionCard from "../components/trials/TrialQuestionCard"
+import TrialResultSummary from "../components/trials/TrialResultSummary"
 import { useDeckTrialSession } from "../hooks/useDeckTrialSession"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
-import { TRIAL_PASS_THRESHOLD_PERCENT } from "../utils/trialRules"
+import { getTrialRequirements, isDeckTrialEligible } from "../utils/trialRules"
+
+const RUN_COMPLETE_DURATION_MS = 750
+
+type ResultView = "summary" | "review"
 
 export default function TrialPage() {
     const { deckId } = useParams()
@@ -42,7 +49,7 @@ export default function TrialPage() {
     if (!hasValidDeckId) return <TrialMessage message={t.trials.deckNotFound} />
     if (loading) return <TrialMessage message={t.common.loading} />
     if (error || !deck) return <TrialMessage message={error || t.trials.deckNotFound} />
-    if (deck.words.length === 0) return <TrialMessage message={t.trials.zeroWords} />
+    if (!isDeckTrialEligible(deck.words.length)) return <TrialMessage message={t.trials.minimumWords} />
 
     return <TrialRunner deck={deck} />
 }
@@ -59,7 +66,7 @@ function TrialMessage({ message }: { message: string }) {
                 <button
                     type="button"
                     onClick={() => navigate("/decks?mode=trial")}
-                    className={`mt-6 rounded-full px-6 py-3 font-black ${palette.primaryButton} ${palette.primaryButtonText}`}
+                    className={`mt-6 rounded-full px-6 py-3 font-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${palette.primaryButton} ${palette.primaryButtonText}`}
                 >
                     {t.trials.returnToDecks}
                 </button>
@@ -71,18 +78,24 @@ function TrialMessage({ message }: { message: string }) {
 function TrialRunner({ deck }: { deck: Deck }) {
     const navigate = useNavigate()
     const { t } = useI18n()
-    const { palette } = useTheme()
+    const reduceMotion = useReducedMotion()
     const [answer, setAnswer] = useState("")
     const [savedResult, setSavedResult] = useState<TrialResult | null>(null)
     const [resultError, setResultError] = useState("")
     const [submittingResult, setSubmittingResult] = useState(false)
+    const [runCompleteFinished, setRunCompleteFinished] = useState(false)
+    const [resultView, setResultView] = useState<ResultView>("summary")
+    const [hasPlayedResultAnimation, setHasPlayedResultAnimation] = useState(false)
+    const reviewButtonRef = useRef<HTMLButtonElement>(null)
+    const reviewHeadingRef = useRef<HTMLHeadingElement>(null)
     const trial = useDeckTrialSession(deck)
 
     const saveResult = useCallback(async () => {
         setSubmittingResult(true)
-        setResultError("")
         try {
-            setSavedResult(await submitTrialResult(deck.id, trial.correctCount, trial.questions.length))
+            const result = await submitTrialResult(deck.id, trial.correctCount, trial.questions.length)
+            setSavedResult(result)
+            setResultError("")
         } catch (error) {
             setResultError(error instanceof Error ? error.message : t.trials.resultSaveError)
         } finally {
@@ -92,68 +105,95 @@ function TrialRunner({ deck }: { deck: Deck }) {
 
     useEffect(() => {
         if (!trial.isComplete || savedResult || resultError || submittingResult) return
-
         const timeout = window.setTimeout(() => void saveResult(), 0)
         return () => window.clearTimeout(timeout)
     }, [resultError, saveResult, savedResult, submittingResult, trial.isComplete])
+
+    useEffect(() => {
+        if (!trial.isComplete) return
+        const timeout = window.setTimeout(
+            () => setRunCompleteFinished(true),
+            reduceMotion ? 0 : RUN_COMPLETE_DURATION_MS
+        )
+        return () => window.clearTimeout(timeout)
+    }, [reduceMotion, trial.isComplete])
+
+    useEffect(() => {
+        if (resultView === "review") reviewHeadingRef.current?.focus()
+    }, [resultView])
 
     const restart = () => {
         trial.restart()
         setAnswer("")
         setSavedResult(null)
         setResultError("")
+        setRunCompleteFinished(false)
+        setResultView("summary")
+        setHasPlayedResultAnimation(false)
+    }
+
+    const openReview = () => {
+        setHasPlayedResultAnimation(true)
+        setResultView("review")
+    }
+
+    const returnToSummary = () => {
+        setResultView("summary")
+        window.setTimeout(() => reviewButtonRef.current?.focus(), reduceMotion ? 0 : 220)
     }
 
     if (trial.isComplete) {
+        const resultResolved = Boolean(savedResult || resultError)
+        if (!runCompleteFinished || !resultResolved) {
+            return <TrialRunComplete saving={runCompleteFinished && submittingResult} />
+        }
+
+        const requirements = savedResult?.requirements ?? getTrialRequirements(trial.questions.length)
+        const transition = reduceMotion
+            ? { duration: 0 }
+            : { duration: 0.2, ease: "easeOut" as const }
+
         return (
-            <ThemedPage className="min-h-dvh px-4 py-8 text-white sm:px-8">
-                <FadeIn className="relative z-10 mx-auto w-full max-w-4xl">
-                    <div className={`rounded-2xl border ${palette.border} ${palette.card} ${palette.glow} p-5 shadow-2xl sm:rounded-3xl sm:p-9`}>
-                        <p className={`text-sm font-black uppercase tracking-[0.24em] ${palette.accentText}`}>{t.trials.complete}</p>
-                        <h1 className="mt-3 text-4xl font-black sm:text-6xl">
-                            {savedResult ? (savedResult.passed ? t.trials.passed : t.trials.failed) : t.trials.resultPending}
-                        </h1>
-                        <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                            <ResultStat label={t.trials.correct} value={`${trial.correctCount} / ${trial.questions.length}`} />
-                            <ResultStat label={t.trials.percentage} value={`${trial.accuracy}%`} />
-                            <ResultStat label={t.trials.required} value={`${TRIAL_PASS_THRESHOLD_PERCENT}%`} />
-                        </div>
-
-                        {resultError && (
-                            <div className="mt-6 rounded-xl border border-red-300/30 bg-red-500/10 p-4">
-                                <p className="font-bold text-red-200">{t.trials.resultSaveError}</p>
-                                <p className="mt-1 text-sm text-red-100/70">{resultError}</p>
-                                <button type="button" onClick={() => void saveResult()} className="mt-3 inline-flex items-center gap-2 font-black text-white underline">
-                                    <RefreshCw size={17} /> {t.trials.retrySave}
-                                </button>
-                            </div>
-                        )}
-
-                        {trial.incorrectAnswers.length > 0 && (
-                            <section className="mt-8 border-t border-white/10 pt-7">
-                                <h2 className="text-2xl font-black">{t.trials.incorrectQuestions}</h2>
-                                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                                    {trial.incorrectAnswers.map((record, index) => (
-                                        <div key={`${record.question.wordId}-${index}`} className="rounded-xl border border-white/10 bg-black/20 p-4">
-                                            <p className="font-black text-white">{record.question.prompt}</p>
-                                            <p className="mt-2 text-sm text-white/55">{t.trials.yourAnswer}: {record.submittedAnswer || t.trials.noAnswer}</p>
-                                            <p className="text-sm text-white/80">{t.trials.correctAnswer}: {record.question.correctAnswer}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
-                        )}
-
-                        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                            <button type="button" onClick={restart} className={`rounded-full px-6 py-3 font-black ${palette.primaryButton} ${palette.primaryButtonText}`}>
-                                {t.trials.retryTrial}
-                            </button>
-                            <button type="button" onClick={() => navigate("/decks?mode=trial")} className="rounded-full border border-white/15 bg-white/5 px-6 py-3 font-black transition hover:bg-white/10">
-                                {t.trials.returnToDecks}
-                            </button>
-                        </div>
-                    </div>
-                </FadeIn>
+            <ThemedPage className="min-h-dvh overflow-x-hidden text-white">
+                <div className="relative z-10 min-h-dvh">
+                    <AnimatePresence mode="wait" initial={false}>
+                        <motion.div
+                            key={resultView}
+                            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+                            transition={transition}
+                        >
+                            {resultView === "summary" ? (
+                                <TrialResultSummary
+                                    ref={reviewButtonRef}
+                                    deck={deck}
+                                    correctAnswers={trial.correctCount}
+                                    totalQuestions={trial.questions.length}
+                                    percentage={trial.accuracy}
+                                    requirements={requirements}
+                                    savedResult={savedResult}
+                                    resultError={resultError}
+                                    isSavingResult={submittingResult}
+                                    mistakeCount={trial.incorrectAnswers.length}
+                                    animateResult={!hasPlayedResultAnimation}
+                                    onResultAnimationComplete={() => setHasPlayedResultAnimation(true)}
+                                    onReview={openReview}
+                                    onRetrySave={() => void saveResult()}
+                                    onRestart={restart}
+                                    onReturnToDecks={() => navigate("/decks?mode=trial")}
+                                />
+                            ) : (
+                                <TrialMistakeReview
+                                    ref={reviewHeadingRef}
+                                    mistakes={trial.incorrectAnswers}
+                                    totalQuestions={trial.questions.length}
+                                    onBack={returnToSummary}
+                                />
+                            )}
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
             </ThemedPage>
         )
     }
@@ -189,11 +229,23 @@ function TrialRunner({ deck }: { deck: Deck }) {
     )
 }
 
-function ResultStat({ label, value }: { label: string; value: string }) {
+function TrialRunComplete({ saving }: { saving: boolean }) {
+    const { t } = useI18n()
+    const reduceMotion = useReducedMotion()
+
     return (
-        <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-center">
-            <p className="text-sm font-bold text-white/55">{label}</p>
-            <p className="mt-1 text-3xl font-black text-white">{value}</p>
-        </div>
+        <ThemedPage className="grid min-h-dvh place-items-center text-white">
+            <motion.div
+                className="relative z-10 text-center"
+                initial={reduceMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: reduceMotion ? 0 : 0.3, ease: "easeOut" }}
+                role="status"
+                aria-live="polite"
+            >
+                <p className="text-4xl font-black sm:text-6xl">{t.trials.runComplete}</p>
+                {saving && <p className="mt-3 font-semibold text-white/65">{t.trials.resultPending}</p>}
+            </motion.div>
+        </ThemedPage>
     )
 }

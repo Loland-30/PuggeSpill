@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react"
 import { getGameHistory, type GameRunHistory } from "../../api/gameSession"
-import { getDecks, isDeckTrialPassed, type Deck } from "../../api/decks"
+import { getDecks, getDeckTrialStars, type Deck } from "../../api/decks"
 import GradeRing, { getRingPalette } from "../results/GradeRing"
 import { useTheme } from "../../theme/ThemeContext"
 import { useI18n } from "../../i18n/I18nContext"
 import { getNextRankText, getRankFromAccuracy, type RankLabel } from "../../utils/rankUtils"
 import type { ProfileComponentProps } from "./types"
+import { isDeckTrialEligible, TRIAL_MAXIMUM_STARS } from "../../utils/trialRules"
 
 const performanceTabs = ["General", "Rush Hour", "Trials"] as const
 type PerformanceTab = typeof performanceTabs[number]
@@ -85,16 +86,20 @@ export default function PerformancePage({
 
     const trialProgress = useMemo(() => {
         const eligibleDecks = decks.filter(deck => {
-            return deck.words.length > 0 && deck.learningLanguage === currentLanguage.code
+            return isDeckTrialEligible(deck.words.length) && deck.learningLanguage === currentLanguage.code
         })
-        const completedDecks = eligibleDecks.filter(isDeckTrialPassed).length
+        const totalStars = eligibleDecks.reduce((sum, deck) => sum + getDeckTrialStars(deck), 0)
+        const completedDecks = eligibleDecks.filter(deck => getDeckTrialStars(deck) > 0).length
+        const possibleStars = eligibleDecks.length * TRIAL_MAXIMUM_STARS
 
         return {
             completedDecks,
             eligibleDecks: eligibleDecks.length,
             completionPercentage: eligibleDecks.length === 0
                 ? 0
-                : Math.round(completedDecks * 100 / eligibleDecks.length)
+                : Math.round(completedDecks * 100 / eligibleDecks.length),
+            totalStars,
+            possibleStars
         }
     }, [currentLanguage.code, decks])
 
@@ -323,6 +328,8 @@ function TrialsPanel({ progress }: {
         completedDecks: number
         eligibleDecks: number
         completionPercentage: number
+        totalStars: number
+        possibleStars: number
     }
 }) {
     const { t } = useI18n()
@@ -342,6 +349,16 @@ function TrialsPanel({ progress }: {
             <PerformanceStat
                 label={t.trials.completionPercentage}
                 value={`${progress.completionPercentage}%`}
+            />
+
+            <PerformanceStat
+                label={t.trials.totalStars}
+                value={progress.totalStars.toString()}
+            />
+
+            <PerformanceStat
+                label={t.trials.starsEarned}
+                value={`${progress.totalStars} / ${progress.possibleStars}`}
             />
         </div>
     )

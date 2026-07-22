@@ -17,6 +17,7 @@ import DeckGridView from "../components/decks/DeckGridView"
 import DeckListView from "../components/decks/DeckListView"
 import DeckViewToggle, { type DeckViewMode } from "../components/decks/DeckViewToggle"
 import useMediaQuery from "../hooks/useMediaQuery"
+import { isDeckTrialEligible } from "../utils/trialRules"
 
 const deckViewStorageKey = "spellstack_deck_view"
 
@@ -71,8 +72,8 @@ export default function DeckPage() {
 
     const handlePlay = (deck: Deck) => {
         if (trialModeActive) {
-            if (deck.words.length === 0) {
-                setTrialStartError(t.trials.zeroWords)
+            if (!isDeckTrialEligible(deck.words.length)) {
+                setTrialStartError(t.trials.minimumWords)
                 return
             }
             navigate(`/decks/${deck.id}/trial`)
@@ -214,14 +215,8 @@ export default function DeckPage() {
                         }
                     />
 
-                    {trialModeActive && (
-                        <div className="mb-4 flex flex-wrap items-center gap-3" aria-live="polite">
-                            <span className={`inline-flex items-center gap-2 rounded-full border ${palette.border} bg-black/25 px-3 py-1.5 text-xs font-black text-white`}>
-                                <GraduationCap size={16} aria-hidden="true" />
-                                {t.trials.modeActive}
-                            </span>
-                            {trialStartError && <span className="text-sm font-bold text-red-300">{trialStartError}</span>}
-                        </div>
+                    {trialStartError && (
+                        <p className="mb-4 text-sm font-bold text-red-300" role="alert">{trialStartError}</p>
                     )}
 
                     <div

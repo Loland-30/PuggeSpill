@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { Check, ChevronDown, Library, RotateCcw, X } from "lucide-react"
 
-import { createDeck, getDeck, isDeckTrialPassed, updateDeckContent, type Deck, type UpdateDeckContentInput } from "../api/decks"
+import { createDeck, getDeck, getDeckTrialStars, updateDeckContent, type Deck, type UpdateDeckContentInput } from "../api/decks"
 import { addWord } from "../api/words"
 import FadeIn from "../components/FadeIn"
 import GradientFrame from "../components/GradientFrame"
@@ -285,7 +285,7 @@ export default function CreateDeckPage() {
         const content = createContentInput()
         if (!isEditing && content.words.length === 0) return
 
-        if (isEditing && originalDeck && isDeckTrialPassed(originalDeck) && hasTrialRelevantDeckChanges(originalDeck, content)) {
+        if (isEditing && originalDeck && getDeckTrialStars(originalDeck) > 0 && hasTrialRelevantDeckChanges(originalDeck, content)) {
             setShowTrialResetWarning(true)
             return
         }

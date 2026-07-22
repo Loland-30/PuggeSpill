@@ -22,6 +22,15 @@ namespace SpellStack.Api.Data {
                 .Property(deck => deck.ContentRevision)
                 .HasDefaultValue(1);
 
+            modelBuilder.Entity<Deck>()
+                .Property(deck => deck.BestTrialStars)
+                .HasDefaultValue(0);
+
+            modelBuilder.Entity<Deck>()
+                .ToTable(table => table.HasCheckConstraint(
+                    "CK_Decks_BestTrialStars",
+                    "\"BestTrialStars\" >= 0 AND \"BestTrialStars\" <= 3"));
+
             modelBuilder.Entity<GameRunResult>()
                 .HasIndex(result => result.GameSessionId)
                 .IsUnique();

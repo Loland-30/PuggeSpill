@@ -1,11 +1,12 @@
-import { Pencil, Star, Trash2 } from "lucide-react"
+import { Pencil, Trash2 } from "lucide-react"
 
-import { isDeckTrialPassed, type Deck } from "../../api/decks"
+import type { Deck } from "../../api/decks"
 import { useUISound } from "../../audio/useUISound"
 import { languages } from "../../data/languages"
 import { useI18n } from "../../i18n/I18nContext"
 import type { PaletteTheme } from "../../theme/themes"
 import GradientFrame from "../GradientFrame"
+import DeckTrialRating from "./DeckTrialRating"
 
 interface DeckListRowProps {
     deck: Deck
@@ -40,12 +41,7 @@ export default function DeckListRow({ deck, onPlay, onEdit, onDelete, palette }:
                         </p>
                         <div className="flex items-center gap-2 text-xs text-white/50">
                             <span>{t.deckPage.highscore}: {deck.highScore}</span>
-                            {isDeckTrialPassed(deck) && (
-                                <span title={t.trials.passedTooltip} className={`inline-flex items-center ${palette.accentText}`}>
-                                    <Star size={16} fill="currentColor" aria-hidden="true" />
-                                    <span className="sr-only">{t.trials.passedTooltip}</span>
-                                </span>
-                            )}
+                            <DeckTrialRating deck={deck} palette={palette} size={15} />
                         </div>
                     </div>
 

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react"
 
 import type { Deck, Word } from "../api/decks"
 import { isAnswerAccepted, splitAcceptedAnswers } from "../utils/answerUtils"
-import { TRIAL_PASS_THRESHOLD_PERCENT } from "../utils/trialRules"
 
 export type TrialDirection = "original-to-translation" | "translation-to-original"
 
@@ -91,7 +90,6 @@ export function useDeckTrialSession(deck: Deck) {
     const accuracy = questions.length === 0
         ? 0
         : Math.round(correctCount * 10_000 / questions.length) / 100
-    const passed = isComplete && accuracy >= TRIAL_PASS_THRESHOLD_PERCENT
     const currentQuestion = questions[currentIndex]
 
     useEffect(() => {
@@ -136,7 +134,6 @@ export function useDeckTrialSession(deck: Deck) {
         isComplete,
         correctCount,
         accuracy,
-        passed,
         submitAnswer,
         restart
     }

@@ -1,12 +1,13 @@
 import type { KeyboardEvent, MouseEvent } from "react"
-import { Pencil, Star, Trash2, Trophy } from "lucide-react"
+import { Pencil, Trash2, Trophy } from "lucide-react"
 
-import { isDeckTrialPassed, type Deck } from "../../api/decks"
+import type { Deck } from "../../api/decks"
 import { useUISound } from "../../audio/useUISound"
 import { languages } from "../../data/languages"
 import { useI18n } from "../../i18n/I18nContext"
 import type { PaletteTheme } from "../../theme/themes"
 import GradientFrame from "../GradientFrame"
+import DeckTrialRating from "./DeckTrialRating"
 
 interface DeckGridCardProps {
     deck: Deck
@@ -107,12 +108,7 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
                         <div className="mt-2 flex items-center gap-2 text-base font-semibold text-white/80">
                             <Trophy size={22} strokeWidth={2.8} className={palette.accentText} />
                             <span>{formatScore(deck.highScore)}</span>
-                            {isDeckTrialPassed(deck) && (
-                                <span title={t.trials.passedTooltip} className={`inline-flex items-center ${palette.accentText}`}>
-                                    <Star size={20} fill="currentColor" aria-hidden="true" />
-                                    <span className="sr-only">{t.trials.passedTooltip}</span>
-                                </span>
-                            )}
+                            <DeckTrialRating deck={deck} palette={palette} size={19} />
                         </div>
                     </div>
 

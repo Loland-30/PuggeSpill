@@ -167,26 +167,39 @@ namespace SpellStack.Api.Controllers {
             if (deck == null) return NotFound();
 
             var wordCount = deck.Words.Count;
-            if (wordCount == 0) return BadRequest("A Trial requires at least one word.");
+            if (wordCount < TrialRules.MinimumDeckWordCount) {
+                return BadRequest($"A Trial requires at least {TrialRules.MinimumDeckWordCount} words.");
+            }
             if (request.TotalQuestions != wordCount) return BadRequest("Trial question count no longer matches this deck.");
             if (request.CorrectAnswers < 0 || request.CorrectAnswers > request.TotalQuestions) {
                 return BadRequest("Correct answer count is invalid.");
             }
 
             var percentage = Math.Round(request.CorrectAnswers * 100d / request.TotalQuestions, 2);
-            var passed = percentage >= TrialRules.PassThresholdPercent;
-            if (passed && deck.PassedTrialRevision != deck.ContentRevision) {
-                deck.PassedTrialRevision = deck.ContentRevision;
+            var requirements = TrialRules.GetRequirements(wordCount);
+            var earnedStars = TrialRules.CalculateEarnedStars(request.CorrectAnswers, wordCount);
+            var hasCurrentResult = deck.TrialResultRevision == deck.ContentRevision;
+            var currentBestStars = hasCurrentResult
+                ? Math.Clamp(deck.BestTrialStars, 0, TrialRules.MaximumStars)
+                : 0;
+            var bestStars = Math.Max(currentBestStars, earnedStars);
+
+            if (!hasCurrentResult || deck.BestTrialStars != bestStars) {
+                deck.TrialResultRevision = deck.ContentRevision;
+                deck.BestTrialStars = bestStars;
                 await _context.SaveChangesAsync();
             }
 
-            return Ok(new {
-                passed,
+            return Ok(new TrialResultResponse(
+                request.CorrectAnswers,
+                request.TotalQuestions,
                 percentage,
-                contentRevision = deck.ContentRevision,
-                passedTrialRevision = deck.PassedTrialRevision,
-                isTrialPassed = deck.PassedTrialRevision == deck.ContentRevision
-            });
+                earnedStars,
+                bestStars,
+                deck.ContentRevision,
+                deck.TrialResultRevision,
+                bestStars > 0,
+                requirements));
         }
 
         [HttpPost("{id}/highscore")]
@@ -287,5 +300,15 @@ namespace SpellStack.Api.Controllers {
     public record UpdateDeckContentRequest(string Name, string Language, string TranslationLanguage, string LearningLanguage, string? Description, List<UpdateDeckWordRequest> Words);
     public record UpdateDeckWordRequest(int? Id, string Original, string Translation, string? AlternativeOriginal, string? AlternativeTranslation, string? Hint);
     public record TrialResultRequest(int CorrectAnswers, int TotalQuestions);
+    public record TrialResultResponse(
+        int CorrectAnswers,
+        int TotalQuestions,
+        double Percentage,
+        int EarnedStars,
+        int BestStars,
+        int ContentRevision,
+        int? TrialResultRevision,
+        bool IsTrialCompleted,
+        IReadOnlyList<TrialStarRequirement> Requirements);
     public record UpdateHighScoreRequest(int Score);
 }

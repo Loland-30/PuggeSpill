@@ -10,7 +10,8 @@ export interface Deck {
     description: string
     highScore: number
     contentRevision: number
-    passedTrialRevision: number | null
+    trialResultRevision: number | null
+    bestTrialStars: number
     createdAt: string
     words: Word[]
 }
@@ -48,19 +49,31 @@ export interface UpdateDeckContentInput {
     words: DeckContentWordInput[]
 }
 
-export interface TrialResult {
-    passed: boolean
-    percentage: number
-    contentRevision: number
-    passedTrialRevision: number | null
-    isTrialPassed: boolean
+export interface TrialStarRequirement {
+    stars: number
+    thresholdPercent: number
+    requiredCorrect: number
 }
 
-export function isDeckTrialPassed(deck: Pick<Deck, "contentRevision" | "passedTrialRevision">) {
+export interface TrialResult {
+    correctAnswers: number
+    totalQuestions: number
+    percentage: number
+    earnedStars: number
+    bestStars: number
+    contentRevision: number
+    trialResultRevision: number | null
+    isTrialCompleted: boolean
+    requirements: TrialStarRequirement[]
+}
+
+export function getDeckTrialStars(deck: Pick<Deck, "contentRevision" | "trialResultRevision" | "bestTrialStars">) {
     return Number.isInteger(deck.contentRevision) &&
-        typeof deck.passedTrialRevision === "number" &&
-        Number.isInteger(deck.passedTrialRevision) &&
-        deck.passedTrialRevision === deck.contentRevision
+        typeof deck.trialResultRevision === "number" &&
+        Number.isInteger(deck.trialResultRevision) &&
+        deck.trialResultRevision === deck.contentRevision
+        ? Math.min(3, Math.max(0, Math.trunc(deck.bestTrialStars)))
+        : 0
 }
 
 export async function createDeck(name: string, language: string, translationLanguage: string, learningLanguage: string, description: string): Promise<Deck> {
