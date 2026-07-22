@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { Plus, SlidersHorizontal } from "lucide-react"
+import { useNavigate, useSearchParams } from "react-router-dom"
+import { GraduationCap, Plus, SlidersHorizontal } from "lucide-react"
 
 import { getDecks, deleteDeck, type Deck } from "../api/decks"
 import type { ActiveGameModifier, GameDirection, RoundLimit } from "../api/gameSession"
@@ -29,6 +29,7 @@ function getStoredDeckViewMode(): DeckViewMode {
 
 export default function DeckPage() {
     const navigate = useNavigate()
+    const [searchParams, setSearchParams] = useSearchParams()
     const { user, loading: authLoading } = useAuth()
     const { palette } = useTheme()
     const { t } = useI18n()
@@ -42,6 +43,8 @@ export default function DeckPage() {
     const [viewMode, setViewMode] = useState<DeckViewMode>(getStoredDeckViewMode)
     const usesFixedGridLayout = useMediaQuery("(max-width: 1399px)")
     const effectiveViewMode: DeckViewMode = usesFixedGridLayout ? "grid" : viewMode
+    const trialModeActive = searchParams.get("mode") === "trial"
+    const [trialStartError, setTrialStartError] = useState("")
 
     useEffect(() => {
         if (authLoading) return
@@ -67,7 +70,25 @@ export default function DeckPage() {
     }
 
     const handlePlay = (deck: Deck) => {
+        if (trialModeActive) {
+            if (deck.words.length === 0) {
+                setTrialStartError(t.trials.zeroWords)
+                return
+            }
+            navigate(`/decks/${deck.id}/trial`)
+            return
+        }
+
         setSelectedDeck(deck)
+    }
+
+    const toggleTrialMode = () => {
+        const nextParams = new URLSearchParams(searchParams)
+        if (trialModeActive) nextParams.delete("mode")
+        else nextParams.set("mode", "trial")
+        setTrialStartError("")
+        setSelectedDeck(null)
+        setSearchParams(nextParams)
     }
 
     const activeFilterCount = [
@@ -151,6 +172,26 @@ export default function DeckPage() {
                             </button>
 
                             <button
+                                type="button"
+                                onClick={toggleTrialMode}
+                                aria-pressed={trialModeActive}
+                                aria-label={trialModeActive ? t.trials.disableMode : t.trials.enableMode}
+                                title={trialModeActive ? t.trials.disableMode : t.trials.enableMode}
+                                className={`group relative flex h-12 items-center justify-center overflow-hidden rounded-full border px-0 text-xs font-bold shadow-lg transition-[width,background-color,box-shadow] duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
+                                    trialModeActive
+                                        ? `w-12 border-transparent ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`
+                                        : `w-12 ${palette.border} bg-transparent text-white hover:w-24 focus:w-24`
+                                }`}
+                            >
+                                <GraduationCap size={22} strokeWidth={2.6} className="shrink-0" />
+                                {!trialModeActive && (
+                                    <span className="ml-0 max-w-0 whitespace-nowrap opacity-0 transition-all duration-300 group-hover:ml-2 group-hover:max-w-16 group-hover:opacity-100 group-focus:ml-2 group-focus:max-w-16 group-focus:opacity-100">
+                                        {t.common.trials}
+                                    </span>
+                                )}
+                            </button>
+
+                            <button
                                 onClick={() => setIsFilterOpen(isOpen => !isOpen)}
                                 className={`group relative flex h-12 items-center justify-center overflow-hidden rounded-full px-0 text-xs font-bold shadow-lg transition-[width,box-shadow] duration-300 ease-out ${palette.primaryButton} ${palette.primaryButtonText} ${isFilterOpen ? `${activeFilterCount > 0 ? "w-28" : "w-24"} ${palette.glow}` : `${activeFilterCount > 0 ? "hover:w-28" : "hover:w-24"} w-12`}`}
                                 aria-expanded={isFilterOpen}
@@ -172,6 +213,16 @@ export default function DeckPage() {
                             </>
                         }
                     />
+
+                    {trialModeActive && (
+                        <div className="mb-4 flex flex-wrap items-center gap-3" aria-live="polite">
+                            <span className={`inline-flex items-center gap-2 rounded-full border ${palette.border} bg-black/25 px-3 py-1.5 text-xs font-black text-white`}>
+                                <GraduationCap size={16} aria-hidden="true" />
+                                {t.trials.modeActive}
+                            </span>
+                            {trialStartError && <span className="text-sm font-bold text-red-300">{trialStartError}</span>}
+                        </div>
+                    )}
 
                     <div
                         className={`relative z-[1000] transition-[max-height,opacity,transform] duration-300 ease-out ${isFilterOpen ? "max-h-[32rem] translate-y-0 overflow-visible opacity-100 sm:max-h-40" : "pointer-events-none max-h-0 -translate-y-3 overflow-hidden opacity-0"}`}

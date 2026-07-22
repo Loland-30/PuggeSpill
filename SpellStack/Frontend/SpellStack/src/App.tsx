@@ -10,7 +10,6 @@ import ResetPasswordPage from "./Pages/ResetPasswordPage"
 import ThemePage from "./Pages/ThemePage"
 import SettingsPage from "./Pages/SettingsPage"
 import TrialPage from "./Pages/TrialPage"
-import TrialsMenuPage from "./Pages/TrialsMenuPage"
 import MultiplayerPage from "./Pages/MultiplayerPage"
 import UpdatesPage from "./Pages/UpdatesPage"
 import UpdateDetailsPage from "./Pages/UpdateDetailsPage"
@@ -24,9 +23,9 @@ import MobileNavigationProvider from "./components/navigation/MobileNavigationPr
 function App() {
     const location = useLocation()
     const prefersReducedMotion = useReducedMotion()
-    const isGameplay = location.pathname.includes("/play") || location.pathname.includes("/trials/")
+    const isGameplay = location.pathname.includes("/play") || /\/decks\/\d+\/trial$/.test(location.pathname)
     const showSideNav = !isGameplay && location.pathname !== "/login" && location.pathname !== "/reset-password"
-    const lockPageScroll = location.pathname === "/trials" || location.pathname === "/multiplayer"
+    const lockPageScroll = location.pathname === "/multiplayer"
 
     return (
         <MobileNavigationProvider>
@@ -35,7 +34,7 @@ function App() {
                 {isGameplay ? (
                 <Routes location={location}>
                     <Route path="/decks/:id/play" element={<PlayPage />} />
-                    <Route path="/trials/:trialId" element={<TrialPage />} />
+                    <Route path="/decks/:deckId/trial" element={<TrialPage />} />
                 </Routes>
                 ) : (
                     <ThemedPage className={`px-4 py-4 text-white sm:px-6 sm:py-8 ${showSideNav ? "pb-[calc(5.75rem+env(safe-area-inset-bottom))] min-[1400px]:pb-8" : "pb-4 sm:pb-8"} ${lockPageScroll ? "min-[1400px]:h-dvh min-[1400px]:overflow-hidden" : ""}`}>
@@ -61,7 +60,6 @@ function App() {
                                     <Route path="/updates" element={<UpdatesPage />} />
                                     <Route path="/updates/:slug" element={<UpdateDetailsPage />} />
                                     <Route path="/multiplayer" element={<MultiplayerPage />} />
-                                    <Route path="/trials" element={<TrialsMenuPage />} />
                                     <Route path="/decks" element={<DeckPage />} />
                                     <Route path="/decks/create" element={<CreateDeckPage />} />
                                     <Route path="/decks/:id/edit" element={<CreateDeckPage />} />

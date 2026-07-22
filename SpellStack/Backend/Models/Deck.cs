@@ -11,6 +11,8 @@ namespace SpellStack.Api.Models {
         public string LearningLanguage { get; set; } = "";
         public string Description { get; set; } = "";
         public int HighScore { get; set; }
+        public int ContentRevision { get; set; } = 1;
+        public int? PassedTrialRevision { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public ICollection<Word> Words { get; set; } = new List<Word>();

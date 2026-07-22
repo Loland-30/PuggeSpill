@@ -1,11 +1,11 @@
 ﻿import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { BookOpen, Trophy, UsersRound, type LucideIcon } from "lucide-react"
+import { BookOpen, UsersRound, type LucideIcon } from "lucide-react"
 import { useUISound } from "../audio/useUISound"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
 
-export type LibraryView = "decks" | "multiplayer" | "trials"
+export type LibraryView = "decks" | "multiplayer"
 
 interface LibraryViewPickerProps {
     activeView: LibraryView
@@ -14,8 +14,7 @@ interface LibraryViewPickerProps {
 
 const views: Array<{ id: LibraryView; icon: LucideIcon }> = [
     { id: "decks", icon: BookOpen },
-    { id: "multiplayer", icon: UsersRound },
-    { id: "trials", icon: Trophy }
+    { id: "multiplayer", icon: UsersRound }
 ]
 
 export default function LibraryViewPicker({ activeView, onChange }: LibraryViewPickerProps) {
@@ -31,7 +30,7 @@ export default function LibraryViewPicker({ activeView, onChange }: LibraryViewP
     const getLabel = (view: LibraryView) => {
         if (view === "decks") return t.common.decks
         if (view === "multiplayer") return t.nav.multiplayer
-        return t.common.trials
+        return t.nav.multiplayer
     }
 
     const handleChange = (view: LibraryView) => {

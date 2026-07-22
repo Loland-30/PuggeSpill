@@ -18,6 +18,10 @@ namespace SpellStack.Api.Data {
         public DbSet<UpdatePost> UpdatePosts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
+            modelBuilder.Entity<Deck>()
+                .Property(deck => deck.ContentRevision)
+                .HasDefaultValue(1);
+
             modelBuilder.Entity<GameRunResult>()
                 .HasIndex(result => result.GameSessionId)
                 .IsUnique();

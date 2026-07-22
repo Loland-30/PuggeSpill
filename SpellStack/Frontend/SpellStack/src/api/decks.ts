@@ -9,6 +9,8 @@ export interface Deck {
     learningLanguage: string
     description: string
     highScore: number
+    contentRevision: number
+    passedTrialRevision: number | null
     createdAt: string
     words: Word[]
 }
@@ -26,6 +28,39 @@ export interface Word {
 export interface HighScoreResult {
     highScore: number
     isNewHighScore: boolean
+}
+
+export interface DeckContentWordInput {
+    id?: number
+    original: string
+    translation: string
+    alternativeOriginal: string | null
+    alternativeTranslation: string | null
+    hint: string | null
+}
+
+export interface UpdateDeckContentInput {
+    name: string
+    language: string
+    translationLanguage: string
+    learningLanguage: string
+    description: string
+    words: DeckContentWordInput[]
+}
+
+export interface TrialResult {
+    passed: boolean
+    percentage: number
+    contentRevision: number
+    passedTrialRevision: number | null
+    isTrialPassed: boolean
+}
+
+export function isDeckTrialPassed(deck: Pick<Deck, "contentRevision" | "passedTrialRevision">) {
+    return Number.isInteger(deck.contentRevision) &&
+        typeof deck.passedTrialRevision === "number" &&
+        Number.isInteger(deck.passedTrialRevision) &&
+        deck.passedTrialRevision === deck.contentRevision
 }
 
 export async function createDeck(name: string, language: string, translationLanguage: string, learningLanguage: string, description: string): Promise<Deck> {
@@ -61,6 +96,32 @@ export async function updateDeck(id: number, name: string, language: string, tra
         body: JSON.stringify({ name, language, translationLanguage, learningLanguage, description })
     })
     if (!response.ok) throw new Error("Kunne ikke oppdatere deck")
+    return response.json()
+}
+
+export async function updateDeckContent(id: number, input: UpdateDeckContentInput): Promise<Deck> {
+    const response = await fetch(`${API_URL}/deck/${id}/content`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify(input)
+    })
+    if (!response.ok) {
+        const message = (await response.text()).trim()
+        throw new Error(message || "Could not save deck content")
+    }
+    return response.json()
+}
+
+export async function submitTrialResult(id: number, correctAnswers: number, totalQuestions: number): Promise<TrialResult> {
+    const response = await fetch(`${API_URL}/deck/${id}/trial-result`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ correctAnswers, totalQuestions })
+    })
+    if (!response.ok) {
+        const message = (await response.text()).trim()
+        throw new Error(message || "Could not save Trial result")
+    }
     return response.json()
 }
 

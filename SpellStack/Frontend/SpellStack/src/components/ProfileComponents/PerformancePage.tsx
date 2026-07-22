@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react"
 import { getGameHistory, type GameRunHistory } from "../../api/gameSession"
+import { getDecks, isDeckTrialPassed, type Deck } from "../../api/decks"
 import GradeRing, { getRingPalette } from "../results/GradeRing"
 import { useTheme } from "../../theme/ThemeContext"
+import { useI18n } from "../../i18n/I18nContext"
 import { getNextRankText, getRankFromAccuracy, type RankLabel } from "../../utils/rankUtils"
 import type { ProfileComponentProps } from "./types"
 
@@ -21,10 +23,6 @@ interface PerformanceSnapshot {
     rushHoursTriggered: number
     rushHoursCompleted: number
     longestRushHourDuration: number | null
-    trialsAttempted: number
-    averageTrialWinRate: number
-    recentTrialScore: number
-    bestTrialScore: number
 }
 
 export default function PerformancePage({
@@ -38,6 +36,7 @@ export default function PerformancePage({
     const [gameHistory, setGameHistory] = useState<GameRunHistory[]>([])
     const [historyLoading, setHistoryLoading] = useState(false)
     const [historyError, setHistoryError] = useState<string | null>(null)
+    const [decks, setDecks] = useState<Deck[]>([])
 
     useEffect(() => {
         let cancelled = false
@@ -64,9 +63,40 @@ export default function PerformancePage({
         }
     }, [currentLanguage.code])
 
+    useEffect(() => {
+        let cancelled = false
+
+        getDecks()
+            .then(items => {
+                if (!cancelled) setDecks(items)
+            })
+            .catch(() => {
+                if (!cancelled) setDecks([])
+            })
+
+        return () => {
+            cancelled = true
+        }
+    }, [])
+
     const performance = useMemo(() => {
         return getPerformanceSnapshot(gameHistory)
     }, [gameHistory])
+
+    const trialProgress = useMemo(() => {
+        const eligibleDecks = decks.filter(deck => {
+            return deck.words.length > 0 && deck.learningLanguage === currentLanguage.code
+        })
+        const completedDecks = eligibleDecks.filter(isDeckTrialPassed).length
+
+        return {
+            completedDecks,
+            eligibleDecks: eligibleDecks.length,
+            completionPercentage: eligibleDecks.length === 0
+                ? 0
+                : Math.round(completedDecks * 100 / eligibleDecks.length)
+        }
+    }, [currentLanguage.code, decks])
 
     const otherLanguages = profileLanguages.filter(language => {
         return language.code !== currentLanguage.code
@@ -107,7 +137,7 @@ export default function PerformancePage({
                 )}
 
                 {activeTab === "Trials" && (
-                    <TrialsPanel performance={performance} />
+                    <TrialsPanel progress={trialProgress} />
                 )}
             </div>
 
@@ -288,27 +318,30 @@ function RushHourPanel({ performance }: { performance: PerformanceSnapshot }) {
     )
 }
 
-function TrialsPanel({ performance }: { performance: PerformanceSnapshot }) {
+function TrialsPanel({ progress }: {
+    progress: {
+        completedDecks: number
+        eligibleDecks: number
+        completionPercentage: number
+    }
+}) {
+    const { t } = useI18n()
+
     return (
         <div className="mt-10 grid w-full max-w-[44rem] grid-cols-[repeat(auto-fit,minmax(min(15rem,100%),1fr))] gap-5">
             <PerformanceStat
-                label="Trials attempted"
-                value={performance.trialsAttempted.toString()}
+                label={t.trials.trialsCompleted}
+                value={progress.completedDecks.toString()}
             />
 
             <PerformanceStat
-                label="Average Trial win rate"
-                value={`${performance.averageTrialWinRate}%`}
+                label={t.trials.eligibleDecks}
+                value={progress.eligibleDecks.toString()}
             />
 
             <PerformanceStat
-                label="Recent Trial"
-                value={`${performance.recentTrialScore}%`}
-            />
-
-            <PerformanceStat
-                label="Best Trial"
-                value={`${performance.bestTrialScore}%`}
+                label={t.trials.completionPercentage}
+                value={`${progress.completionPercentage}%`}
             />
         </div>
     )
@@ -486,11 +519,7 @@ function getPerformanceSnapshot(runs: GameRunHistory[]): PerformanceSnapshot {
         recentScoreRuns: completedRuns.map(run => run.finalScore),
         rushHoursTriggered: runs.reduce((sum, run) => sum + (run.rushHoursTriggered ?? 0), 0),
         rushHoursCompleted: runs.reduce((sum, run) => sum + (run.rushHoursCompleted ?? 0), 0),
-        longestRushHourDuration: getLongestRushHourDuration(runs),
-        trialsAttempted: 0,
-        averageTrialWinRate: 0,
-        recentTrialScore: 0,
-        bestTrialScore: 0
+        longestRushHourDuration: getLongestRushHourDuration(runs)
     }
 }
 

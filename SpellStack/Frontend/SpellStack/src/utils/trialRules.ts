@@ -1,0 +1,1 @@
+export const TRIAL_PASS_THRESHOLD_PERCENT = 90

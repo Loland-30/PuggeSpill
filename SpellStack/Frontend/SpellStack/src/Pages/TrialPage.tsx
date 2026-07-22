@@ -1,117 +1,199 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
+import { ArrowLeft, RefreshCw } from "lucide-react"
 import { useNavigate, useParams } from "react-router-dom"
 
+import { getDeck, submitTrialResult, type Deck, type TrialResult } from "../api/decks"
 import FadeIn from "../components/FadeIn"
-import RunResultScreen from "../components/game/RunResultScreen"
+import ThemedPage from "../components/ThemedPage"
 import TrialProgress from "../components/trials/TrialProgress"
 import TrialQuestionCard from "../components/trials/TrialQuestionCard"
-import { trials } from "../data/trials/trials"
-import type { Trial } from "../data/trials/trialTypes"
-import { useTrialSession } from "../hooks/useTrialSession"
-import { recordTestingTrialAttempt } from "../testing/unlockRank"
+import { useDeckTrialSession } from "../hooks/useDeckTrialSession"
+import { useI18n } from "../i18n/I18nContext"
+import { useTheme } from "../theme/ThemeContext"
+import { TRIAL_PASS_THRESHOLD_PERCENT } from "../utils/trialRules"
 
 export default function TrialPage() {
-    const navigate = useNavigate()
-    const { trialId } = useParams()
-    const trial = trials.find(candidate => candidate.id === trialId)
-
-    if (!trial) {
-        return (
-            <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-50 px-6 text-center">
-                <p className="text-sm font-black uppercase tracking-[0.3em] text-orange-400">Trial not found</p>
-                <h1 className="text-4xl font-black text-gray-800">Could not find that trial</h1>
-                <button
-                    onClick={() => navigate("/trials")}
-                    className="rounded-full bg-orange-400 px-8 py-3 font-bold text-white transition hover:bg-orange-500"
-                >
-                    Back to decks
-                </button>
-            </div>
-        )
-    }
-
-    return <TrialRunner trial={trial} />
-}
-
-function TrialRunner({ trial }: { trial: Trial }) {
-    const navigate = useNavigate()
-    const [answer, setAnswer] = useState("")
-    const trialSession = useTrialSession(trial)
-    const recordedAttemptRef = useRef(false)
+    const { deckId } = useParams()
+    const { t } = useI18n()
+    const [deck, setDeck] = useState<Deck | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState("")
+    const parsedDeckId = Number(deckId)
+    const hasValidDeckId = Number.isInteger(parsedDeckId) && parsedDeckId > 0
 
     useEffect(() => {
-        if (!trialSession.isComplete || recordedAttemptRef.current) return
+        if (!hasValidDeckId) return
 
-        recordTestingTrialAttempt(trial.id)
-        recordedAttemptRef.current = true
-    }, [trial.id, trialSession.isComplete])
+        let cancelled = false
+        getDeck(parsedDeckId)
+            .then(nextDeck => {
+                if (!cancelled) setDeck(nextDeck)
+            })
+            .catch(() => {
+                if (!cancelled) setError(t.trials.deckNotFound)
+            })
+            .finally(() => {
+                if (!cancelled) setLoading(false)
+            })
 
-    const handleSubmit = () => {
-        trialSession.submitAnswer(answer)
+        return () => { cancelled = true }
+    }, [hasValidDeckId, parsedDeckId, t.trials.deckNotFound])
+
+    if (!hasValidDeckId) return <TrialMessage message={t.trials.deckNotFound} />
+    if (loading) return <TrialMessage message={t.common.loading} />
+    if (error || !deck) return <TrialMessage message={error || t.trials.deckNotFound} />
+    if (deck.words.length === 0) return <TrialMessage message={t.trials.zeroWords} />
+
+    return <TrialRunner deck={deck} />
+}
+
+function TrialMessage({ message }: { message: string }) {
+    const navigate = useNavigate()
+    const { t } = useI18n()
+    const { palette } = useTheme()
+
+    return (
+        <ThemedPage className="grid min-h-dvh place-items-center px-4 text-white">
+            <div className="relative z-10 max-w-lg text-center">
+                <p className="text-xl font-black">{message}</p>
+                <button
+                    type="button"
+                    onClick={() => navigate("/decks?mode=trial")}
+                    className={`mt-6 rounded-full px-6 py-3 font-black ${palette.primaryButton} ${palette.primaryButtonText}`}
+                >
+                    {t.trials.returnToDecks}
+                </button>
+            </div>
+        </ThemedPage>
+    )
+}
+
+function TrialRunner({ deck }: { deck: Deck }) {
+    const navigate = useNavigate()
+    const { t } = useI18n()
+    const { palette } = useTheme()
+    const [answer, setAnswer] = useState("")
+    const [savedResult, setSavedResult] = useState<TrialResult | null>(null)
+    const [resultError, setResultError] = useState("")
+    const [submittingResult, setSubmittingResult] = useState(false)
+    const trial = useDeckTrialSession(deck)
+
+    const saveResult = useCallback(async () => {
+        setSubmittingResult(true)
+        setResultError("")
+        try {
+            setSavedResult(await submitTrialResult(deck.id, trial.correctCount, trial.questions.length))
+        } catch (error) {
+            setResultError(error instanceof Error ? error.message : t.trials.resultSaveError)
+        } finally {
+            setSubmittingResult(false)
+        }
+    }, [deck.id, t.trials.resultSaveError, trial.correctCount, trial.questions.length])
+
+    useEffect(() => {
+        if (!trial.isComplete || savedResult || resultError || submittingResult) return
+
+        const timeout = window.setTimeout(() => void saveResult(), 0)
+        return () => window.clearTimeout(timeout)
+    }, [resultError, saveResult, savedResult, submittingResult, trial.isComplete])
+
+    const restart = () => {
+        trial.restart()
         setAnswer("")
+        setSavedResult(null)
+        setResultError("")
     }
 
-    if (trialSession.isComplete) {
+    if (trial.isComplete) {
         return (
-            <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gray-50 px-6">
-                <FadeIn>
-                    <RunResultScreen
-                        outcome={trialSession.passed ? "trialPassed" : "trialFailed"}
-                        modeLabel="Trial complete"
-                        rank={trialSession.rank}
-                        title={trialSession.passed ? "Trial passed" : "Trial failed"}
-                        subtitle={`${trialSession.correctCount} / ${trialSession.questionCount} correct. Needed ${trial.passingCorrect}.`}
-                        stats={[
-                            { label: "Correct", value: trialSession.correctCount },
-                            { label: "Needed", value: trial.passingCorrect },
-                            { label: "Accuracy", value: `${trialSession.accuracy}%` },
-                            { label: "Questions", value: trialSession.questionCount }
-                        ]}
-                        primaryActionLabel="Try again"
-                        secondaryActionLabel="Exit"
-                        onPrimaryAction={() => {
-                            recordedAttemptRef.current = false
-                            trialSession.restart()
-                            setAnswer("")
-                        }}
-                        onSecondaryAction={() => navigate("/trials")}
-                    />
+            <ThemedPage className="min-h-dvh px-4 py-8 text-white sm:px-8">
+                <FadeIn className="relative z-10 mx-auto w-full max-w-4xl">
+                    <div className={`rounded-2xl border ${palette.border} ${palette.card} ${palette.glow} p-5 shadow-2xl sm:rounded-3xl sm:p-9`}>
+                        <p className={`text-sm font-black uppercase tracking-[0.24em] ${palette.accentText}`}>{t.trials.complete}</p>
+                        <h1 className="mt-3 text-4xl font-black sm:text-6xl">
+                            {savedResult ? (savedResult.passed ? t.trials.passed : t.trials.failed) : t.trials.resultPending}
+                        </h1>
+                        <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <ResultStat label={t.trials.correct} value={`${trial.correctCount} / ${trial.questions.length}`} />
+                            <ResultStat label={t.trials.percentage} value={`${trial.accuracy}%`} />
+                            <ResultStat label={t.trials.required} value={`${TRIAL_PASS_THRESHOLD_PERCENT}%`} />
+                        </div>
+
+                        {resultError && (
+                            <div className="mt-6 rounded-xl border border-red-300/30 bg-red-500/10 p-4">
+                                <p className="font-bold text-red-200">{t.trials.resultSaveError}</p>
+                                <p className="mt-1 text-sm text-red-100/70">{resultError}</p>
+                                <button type="button" onClick={() => void saveResult()} className="mt-3 inline-flex items-center gap-2 font-black text-white underline">
+                                    <RefreshCw size={17} /> {t.trials.retrySave}
+                                </button>
+                            </div>
+                        )}
+
+                        {trial.incorrectAnswers.length > 0 && (
+                            <section className="mt-8 border-t border-white/10 pt-7">
+                                <h2 className="text-2xl font-black">{t.trials.incorrectQuestions}</h2>
+                                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                    {trial.incorrectAnswers.map((record, index) => (
+                                        <div key={`${record.question.wordId}-${index}`} className="rounded-xl border border-white/10 bg-black/20 p-4">
+                                            <p className="font-black text-white">{record.question.prompt}</p>
+                                            <p className="mt-2 text-sm text-white/55">{t.trials.yourAnswer}: {record.submittedAnswer || t.trials.noAnswer}</p>
+                                            <p className="text-sm text-white/80">{t.trials.correctAnswer}: {record.question.correctAnswer}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
+                        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                            <button type="button" onClick={restart} className={`rounded-full px-6 py-3 font-black ${palette.primaryButton} ${palette.primaryButtonText}`}>
+                                {t.trials.retryTrial}
+                            </button>
+                            <button type="button" onClick={() => navigate("/decks?mode=trial")} className="rounded-full border border-white/15 bg-white/5 px-6 py-3 font-black transition hover:bg-white/10">
+                                {t.trials.returnToDecks}
+                            </button>
+                        </div>
+                    </div>
                 </FadeIn>
-            </div>
+            </ThemedPage>
         )
     }
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-6 py-10">
+        <ThemedPage className="min-h-dvh px-4 py-6 text-white sm:px-8 sm:py-10">
             <button
-                onClick={() => navigate("/trials")}
-                className="absolute left-8 top-8 text-sm text-gray-400 transition hover:text-gray-600"
+                type="button"
+                onClick={() => navigate("/decks?mode=trial")}
+                className="relative z-20 inline-flex items-center gap-2 rounded-full bg-black/25 px-4 py-2 text-sm font-black text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             >
-                Exit
+                <ArrowLeft size={18} /> {t.common.close}
             </button>
-
-            <div className="w-full max-w-xl space-y-8">
-                <TrialProgress
-                    current={trialSession.currentIndex + 1}
-                    total={trialSession.questionCount}
-                />
-
-                {trialSession.currentQuestion && (
-                    <FadeIn key={trialSession.currentQuestion.source}>
+            <div className="relative z-10 mx-auto flex min-h-[calc(100dvh-7rem)] w-full max-w-2xl flex-col justify-center gap-8">
+                <TrialProgress current={trial.currentIndex + 1} total={trial.questions.length} />
+                {trial.currentQuestion && (
+                    <FadeIn key={`${trial.currentQuestion.wordId}-${trial.currentQuestion.direction}`}>
                         <TrialQuestionCard
-                            title={trial.title}
-                            source={trialSession.currentQuestion.source}
+                            title={deck.name}
+                            source={trial.currentQuestion.prompt}
                             answer={answer}
                             onAnswerChange={setAnswer}
-                            onSubmit={handleSubmit}
+                            onSubmit={() => {
+                                trial.submitAnswer(answer)
+                                setAnswer("")
+                            }}
                         />
                     </FadeIn>
                 )}
-
-                <p className="text-center text-sm font-semibold text-gray-400">
-                    No hints, no timer, no feedback until the end.
-                </p>
+                <p className="text-center text-sm font-semibold text-white/50">{t.trials.examNote}</p>
             </div>
+        </ThemedPage>
+    )
+}
+
+function ResultStat({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-center">
+            <p className="text-sm font-bold text-white/55">{label}</p>
+            <p className="mt-1 text-3xl font-black text-white">{value}</p>
         </div>
     )
 }

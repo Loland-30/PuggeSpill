@@ -2,8 +2,8 @@ import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { Check, ChevronDown, Library, RotateCcw, X } from "lucide-react"
 
-import { createDeck, getDeck, updateDeck } from "../api/decks"
-import { addWord, deleteWord, updateWord } from "../api/words"
+import { createDeck, getDeck, isDeckTrialPassed, updateDeckContent, type Deck, type UpdateDeckContentInput } from "../api/decks"
+import { addWord } from "../api/words"
 import FadeIn from "../components/FadeIn"
 import GradientFrame from "../components/GradientFrame"
 import LanguageSelect from "../components/LanguageSelect"
@@ -11,6 +11,8 @@ import AppPageShell from "../components/layout/AppPageShell"
 import PageContentTransition from "../components/PageContentTransition"
 import { spanishDeckPresets, type SpanishDeckPreset } from "../data/spanishDeckPresets"
 import { useTheme } from "../theme/ThemeContext"
+import TrialResetWarningModal from "../components/decks/TrialResetWarningModal"
+import { hasTrialRelevantDeckChanges } from "../utils/deckTrialChanges"
 
 interface WordPair {
     clientId: string
@@ -72,12 +74,17 @@ export default function CreateDeckPage() {
     const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
     const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
     const [showPresets, setShowPresets] = useState(false)
+    const [originalDeck, setOriginalDeck] = useState<Deck | null>(null)
+    const [showTrialResetWarning, setShowTrialResetWarning] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
+    const [saveError, setSaveError] = useState("")
     const hasCompleteWordPair = words.some(word => word.original.trim() && word.translation.trim())
 
     useEffect(() => {
         if (!isEditing) return
 
         getDeck(Number(id)).then(deck => {
+            setOriginalDeck(deck)
             setDeckName(deck.name)
             setLanguage(deck.language)
             setTranslationLanguage(deck.translationLanguage)
@@ -158,20 +165,17 @@ export default function CreateDeckPage() {
         )
     }
 
-    const removeWordRow = async (clientId: string) => {
+    const removeWordRow = (clientId: string) => {
         const word = words.find(word => word.clientId === clientId)
         if (!word) return
 
         setSelectedPresetId(null)
 
-        if (word.id) {
-            await deleteWord(word.id)
-        }
-
         setWords(currentWords => currentWords.filter(word => word.clientId !== clientId))
 
         setExpandedRows(currentRows => {
-            const { [clientId]: _removedRow, ...remainingRows } = currentRows
+            const remainingRows = { ...currentRows }
+            delete remainingRows[clientId]
             return remainingRows
         })
     }
@@ -225,45 +229,68 @@ export default function CreateDeckPage() {
         setWords([createEmptyWordPair()])
     }
 
-    const handleSubmit = async () => {
-        if (!deckName || !language) return
-
-        const validWords = words.filter(word => word.original.trim() && word.translation.trim())
-        if (!isEditing && validWords.length === 0) return
-
+    const createContentInput = (): UpdateDeckContentInput => {
         const learningLanguage = learningLanguageSide === "source" ? language : translationLanguage
+        const validWords = words.filter(word => word.original.trim() && word.translation.trim())
 
-        if (isEditing) {
-            await updateDeck(Number(id), deckName, language, translationLanguage, learningLanguage, description)
-
-            await Promise.all(words.map(word => {
-                if (!word.original || !word.translation) return
-
-                const alternativeTranslation = serializeAcceptedAnswers(word.acceptedAnswers)
-                const alternativeOriginal = serializeAcceptedAnswers(word.acceptedOriginals)
-
-                if (word.id) {
-                    return updateWord(word.id, word.original, word.translation, word.hint || null, Number(id), alternativeTranslation, alternativeOriginal)
-                }
-
-                return addWord(word.original, word.translation, word.hint || null, Number(id), alternativeTranslation, alternativeOriginal)
+        return {
+            name: deckName.trim(),
+            language,
+            translationLanguage,
+            learningLanguage,
+            description: description.trim(),
+            words: validWords.map(word => ({
+                id: word.id,
+                original: word.original,
+                translation: word.translation,
+                alternativeOriginal: serializeAcceptedAnswers(word.acceptedOriginals),
+                alternativeTranslation: serializeAcceptedAnswers(word.acceptedAnswers),
+                hint: word.hint.trim() || null
             }))
         }
-        else {
-            const deck = await createDeck(deckName, language, translationLanguage, learningLanguage, description)
-            await Promise.all(validWords.map(word =>
-                addWord(
-                    word.original,
-                    word.translation,
-                    word.hint || null,
-                    deck.id,
-                    serializeAcceptedAnswers(word.acceptedAnswers),
-                    serializeAcceptedAnswers(word.acceptedOriginals)
-                )
-            ))
+    }
+
+    const saveDeck = async (content: UpdateDeckContentInput) => {
+        setIsSaving(true)
+        setSaveError("")
+
+        try {
+            if (isEditing) {
+                await updateDeckContent(Number(id), content)
+            } else {
+                const deck = await createDeck(content.name, content.language, content.translationLanguage, content.learningLanguage, content.description)
+                await Promise.all(content.words.map(word =>
+                    addWord(
+                        word.original,
+                        word.translation,
+                        word.hint,
+                        deck.id,
+                        word.alternativeTranslation,
+                        word.alternativeOriginal
+                    )
+                ))
+            }
+
+            navigate("/decks")
+        } catch (error) {
+            setSaveError(error instanceof Error ? error.message : "Could not save deck")
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
+    const handleSubmit = () => {
+        if (!deckName || !language) return
+
+        const content = createContentInput()
+        if (!isEditing && content.words.length === 0) return
+
+        if (isEditing && originalDeck && isDeckTrialPassed(originalDeck) && hasTrialRelevantDeckChanges(originalDeck, content)) {
+            setShowTrialResetWarning(true)
+            return
         }
 
-        navigate("/")
+        void saveDeck(content)
     }
 
     const framedWordInputClass = `w-full min-w-0 scroll-mt-20 scroll-mb-32 rounded-[inherit] border-0 bg-transparent px-4 py-3 text-sm font-semibold ${textTone.inputClass} ${textTone.placeholderClass} outline-none transition focus:bg-white/10 sm:py-4`
@@ -273,6 +300,16 @@ export default function CreateDeckPage() {
     const presetCardClass = `rounded-lg border p-4 text-left transition hover:-translate-y-0.5`
 
     return (
+        <>
+        <TrialResetWarningModal
+            isOpen={showTrialResetWarning}
+            isSaving={isSaving}
+            onCancel={() => setShowTrialResetWarning(false)}
+            onConfirm={() => {
+                setShowTrialResetWarning(false)
+                void saveDeck(createContentInput())
+            }}
+        />
         <PageContentTransition>
             <AppPageShell contentClassName="max-w-[82rem] pb-4 sm:pb-8">
                 <div className="mx-auto w-full max-w-2xl">
@@ -511,14 +548,16 @@ export default function CreateDeckPage() {
                     )}
                     <button
                         onClick={handleSubmit}
-                        disabled={!deckName.trim() || !language || (!isEditing && !hasCompleteWordPair)}
+                        disabled={isSaving || !deckName.trim() || !language || (!isEditing && !hasCompleteWordPair)}
                         className={`min-h-12 w-full rounded-full py-3 font-semibold ${palette.primaryButtonText} transition disabled:opacity-50 ${palette.primaryButton}`}
                     >
-                        {isEditing ? "Save changes" : "Create deck"}
+                        {isSaving ? "Saving..." : isEditing ? "Save changes" : "Create deck"}
                     </button>
+                    {saveError && <p className="mt-3 text-center text-sm font-bold text-red-300">{saveError}</p>}
                 </FadeIn>
             </AppPageShell>
         </PageContentTransition>
+        </>
     )
 }
 

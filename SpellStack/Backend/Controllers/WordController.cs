@@ -35,8 +35,8 @@ namespace SpellStack.Api.Controllers {
             var user = await GetCurrentUser();
             if (user == null) return Unauthorized();
 
-            var ownsDeck = await _context.Decks.AnyAsync(d => d.Id == request.DeckId && d.UserId == user.Id);
-            if (!ownsDeck) return NotFound();
+            var deck = await _context.Decks.FirstOrDefaultAsync(d => d.Id == request.DeckId && d.UserId == user.Id);
+            if (deck == null) return NotFound();
 
             var word = new Word {
                 Original = request.Original,
@@ -47,6 +47,7 @@ namespace SpellStack.Api.Controllers {
                 DeckId = request.DeckId
             };
             _context.Words.Add(word);
+            deck.ContentRevision++;
             await _context.SaveChangesAsync();
             return Ok(word);
         }
@@ -60,12 +61,21 @@ namespace SpellStack.Api.Controllers {
                 .Include(w => w.Deck)
                 .FirstOrDefaultAsync(w => w.Id == id && w.Deck.UserId == user.Id);
             if (word == null) return NotFound();
+            if (request.DeckId != word.DeckId) return BadRequest("Word deck cannot be changed.");
+
+            var contentChanged = Normalize(word.Original) != Normalize(request.Original) ||
+                Normalize(word.Translation) != Normalize(request.Translation) ||
+                Normalize(word.AlternativeOriginal) != Normalize(request.AlternativeOriginal) ||
+                Normalize(word.AlternativeTranslation) != Normalize(request.AlternativeTranslation) ||
+                Normalize(word.Hint) != Normalize(request.Hint);
 
             word.Original = request.Original;
             word.Translation = request.Translation;
             word.AlternativeOriginal = request.AlternativeOriginal;
             word.AlternativeTranslation = request.AlternativeTranslation;
             word.Hint = request.Hint;
+
+            if (contentChanged) word.Deck.ContentRevision++;
 
             await _context.SaveChangesAsync();
             return Ok(word);
@@ -81,6 +91,7 @@ namespace SpellStack.Api.Controllers {
                 .FirstOrDefaultAsync(w => w.Id == id && w.Deck.UserId == user.Id);
             if (word == null) return NotFound();
             _context.Words.Remove(word);
+            word.Deck.ContentRevision++;
             await _context.SaveChangesAsync();
             return Ok();
         }
@@ -102,6 +113,8 @@ namespace SpellStack.Api.Controllers {
             if (!header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)) return null;
             return header["Bearer ".Length..].Trim();
         }
+
+        private static string Normalize(string? value) => value?.Trim() ?? "";
     }
 
     public record AddWordRequest(string Original, string Translation, string? AlternativeOriginal, string? AlternativeTranslation, string? Hint, int DeckId);
