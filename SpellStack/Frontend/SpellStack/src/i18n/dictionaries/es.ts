@@ -46,7 +46,17 @@ export const es = {
     },
     updatesPage: {
         title: "Actualizaciones",
-        description: "Las notas de la versión y las actualizaciones del producto aparecerán aquí."
+        description: "Los últimos cambios, correcciones y mejoras de SpellStack.",
+        loading: "Cargando actualizaciones",
+        loadError: "No se pudieron cargar las actualizaciones. Inténtalo de nuevo.",
+        empty: "Todavía no hay actualizaciones publicadas.",
+        retry: "Intentar de nuevo",
+        readMore: "Leer actualización",
+        backToUpdates: "Volver a Actualizaciones",
+        published: "Publicado",
+        otherUpdates: "Otras actualizaciones",
+        notFoundTitle: "Actualización no encontrada",
+        notFoundDescription: "Esta actualización no existe o no está publicada."
     },
     deckPage: {
         deckCount: "Número de mazos",
@@ -103,6 +113,8 @@ export const es = {
         off: "Desactivado",
         glow: "Brillo",
         glowDescription: "Elige la intensidad del brillo decorativo del tema activo.",
+        font: "Fuente",
+        fontDescription: "Elige la fuente de texto utilizada en SpellStack.",
         blackOverlay: "Capa negra del {percent}%",
         lowOverlayDescription: "Capa negra del 30%",
         mediumOverlayDescription: "Capa negra del 50%",

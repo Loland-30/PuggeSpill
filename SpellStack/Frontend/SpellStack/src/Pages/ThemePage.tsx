@@ -1,4 +1,4 @@
-import { Check, ImagePlus, Trash2 } from "lucide-react"
+import { Check, ChevronDown, ImagePlus, Trash2 } from "lucide-react"
 import { useState } from "react"
 
 import { uploadThemeBackgroundImage } from "../api/theme"
@@ -9,7 +9,7 @@ import PageContentTransition from "../components/PageContentTransition"
 import AudioThemePanel from "../components/theme/AudioThemePanel"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
-import { backgroundThemes, getOverlayOpacity, overlayStrengths, paletteThemes, type GlowStrength } from "../theme/themes"
+import { backgroundThemes, fontThemes, getOverlayOpacity, overlayStrengths, paletteThemes, type FontThemeId, type GlowStrength } from "../theme/themes"
 import { resolveAssetUrl } from "../utils/assetUrl"
 
 type ThemeMode = "visual" | "audio"
@@ -112,7 +112,7 @@ function VisualThemeSettings({
     getOverlayLabel: (id: string) => string
 }) {
     const { t } = useI18n()
-    const { theme, palette, setBackground, setPalette, setCustomBackgroundImage, setOverlayStrength, setGlowStrength } = useTheme()
+    const { theme, palette, setBackground, setPalette, setCustomBackgroundImage, setOverlayStrength, setGlowStrength, setFont } = useTheme()
     const { playHoverSound } = useUISound()
     const customBackgroundSrc = resolveAssetUrl(theme.customBackgroundImage)
 
@@ -321,6 +321,31 @@ function VisualThemeSettings({
                                 </button>
                             )
                         })}
+                    </div>
+                </section>
+            </FadeIn>
+
+            <FadeIn>
+                <section className="mt-12">
+                    <SectionHeader title={t.themePage.font} />
+                    <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-white/62">{t.themePage.fontDescription}</p>
+                    <div className="relative mt-5 max-w-sm">
+                        <select
+                            value={theme.fontId}
+                            onChange={event => setFont(event.target.value as FontThemeId)}
+                            aria-label={t.themePage.font}
+                            className={`min-h-11 w-full appearance-none rounded-lg border ${palette.border} bg-slate-950/85 px-4 py-3 pr-11 text-sm font-bold text-white outline-none transition focus:ring-2 focus:ring-white/30`}
+                        >
+                            {fontThemes.map(option => (
+                                <option key={option.id} value={option.id}>{option.name}</option>
+                            ))}
+                        </select>
+                        <ChevronDown
+                            size={18}
+                            strokeWidth={2.5}
+                            aria-hidden="true"
+                            className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-white/60"
+                        />
                     </div>
                 </section>
             </FadeIn>

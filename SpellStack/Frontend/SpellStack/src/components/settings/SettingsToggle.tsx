@@ -18,7 +18,7 @@ export default function SettingsToggle({ checked, onChange, palette, disabled = 
             onClick={() => !disabled && onChange(!checked)}
             onMouseEnter={playHoverSound}
             disabled={disabled}
-            className={`relative ml-auto h-9 w-16 min-w-16 shrink-0 overflow-hidden rounded-full border p-0 transition ${
+            className={`relative h-9 w-16 min-w-16 shrink-0 overflow-hidden rounded-full border p-0 transition ${
                 checked ? `${palette.border} ${palette.primaryButton}` : "border-white/20 bg-black/30"
             } ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
             aria-pressed={checked}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from "react"
+import { ArrowRight } from "lucide-react"
 
 interface AnswerPanelProps {
     promptWord: string
@@ -150,17 +151,28 @@ export default function AnswerPanel({
                     )}
                 </div>
 
-                <input
-                    ref={inputRef}
-                    type="text"
-                    value={input}
-                    onChange={event => setInput(event.target.value)}
-                    onKeyDown={event => event.key === "Enter" && submitAnswer()}
-                    disabled={!!result}
-                    placeholder="Type translation..."
-                    autoFocus
-                    className="min-h-14 w-full max-w-2xl scroll-mb-4 rounded-xl border border-white/15 bg-white/[0.08] px-4 py-4 text-center text-2xl font-semibold tracking-wide text-white shadow-[0_18px_44px_rgba(0,0,0,0.35),inset_0_0_24px_rgba(255,255,255,0.035)] outline-none backdrop-blur-sm transition placeholder:text-white/40 focus:border-white/45 focus:bg-white/[0.09] focus:shadow-[0_0_28px_rgba(255,255,255,0.12),inset_0_0_24px_rgba(255,255,255,0.04)] disabled:opacity-60 sm:rounded-2xl sm:px-8 sm:text-4xl landscape:max-sm:min-h-12 landscape:max-sm:py-2"
-                />
+                <div className="flex w-full max-w-2xl items-stretch gap-2 sm:block">
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={input}
+                        onChange={event => setInput(event.target.value)}
+                        onKeyDown={event => event.key === "Enter" && submitAnswer()}
+                        disabled={!!result}
+                        placeholder="Type translation..."
+                        autoFocus
+                        className="min-h-14 min-w-0 flex-1 scroll-mb-4 rounded-xl border border-white/15 bg-white/[0.08] px-4 py-4 text-center text-2xl font-semibold tracking-wide text-white shadow-[0_18px_44px_rgba(0,0,0,0.35),inset_0_0_24px_rgba(255,255,255,0.035)] outline-none backdrop-blur-sm transition placeholder:text-white/40 focus:border-white/45 focus:bg-white/[0.09] focus:shadow-[0_0_28px_rgba(255,255,255,0.12),inset_0_0_24px_rgba(255,255,255,0.04)] disabled:opacity-60 sm:w-full sm:rounded-2xl sm:px-8 sm:text-4xl landscape:max-sm:min-h-12 landscape:max-sm:py-2"
+                    />
+                    <button
+                        type="button"
+                        onClick={submitAnswer}
+                        disabled={!!result}
+                        aria-label="Submit answer"
+                        className="grid min-h-14 w-14 shrink-0 place-items-center rounded-xl border border-white/20 bg-white/10 text-white shadow-[0_18px_44px_rgba(0,0,0,0.35)] transition active:bg-white/20 disabled:opacity-60 sm:hidden landscape:max-sm:min-h-12"
+                    >
+                        <ArrowRight size={24} strokeWidth={2.6} aria-hidden="true" />
+                    </button>
+                </div>
 
                 <div className="min-h-8">
                     {feedbackWord && (
