@@ -153,7 +153,7 @@ export default function UpdateDetailsPage() {
 
                     {!loading && !error && !notFound && update && (
                         <>
-                            <GradientFrame glass glow className="mt-6" contentClassName="p-5 sm:p-9 lg:p-12">
+                            <GradientFrame glass glow fillClassName="bg-black/45" className="mt-6" contentClassName="p-5 sm:p-9 lg:p-12">
                                 <article>
                                     {publishedDate && (
                                         <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-white/50 sm:text-sm">
