@@ -8,9 +8,9 @@ namespace SpellStack.Api.Controllers {
     [Authorize]
     [Route("api/[controller]")]
     public class TranslationController : ControllerBase {
-        private readonly DeepLTranslationService translationService;
+        private readonly TranslationSuggestionService translationService;
 
-        public TranslationController(DeepLTranslationService translationService) {
+        public TranslationController(TranslationSuggestionService translationService) {
             this.translationService = translationService;
         }
 
@@ -27,6 +27,8 @@ namespace SpellStack.Api.Controllers {
                     request.Text ?? "",
                     request.SourceLanguage ?? "",
                     request.TargetLanguage ?? "",
+                    request.Context,
+                    request.RequestVariant,
                     cancellationToken);
                 return Ok(new { suggestions });
             } catch (TranslationServiceException exception) {
@@ -42,5 +44,10 @@ namespace SpellStack.Api.Controllers {
         }
     }
 
-    public record TranslationSuggestionsRequest(string? Text, string? SourceLanguage, string? TargetLanguage);
+    public record TranslationSuggestionsRequest(
+        string? Text,
+        string? SourceLanguage,
+        string? TargetLanguage,
+        string? Context,
+        string? RequestVariant);
 }

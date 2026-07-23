@@ -2,16 +2,43 @@ export interface Language {
     code: string
     label: string
     flagUrl: string
+    localizedLabels?: Record<string, string>
+    aliases?: string[]
 }
 
 export interface AppLanguage extends Language {
     locale: string
 }
 
+const latinAmericaRegionIcon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 28'%3E%3Crect width='40' height='28' rx='5' fill='%23075985'/%3E%3Ccircle cx='20' cy='14' r='9' fill='%2338bdf8'/%3E%3Cpath d='M14 8c3-3 9-3 12 0l-3 2-1 3-3 1-2 4-2-2 1-3-3-2z' fill='%23dcfce7'/%3E%3C/svg%3E"
+
 export const languages: Language[] = [
     { code: "no", label: "Norsk", flagUrl: "https://flagcdn.com/w40/no.png" },
     { code: "en", label: "Engelsk", flagUrl: "https://flagcdn.com/w40/gb.png" },
-    { code: "es", label: "Spansk", flagUrl: "https://flagcdn.com/w40/es.png" },
+    {
+        code: "es",
+        label: "Spansk (Spania)",
+        flagUrl: "https://flagcdn.com/w40/es.png",
+        localizedLabels: {
+            en: "Spanish (Spain)",
+            nb: "Spansk (Spania)",
+            es: "Español (España)",
+            ja: "スペインのスペイン語"
+        },
+        aliases: ["spansk", "spanish", "español"]
+    },
+    {
+        code: "es-419",
+        label: "Spansk (Latin-Amerika)",
+        flagUrl: latinAmericaRegionIcon,
+        localizedLabels: {
+            en: "Spanish (Latin America)",
+            nb: "Spansk (Latin-Amerika)",
+            es: "Español (Latinoamérica)",
+            ja: "ラテンアメリカのスペイン語"
+        },
+        aliases: ["latin american spanish", "spansk latin-amerika", "español latinoamérica"]
+    },
     { code: "ja", label: "Japansk", flagUrl: "https://flagcdn.com/w40/jp.png" },
     { code: "fr", label: "Fransk", flagUrl: "https://flagcdn.com/w40/fr.png" },
     { code: "de", label: "Tysk", flagUrl: "https://flagcdn.com/w40/de.png" },
@@ -66,6 +93,9 @@ export function uppercaseFirstGrapheme(value: string, locale = "en") {
 export function getLanguageName(code: string, locale = "en") {
     const language = languages.find(option => option.code === code.toLowerCase())
     if (!language) return code.toUpperCase()
+    const localeKey = locale.toLowerCase().split("-")[0]
+    const localizedLabel = language.localizedLabels?.[localeKey]
+    if (localizedLabel) return localizedLabel
 
     try {
         const displayName = new Intl.DisplayNames([locale], { type: "language" }).of(language.code) ?? language.label
@@ -77,7 +107,11 @@ export function getLanguageName(code: string, locale = "en") {
 
 export function normalizeLanguageCode(value: string | null | undefined) {
     const normalized = value?.trim().toLowerCase()
-    const directMatch = languages.find(language => language.code === normalized || language.label.toLowerCase() === normalized)
+    const directMatch = languages.find(language =>
+        language.code === normalized ||
+        language.label.toLowerCase() === normalized ||
+        language.aliases?.some(alias => alias.toLowerCase() === normalized)
+    )
     if (directMatch) return directMatch.code
 
     for (const locale of ["en", "nb", "es", "ja"]) {

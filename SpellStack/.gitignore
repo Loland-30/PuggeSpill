@@ -1,0 +1,3 @@
+# Large Kaikki source extracts and generated staging output stay local.
+tools/lexicon-import/data/
+tools/lexicon-import/output/

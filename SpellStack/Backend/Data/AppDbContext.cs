@@ -39,13 +39,21 @@ namespace SpellStack.Api.Data {
             modelBuilder.Entity<TranslationCacheEntry>(entity => {
                 entity.Property(entry => entry.SourceLanguage).HasMaxLength(16);
                 entity.Property(entry => entry.TargetLanguage).HasMaxLength(16);
+                entity.Property(entry => entry.ResolvedTargetLanguage).HasMaxLength(16);
                 entity.Property(entry => entry.NormalizedSourceText).HasMaxLength(256);
+                entity.Property(entry => entry.NormalizedContext).HasMaxLength(1024);
+                entity.Property(entry => entry.RequestProfile).HasMaxLength(32);
+                entity.Property(entry => entry.RequestVariant).HasMaxLength(32);
                 entity.Property(entry => entry.TranslationText).HasMaxLength(512);
                 entity.Property(entry => entry.DetectedSourceLanguage).HasMaxLength(16);
                 entity.HasIndex(entry => new {
                     entry.SourceLanguage,
-                    entry.TargetLanguage,
-                    entry.NormalizedSourceText
+                    entry.ResolvedTargetLanguage,
+                    entry.NormalizedSourceText,
+                    entry.NormalizedContext,
+                    entry.RequestProfile,
+                    entry.HeadwordInstructionsApplied,
+                    entry.RequestVariant
                 }).IsUnique();
             });
 

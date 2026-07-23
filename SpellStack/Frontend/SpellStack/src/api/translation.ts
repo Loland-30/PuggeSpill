@@ -4,6 +4,26 @@ import { API_URL } from "./config"
 export interface TranslationSuggestion {
     text: string
     detectedSourceLanguage: string | null
+    variant: TranslationRequestVariant
+    partOfSpeech?: string | null
+    gender?: "masculine" | "feminine" | string | null
+    number?: "singular" | "plural" | string | null
+    inferred?: boolean | null
+    readings?: TranslationReading[] | null
+}
+
+export interface TranslationReading {
+    text: string
+    type: "kun" | "on" | "unknown" | string
+    script: "hiragana" | "katakana" | "unknown" | string
+    tags: string[]
+}
+
+export type TranslationRequestVariant = "default" | "masculine-singular" | "feminine-singular"
+
+export interface TranslationSuggestionOptions {
+    context?: string
+    requestVariant?: TranslationRequestVariant
 }
 
 export type TranslationErrorCode =
@@ -29,12 +49,19 @@ export async function getTranslationSuggestions(
     text: string,
     sourceLanguage: string,
     targetLanguage: string,
+    options?: TranslationSuggestionOptions,
     signal?: AbortSignal
 ): Promise<TranslationSuggestion[]> {
     const response = await fetch(`${API_URL}/translation/suggestions`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ text, sourceLanguage, targetLanguage }),
+        body: JSON.stringify({
+            text,
+            sourceLanguage,
+            targetLanguage,
+            context: options?.context?.trim() || null,
+            requestVariant: options?.requestVariant ?? "default"
+        }),
         signal
     })
 

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SpellStack.Api.Data;
@@ -11,9 +12,11 @@ using SpellStack.Api.Data;
 namespace SpellStack.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260723163941_AddTranslationContextAndVariants")]
+    partial class AddTranslationContextAndVariants
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -282,9 +285,6 @@ namespace SpellStack.Api.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
 
-                    b.Property<bool>("HeadwordInstructionsApplied")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("NormalizedContext")
                         .IsRequired()
                         .HasMaxLength(1024)
@@ -294,11 +294,6 @@ namespace SpellStack.Api.Migrations
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
-
-                    b.Property<string>("RequestProfile")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
 
                     b.Property<string>("RequestVariant")
                         .IsRequired()
@@ -327,7 +322,7 @@ namespace SpellStack.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SourceLanguage", "ResolvedTargetLanguage", "NormalizedSourceText", "NormalizedContext", "RequestProfile", "HeadwordInstructionsApplied", "RequestVariant")
+                    b.HasIndex("SourceLanguage", "ResolvedTargetLanguage", "NormalizedSourceText", "NormalizedContext", "RequestVariant")
                         .IsUnique();
 
                     b.ToTable("TranslationCacheEntries");

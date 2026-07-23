@@ -5,23 +5,31 @@ import { createPortal } from "react-dom"
 import { useNavigate } from "react-router-dom"
 
 import { createDeck } from "../api/decks"
-import { getTranslationSuggestions, TranslationApiError, type TranslationSuggestion } from "../api/translation"
+import {
+    getTranslationSuggestions,
+    TranslationApiError,
+    type TranslationRequestVariant,
+    type TranslationSuggestion
+} from "../api/translation"
 import { addWord } from "../api/words"
 import FadeIn from "../components/FadeIn"
 import GradientFrame from "../components/GradientFrame"
 import AppPageShell from "../components/layout/AppPageShell"
 import LanguageSelect from "../components/LanguageSelect"
 import PageContentTransition from "../components/PageContentTransition"
-import { languages } from "../data/languages"
+import { getLanguageName, languages } from "../data/languages"
 import { useI18n } from "../i18n/I18nContext"
+import { getAppLanguageLocale } from "../i18n/localeMap"
 import { useTheme } from "../theme/ThemeContext"
 import { readDeckCreatorSettings } from "../utils/deckCreatorSettings"
+import { selectPrimaryJapaneseReading } from "../utils/japaneseReadings"
 import ClassicCreateDeckPage from "./ClassicCreateDeckPage"
 
 interface DraftWord {
     id: string
     source: string
     translation: string
+    alternativeTranslation: string | null
 }
 
 function createDraftId() {
@@ -71,14 +79,46 @@ function AssistedCreateDeckPage() {
         setIsWordOverlayOpen(true)
     }
 
-    const handleWordSave = (sourceText: string, translations: string[]) => {
-        const cleanedTranslations = Array.from(new Set(translations.map(value => value.trim()).filter(Boolean)))
-        if (!sourceText.trim() || cleanedTranslations.length === 0) return
+    const handleWordSave = (sourceText: string, selections: TranslationSuggestion[]) => {
+        const cleanedSource = sourceText.trim()
+        const uniqueSelections = deduplicateSuggestions(selections)
+        if (!cleanedSource || uniqueSelections.length === 0) return
+
+        const grammaticalForms = uniqueSelections.filter(suggestion =>
+            suggestion.variant !== "default" ||
+            (
+                suggestion.number === "singular" &&
+                (suggestion.gender === "masculine" || suggestion.gender === "feminine")
+            )
+        )
+        const grammaticalFormTexts = new Set(grammaticalForms.map(suggestion => normalizeSuggestionText(suggestion.text)))
+        const ordinarySuggestions = uniqueSelections.filter(suggestion =>
+            !grammaticalFormTexts.has(normalizeSuggestionText(suggestion.text))
+        )
+        const nextWords: Omit<DraftWord, "id">[] = ordinarySuggestions.map(suggestion => ({
+            source: cleanedSource,
+            translation: suggestion.text,
+            alternativeTranslation: null
+        }))
+
+        if (grammaticalForms.length >= 2) {
+            nextWords.push({
+                source: cleanedSource,
+                translation: grammaticalForms[0].text,
+                alternativeTranslation: grammaticalForms.slice(1).map(suggestion => suggestion.text).join(", ")
+            })
+        } else if (grammaticalForms.length === 1) {
+            nextWords.push({
+                source: cleanedSource,
+                translation: grammaticalForms[0].text,
+                alternativeTranslation: null
+            })
+        }
 
         if (editingWordId) {
             setWords(currentWords => currentWords.map(word =>
                 word.id === editingWordId
-                    ? { ...word, source: sourceText.trim(), translation: cleanedTranslations[0] }
+                    ? { ...word, ...nextWords[0] }
                     : word
             ))
             setEditingWordId(null)
@@ -87,10 +127,9 @@ function AssistedCreateDeckPage() {
 
         setWords(currentWords => [
             ...currentWords,
-            ...cleanedTranslations.map(translation => ({
+            ...nextWords.map(word => ({
                 id: createDraftId(),
-                source: sourceText.trim(),
-                translation
+                ...word
             }))
         ])
     }
@@ -124,7 +163,7 @@ function AssistedCreateDeckPage() {
             )
 
             const results = await Promise.allSettled(words.map(word =>
-                addWord(word.source, word.translation, null, deck.id)
+                addWord(word.source, word.translation, null, deck.id, word.alternativeTranslation)
             ))
             const failedWords = results.filter(result => result.status === "rejected")
 
@@ -142,7 +181,7 @@ function AssistedCreateDeckPage() {
         }
     }
 
-    const expandingButtonClass = `group relative flex h-12 w-12 shrink-0 items-center overflow-hidden rounded-full border-2 ${palette.border} bg-black/35 ${palette.glow} text-white shadow-xl transition-[width,background-color,transform] hover:-translate-y-0.5 hover:bg-white/10 focus-visible:w-36 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 lg:hover:w-36`
+    const expandingButtonClass = `group relative flex h-12 w-12 shrink-0 items-center overflow-hidden rounded-full border-2 ${palette.border} bg-black/35 ${palette.glow} text-white shadow-xl transition-[width,background-color,transform] duration-300 ease-out hover:-translate-y-0.5 hover:bg-white/10 focus-visible:w-36 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 lg:hover:w-36`
 
     return (
         <>
@@ -162,7 +201,7 @@ function AssistedCreateDeckPage() {
                                     title={copy.addWord}
                                 >
                                     <span className="grid h-full w-12 shrink-0 place-items-center"><Plus size={22} /></span>
-                                    <span className="whitespace-nowrap pr-4 text-sm font-black opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">{copy.addWord}</span>
+                                    <span className="whitespace-nowrap pr-4 text-sm font-black opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100 group-focus-visible:opacity-100">{copy.addWord}</span>
                                 </button>
                                 <button
                                     ref={saveButtonRef}
@@ -177,7 +216,7 @@ function AssistedCreateDeckPage() {
                                     title={copy.saveDeck}
                                 >
                                     <span className="grid h-full w-12 shrink-0 place-items-center"><Save size={20} /></span>
-                                    <span className="whitespace-nowrap pr-4 text-sm font-black opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">{copy.saveDeck}</span>
+                                    <span className="whitespace-nowrap pr-4 text-sm font-black opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100 group-focus-visible:opacity-100">{copy.saveDeck}</span>
                                 </button>
                             </div>
                         </div>
@@ -237,7 +276,12 @@ function AssistedCreateDeckPage() {
                                         <div className="grid gap-3 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] sm:items-center sm:px-5">
                                             <LanguageValue flagUrl={source?.flagUrl} value={word.source} />
                                             <span className="hidden h-10 w-px bg-white/20 sm:block" aria-hidden="true" />
-                                            <LanguageValue flagUrl={target?.flagUrl} value={word.translation} />
+                                            <LanguageValue
+                                                flagUrl={target?.flagUrl}
+                                                value={word.alternativeTranslation
+                                                    ? `${word.translation} / ${word.alternativeTranslation}`
+                                                    : word.translation}
+                                            />
                                             <div className="flex justify-end gap-2">
                                                 <button
                                                     type="button"
@@ -323,47 +367,102 @@ interface AddWordOverlayProps {
     sourceLanguage: string
     targetLanguage: string
     initialWord: DraftWord | null
-    onSave: (source: string, translations: string[]) => void
+    onSave: (source: string, suggestions: TranslationSuggestion[]) => void
     onClose: () => void
 }
 
+function normalizeSuggestionText(value: string) {
+    return value.normalize("NFKC").trim().toLocaleLowerCase()
+}
+
+function deduplicateSuggestions(suggestions: TranslationSuggestion[]) {
+    const unique = new Map<string, TranslationSuggestion>()
+    for (const suggestion of suggestions) {
+        const normalizedText = normalizeSuggestionText(suggestion.text)
+        if (!normalizedText) continue
+
+        const existing = unique.get(normalizedText)
+        if (!existing) {
+            unique.set(normalizedText, { ...suggestion, text: suggestion.text.trim() })
+            continue
+        }
+
+        const preferSuggestion = existing.variant === "default" && suggestion.variant !== "default"
+        const preferred = preferSuggestion ? suggestion : existing
+        const fallback = preferSuggestion ? existing : suggestion
+        unique.set(normalizedText, {
+            ...preferred,
+            text: preferred.text.trim(),
+            partOfSpeech: preferred.partOfSpeech ?? fallback.partOfSpeech,
+            gender: preferred.gender ?? fallback.gender,
+            number: preferred.number ?? fallback.number,
+            inferred: preferred.inferred ?? fallback.inferred,
+            readings: preferred.readings?.length ? preferred.readings : fallback.readings
+        })
+    }
+    return Array.from(unique.values())
+}
+
 function AddWordOverlay({ sourceLanguage, targetLanguage, initialWord, onSave, onClose }: AddWordOverlayProps) {
-    const { t } = useI18n()
+    const { t, appLanguage } = useI18n()
     const { palette, textTone } = useTheme()
     const prefersReducedMotion = useReducedMotion()
     const copy = t.createDeckAssistant
+    const locale = getAppLanguageLocale(appLanguage)
+    const initialSuggestions = useMemo<TranslationSuggestion[]>(() => {
+        if (!initialWord) return []
+        if (initialWord.alternativeTranslation) {
+            return [
+                { text: initialWord.translation, detectedSourceLanguage: null, variant: "masculine-singular" },
+                { text: initialWord.alternativeTranslation, detectedSourceLanguage: null, variant: "feminine-singular" }
+            ]
+        }
+        return [{ text: initialWord.translation, detectedSourceLanguage: null, variant: "default" }]
+    }, [initialWord])
     const [sourceText, setSourceText] = useState(initialWord?.source ?? "")
-    const [suggestions, setSuggestions] = useState<TranslationSuggestion[]>(() =>
-        initialWord ? [{ text: initialWord.translation, detectedSourceLanguage: null }] : []
-    )
+    const [suggestions, setSuggestions] = useState<TranslationSuggestion[]>(initialSuggestions)
     const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(() =>
-        new Set(initialWord ? [initialWord.translation] : [])
+        new Set(initialSuggestions.map(suggestion => suggestion.text))
     )
     const [isLoading, setIsLoading] = useState(false)
+    const [hasLookupCompleted, setHasLookupCompleted] = useState(initialSuggestions.length > 0)
     const [errorCode, setErrorCode] = useState<TranslationApiError["code"] | null>(null)
+    const [isContextOpen, setIsContextOpen] = useState(false)
+    const [contextText, setContextText] = useState("")
+    const [activeContext, setActiveContext] = useState("")
+    const [isManualOpen, setIsManualOpen] = useState(false)
+    const [manualTranslation, setManualTranslation] = useState("")
+    const [isLoadingForms, setIsLoadingForms] = useState(false)
+    const [formsAttempted, setFormsAttempted] = useState(false)
+    const [formsError, setFormsError] = useState(false)
     const overlayRef = useRef<HTMLDivElement>(null)
     const inputRef = useRef<HTMLInputElement>(null)
     const requestRef = useRef(0)
     const abortRef = useRef<AbortController | null>(null)
+    const formsAbortRef = useRef<AbortController | null>(null)
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-    const resetForNextWord = useCallback(() => {
+    const resetForNextWord = () => {
         setSourceText("")
         setSuggestions([])
         setSelectedSuggestions(new Set())
         setErrorCode(null)
         setIsLoading(false)
+        setHasLookupCompleted(false)
+        setIsContextOpen(false)
+        setContextText("")
+        setActiveContext("")
+        setIsManualOpen(false)
+        setManualTranslation("")
+        setIsLoadingForms(false)
+        setFormsAttempted(false)
+        setFormsError(false)
         requestAnimationFrame(() => inputRef.current?.focus())
-    }, [
-        setErrorCode,
-        setIsLoading,
-        setSelectedSuggestions,
-        setSourceText,
-        setSuggestions
-    ])
+    }
 
-    const loadSuggestions = useCallback(async (value: string) => {
+    const loadSuggestions = useCallback(async (value: string, contextValue = "") => {
         const trimmedValue = value.trim()
+        const trimmedContext = contextValue.trim()
         if (trimmedValue.length < 2 || trimmedValue.length > 100 || sourceLanguage === targetLanguage) {
             setSuggestions([])
             setIsLoading(false)
@@ -375,24 +474,41 @@ function AddWordOverlay({ sourceLanguage, targetLanguage, initialWord, onSave, o
         const controller = new AbortController()
         abortRef.current = controller
         setIsLoading(true)
+        setHasLookupCompleted(false)
         setErrorCode(null)
+        setFormsAttempted(false)
+        setFormsError(false)
 
         try {
-            const nextSuggestions = await getTranslationSuggestions(trimmedValue, sourceLanguage, targetLanguage, controller.signal)
+            const nextSuggestions = await getTranslationSuggestions(
+                trimmedValue,
+                sourceLanguage,
+                targetLanguage,
+                { context: trimmedContext, requestVariant: "default" },
+                controller.signal
+            )
             if (requestId !== requestRef.current) return
-            setSuggestions(nextSuggestions)
+            setSuggestions(deduplicateSuggestions(nextSuggestions))
             setSelectedSuggestions(new Set())
+            setActiveContext(trimmedContext)
         } catch (error) {
             if (controller.signal.aborted || requestId !== requestRef.current) return
             setSuggestions([])
             setErrorCode(error instanceof TranslationApiError ? error.code : "provider_unavailable")
         } finally {
-            if (requestId === requestRef.current) setIsLoading(false)
+            if (requestId === requestRef.current) {
+                setIsLoading(false)
+                setHasLookupCompleted(true)
+            }
         }
     }, [
         sourceLanguage,
         targetLanguage,
+        setActiveContext,
         setErrorCode,
+        setFormsAttempted,
+        setFormsError,
+        setHasLookupCompleted,
         setIsLoading,
         setSelectedSuggestions,
         setSuggestions
@@ -433,6 +549,7 @@ function AddWordOverlay({ sourceLanguage, targetLanguage, initialWord, onSave, o
             document.body.style.overflow = previousOverflow
             document.removeEventListener("keydown", handleKeyDown)
             abortRef.current?.abort()
+            formsAbortRef.current?.abort()
             if (debounceRef.current) clearTimeout(debounceRef.current)
         }
     }, [onClose])
@@ -458,22 +575,66 @@ function AddWordOverlay({ sourceLanguage, targetLanguage, initialWord, onSave, o
 
     const updateSourceText = (value: string) => {
         setSourceText(value)
-        if (value.trim().length >= 2 && value.length <= 100) return
-
         abortRef.current?.abort()
+        formsAbortRef.current?.abort()
         setSuggestions([])
         setSelectedSuggestions(new Set())
         setIsLoading(false)
+        setHasLookupCompleted(false)
         setErrorCode(null)
+        setIsContextOpen(false)
+        setContextText("")
+        setActiveContext("")
+        setIsManualOpen(false)
+        setManualTranslation("")
+        setIsLoadingForms(false)
+        setFormsAttempted(false)
+        setFormsError(false)
     }
 
-    const addTranslations = (translations: string[]) => {
-        onSave(sourceText, translations)
+    const addTranslations = (nextSuggestions: TranslationSuggestion[]) => {
+        onSave(sourceText, nextSuggestions)
         if (initialWord) {
             onClose()
         } else {
             resetForNextWord()
         }
+    }
+
+    const submitContext = (event: FormEvent) => {
+        event.preventDefault()
+        const trimmedContext = contextText.trim()
+        if (trimmedContext.length > 500) return
+        void loadSuggestions(sourceText, trimmedContext)
+    }
+
+    const loadGrammaticalForms = async () => {
+        if (isLoadingForms) return
+        const controller = new AbortController()
+        formsAbortRef.current?.abort()
+        formsAbortRef.current = controller
+        setIsLoadingForms(true)
+        setFormsAttempted(true)
+        setFormsError(false)
+
+        const variants: TranslationRequestVariant[] = ["masculine-singular", "feminine-singular"]
+        const results = await Promise.allSettled(variants.map(requestVariant =>
+            getTranslationSuggestions(
+                sourceText.trim(),
+                sourceLanguage,
+                targetLanguage,
+                { context: activeContext, requestVariant },
+                controller.signal
+            )
+        ))
+        if (controller.signal.aborted) return
+
+        const successfulForms = results
+            .filter((result): result is PromiseFulfilledResult<TranslationSuggestion[]> => result.status === "fulfilled")
+            .flatMap(result => result.value)
+        setSuggestions(current => deduplicateSuggestions([...current, ...successfulForms]))
+        setFormsError(results.some(result => result.status === "rejected"))
+        setIsLoadingForms(false)
     }
 
     const validationMessage = sourceText.length > 0 && sourceText.trim().length < 2
@@ -491,6 +652,19 @@ function AddWordOverlay({ sourceLanguage, targetLanguage, initialWord, onSave, o
             : errorCode
                 ? copy.translationUnavailable
                 : ""
+    const showResults = isLoading ||
+        hasLookupCompleted ||
+        suggestions.length > 0 ||
+        !!errorMessage ||
+        isContextOpen ||
+        isManualOpen ||
+        isLoadingForms ||
+        formsError
+    const supportsGrammaticalForms = targetLanguage === "es" || targetLanguage === "es-419"
+    const canShowManualEntry = !!errorMessage ||
+        (hasLookupCompleted && suggestions.length === 0) ||
+        isContextOpen ||
+        formsError
 
     return createPortal(
         <div
@@ -518,9 +692,12 @@ function AddWordOverlay({ sourceLanguage, targetLanguage, initialWord, onSave, o
                 <X size={23} />
             </button>
 
-            <div className={`relative z-10 mx-auto flex min-h-full w-full max-w-3xl flex-col px-5 pb-16 ${isLoading || suggestions.length > 0 || errorMessage ? "pt-14 sm:pt-20" : "pt-[18vh]"} motion-safe:transition-[padding] motion-safe:duration-300 sm:px-8`}>
+            <div className={`relative z-10 mx-auto flex min-h-full w-full max-w-3xl flex-col px-5 pb-16 ${showResults ? "pt-[10vh] sm:pt-[12vh]" : "pt-[19vh]"} motion-safe:transition-[padding] motion-safe:duration-300 sm:px-8`}>
                 <FadeIn delayMs={0} durationMs={320}>
                     <h2 id="add-word-title" className="text-xl font-black sm:text-2xl">{copy.addWordTitle}</h2>
+                    <p className="mt-2 text-sm font-semibold text-white/55">
+                        {getLanguageName(sourceLanguage, locale)} → {getLanguageName(targetLanguage, locale)}
+                    </p>
                 </FadeIn>
 
                 <FadeIn delayMs={80} durationMs={320}>
@@ -539,15 +716,29 @@ function AddWordOverlay({ sourceLanguage, targetLanguage, initialWord, onSave, o
                     {validationMessage && <p id="source-word-validation" className="mt-2 text-sm font-bold text-red-300">{validationMessage}</p>}
                 </FadeIn>
 
-                {(isLoading || suggestions.length > 0 || errorMessage) && (
-                    <FadeIn key={`${isLoading}-${suggestions.length}-${errorMessage}`} className="mt-8" delayMs={0} durationMs={280}>
-                        <h3 className="text-base font-black text-white/80">{copy.suggestionsTitle}</h3>
-                        {isLoading && <p className="mt-4 text-sm font-semibold text-white/55">{copy.translating}</p>}
-                        {errorMessage && <p className="mt-4 text-sm font-bold text-amber-200">{errorMessage}</p>}
+                <AnimatePresence initial={false}>
+                    {showResults && (
+                        <motion.div
+                            key="translation-results"
+                            className="mt-8"
+                            initial={{ opacity: prefersReducedMotion ? 1 : 0, height: prefersReducedMotion ? "auto" : 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: prefersReducedMotion ? 1 : 0, height: prefersReducedMotion ? "auto" : 0 }}
+                            transition={{ duration: prefersReducedMotion ? 0 : 0.28, ease: "easeOut" }}
+                        >
+                            <h3 className="text-base font-black text-white/80">{copy.suggestionsTitle}</h3>
+                            {isLoading && <p className="mt-4 text-sm font-semibold text-white/55" role="status" aria-live="polite">{copy.translating}</p>}
+                            {!isLoading && hasLookupCompleted && !errorMessage && suggestions.length === 0 && (
+                                <p className="mt-4 text-sm font-semibold text-white/55">{copy.noSuggestions}</p>
+                            )}
+                            {errorMessage && <p className="mt-4 text-sm font-bold text-amber-200" role="alert">{errorMessage}</p>}
 
-                        <div className="mt-4 space-y-3">
+                            <div className="mt-4 space-y-3">
                             {suggestions.map((suggestion, index) => {
                                 const isSelected = selectedSuggestions.has(suggestion.text)
+                                const primaryJapaneseReading = targetLanguage === "ja"
+                                    ? selectPrimaryJapaneseReading(suggestion.text, suggestion.readings)
+                                    : null
                                 return (
                                     <FadeIn key={suggestion.text} delayMs={index * 70} durationMs={280}>
                                         <button
@@ -565,7 +756,23 @@ function AddWordOverlay({ sourceLanguage, targetLanguage, initialWord, onSave, o
                                                     : `${palette.border} bg-white/8 text-white hover:bg-white/12`
                                             }`}
                                         >
-                                            <span>{suggestion.text}</span>
+                                            <span>
+                                                <span className="block">
+                                                    {suggestion.text}
+                                                    {primaryJapaneseReading && (
+                                                        <span className="font-bold opacity-70">
+                                                            {" "}({primaryJapaneseReading.text})
+                                                        </span>
+                                                    )}
+                                                </span>
+                                                 {(suggestion.gender || suggestion.variant !== "default") && (
+                                                     <span className="mt-1 block text-xs font-bold opacity-65">
+                                                         {suggestion.gender === "masculine" || suggestion.variant === "masculine-singular"
+                                                             ? copy.masculine
+                                                             : copy.feminine}
+                                                     </span>
+                                                 )}
+                                            </span>
                                             <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border ${isSelected ? "border-current" : "border-white/35"}`}>
                                                 {isSelected && <Check size={17} strokeWidth={3} />}
                                             </span>
@@ -573,21 +780,122 @@ function AddWordOverlay({ sourceLanguage, targetLanguage, initialWord, onSave, o
                                     </FadeIn>
                                 )
                             })}
-                        </div>
+                            </div>
 
-                        {selectedSuggestions.size > 0 && (
-                            <FadeIn delayMs={80} durationMs={280}>
+                            {suggestions.length > 0 && (
+                                <div className="mt-4 flex flex-wrap gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsContextOpen(true)}
+                                        className="text-sm font-bold text-white/65 underline decoration-white/30 underline-offset-4 transition hover:text-white"
+                                    >
+                                        {copy.wrongMeaning}
+                                    </button>
+                                    {supportsGrammaticalForms && !formsAttempted && (
+                                        <button
+                                            type="button"
+                                            onClick={() => void loadGrammaticalForms()}
+                                            className="text-sm font-bold text-white/65 underline decoration-white/30 underline-offset-4 transition hover:text-white"
+                                        >
+                                            {copy.showGrammaticalForms}
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsManualOpen(true)}
+                                        className="text-sm font-bold text-white/65 underline decoration-white/30 underline-offset-4 transition hover:text-white"
+                                    >
+                                        {copy.enterManually}
+                                    </button>
+                                </div>
+                            )}
+
+                            {isLoadingForms && <p className="mt-4 text-sm font-semibold text-white/55" role="status" aria-live="polite">{copy.loadingGrammaticalForms}</p>}
+                            {formsError && <p className="mt-4 text-sm font-semibold text-amber-200">{copy.grammaticalFormsUnavailable}</p>}
+
+                            {isContextOpen && (
+                                <FadeIn className="mt-6" delayMs={0} durationMs={240}>
+                                    <form onSubmit={submitContext}>
+                                        <label htmlFor="translation-context" className="text-sm font-black text-white/80">{copy.addContext}</label>
+                                        <p id="translation-context-help" className="mt-1 text-sm font-semibold text-white/50">{copy.contextHelper}</p>
+                                        <textarea
+                                            id="translation-context"
+                                            value={contextText}
+                                            onChange={event => {
+                                                const value = event.target.value
+                                                setContextText(value)
+                                                if (!value.trim() && activeContext) void loadSuggestions(sourceText)
+                                            }}
+                                            maxLength={500}
+                                            rows={2}
+                                            placeholder={copy.contextPlaceholder}
+                                            aria-describedby="translation-context-help"
+                                            className={`mt-3 w-full resize-none rounded-2xl border-2 ${palette.border} bg-white/8 px-4 py-3 font-semibold outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${textTone.inputClass} ${textTone.placeholderClass}`}
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={contextText.trim().length === 0 || contextText.trim().length > 500 || isLoading}
+                                            className={`mt-3 min-h-11 rounded-full px-5 py-2 text-sm font-black ${palette.primaryButton} ${palette.primaryButtonText} disabled:cursor-not-allowed disabled:opacity-45`}
+                                        >
+                                            {copy.applyContext}
+                                        </button>
+                                    </form>
+                                </FadeIn>
+                            )}
+
+                            {canShowManualEntry && !isManualOpen && (
                                 <button
                                     type="button"
-                                    onClick={() => addTranslations(Array.from(selectedSuggestions))}
-                                    className={`mt-5 min-h-12 w-full rounded-full px-6 py-3 text-sm font-black ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow} transition hover:-translate-y-0.5`}
+                                    onClick={() => setIsManualOpen(true)}
+                                    className="mt-5 text-sm font-bold text-white/65 underline decoration-white/30 underline-offset-4 transition hover:text-white"
                                 >
-                                    {copy.addSelected} · {copy.selectedCount.replace("{count}", String(selectedSuggestions.size))}
+                                    {copy.enterManually}
                                 </button>
-                            </FadeIn>
-                        )}
-                    </FadeIn>
-                )}
+                            )}
+
+                            {isManualOpen && (
+                                <FadeIn className="mt-6" delayMs={0} durationMs={240}>
+                                    <label htmlFor="manual-translation" className="text-sm font-black text-white/80">{copy.manualTranslation}</label>
+                                    <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                                        <input
+                                            id="manual-translation"
+                                            value={manualTranslation}
+                                            onChange={event => setManualTranslation(event.target.value)}
+                                            placeholder={copy.manualTranslationPlaceholder}
+                                            className={`min-h-12 min-w-0 rounded-2xl border-2 ${palette.border} bg-white/8 px-5 py-3 text-base font-bold outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${textTone.inputClass} ${textTone.placeholderClass}`}
+                                        />
+                                        <button
+                                            type="button"
+                                            disabled={!sourceText.trim() || !manualTranslation.trim()}
+                                            onClick={() => addTranslations([{
+                                                text: manualTranslation.trim(),
+                                                detectedSourceLanguage: null,
+                                                variant: "default"
+                                            }])}
+                                            className={`min-h-12 rounded-full px-6 py-3 text-sm font-black ${palette.primaryButton} ${palette.primaryButtonText} transition disabled:cursor-not-allowed disabled:opacity-45`}
+                                        >
+                                            {copy.addToDeck}
+                                        </button>
+                                    </div>
+                                </FadeIn>
+                            )}
+
+                            {selectedSuggestions.size > 0 && (
+                                <FadeIn delayMs={80} durationMs={280}>
+                                    <button
+                                        type="button"
+                                        onClick={() => addTranslations(
+                                            suggestions.filter(suggestion => selectedSuggestions.has(suggestion.text))
+                                        )}
+                                        className={`mt-6 min-h-12 w-full rounded-full px-6 py-3 text-sm font-black ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow} transition hover:-translate-y-0.5`}
+                                    >
+                                        {copy.addSelected} · {copy.selectedCount.replace("{count}", String(selectedSuggestions.size))}
+                                    </button>
+                                </FadeIn>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>,
         document.body

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "language": "es",
+  "entries": {
+    "cansado": [
+      {
+        "word": "cansado",
+        "partOfSpeech": "adj",
+        "variants": [
+          { "text": "cansado", "gender": "masculine", "number": "singular", "inferred": true },
+          { "text": "cansada", "gender": "feminine", "number": "singular", "inferred": true },
+          { "text": "cansada", "gender": "feminine", "number": "singular", "inferred": true },
+          { "text": "cansados", "gender": "masculine", "number": "plural", "inferred": true }
+        ]
+      }
+    ],
+    "enfadado": [
+      {
+        "word": "enfadado",
+        "partOfSpeech": "adj",
+        "variants": [
+          { "text": "enfadado", "gender": "masculine", "number": "singular", "inferred": true },
+          { "text": "enfadada", "gender": "feminine", "number": "singular", "inferred": true }
+        ]
+      }
+    ],
+    "enojado": [
+      {
+        "word": "enojado",
+        "partOfSpeech": "adj",
+        "variants": [
+          { "text": "enojado", "gender": "masculine", "number": "singular", "inferred": true },
+          { "text": "enojada", "gender": "feminine", "number": "singular", "inferred": true }
+        ]
+      }
+    ],
+    "rápido": [
+      {
+        "word": "rápido",
+        "partOfSpeech": "adj",
+        "variants": [
+          { "text": "rápido", "gender": "masculine", "number": "singular", "inferred": true },
+          { "text": "rápida", "gender": "feminine", "number": "singular", "inferred": true }
+        ]
+      }
+    ]
+  }
+}

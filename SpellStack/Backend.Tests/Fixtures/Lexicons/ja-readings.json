@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "language": "ja",
+  "entries": {
+    "冬": [
+      {
+        "word": "冬",
+        "partOfSpeech": "noun",
+        "readings": [
+          {
+            "text": "ふゆ",
+            "type": "kun",
+            "script": "hiragana",
+            "tags": ["joyo", "kun", "kun"]
+          },
+          {
+            "text": "トウ",
+            "type": "on",
+            "script": "katakana",
+            "tags": ["go-on", "joyo"]
+          },
+          {
+            "text": "トウ",
+            "type": "on",
+            "script": "katakana",
+            "tags": ["joyo", "kan-on"]
+          }
+        ]
+      }
+    ]
+  }
+}

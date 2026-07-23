@@ -37,9 +37,11 @@ builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<AchievementService>();
-builder.Services.AddHttpClient<DeepLTranslationService>(client => {
+builder.Services.AddHttpClient<IDeepLTranslationService, DeepLTranslationService>(client => {
     client.Timeout = TimeSpan.FromSeconds(12);
 });
+builder.Services.AddSingleton<ILexiconEnrichmentService, LexiconEnrichmentService>();
+builder.Services.AddScoped<TranslationSuggestionService>();
 builder.Services.AddSingleton<TranslationRequestLimiter>();
 builder.Services.AddSingleton<UploadStorageService>();
 builder.Services.AddSingleton<MultiplayerRoomService>();
