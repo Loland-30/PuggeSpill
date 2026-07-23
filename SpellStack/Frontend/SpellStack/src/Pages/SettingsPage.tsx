@@ -8,6 +8,7 @@ import { appLanguages } from "../data/languages"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
 import { getStoredLargerText, setGlobalLargerText } from "../utils/accessibilitySettings"
+import { readDeckCreatorSettings, saveDeckCreatorSettings } from "../utils/deckCreatorSettings"
 import {
     readGameplaySettings,
     saveGameplaySettings,
@@ -42,6 +43,7 @@ interface SettingsState {
     reduceScreenFlashes: boolean
     largerText: boolean
     disableRushHourEffects: boolean
+    useClassicDeckCreator: boolean
     showOtherCustomThemes: boolean
     hideOtherCustomBackgrounds: boolean
     hideOtherCustomAudio: boolean
@@ -95,6 +97,7 @@ export default function SettingsPage() {
             reduceScreenFlashes: true,
             largerText: getStoredLargerText(),
             disableRushHourEffects: false,
+            useClassicDeckCreator: readDeckCreatorSettings().useClassicDeckCreator,
             showOtherCustomThemes: true,
             hideOtherCustomBackgrounds: false,
             hideOtherCustomAudio: false,
@@ -171,6 +174,11 @@ export default function SettingsPage() {
     const updateLargerText = (value: boolean) => {
         setGlobalLargerText(value)
         updateSetting("largerText", value)
+    }
+
+    const updateUseClassicDeckCreator = (value: boolean) => {
+        saveDeckCreatorSettings({ useClassicDeckCreator: value })
+        updateSetting("useClassicDeckCreator", value)
     }
 
     const handlePasswordSave = async (request: PasswordChangeRequest) => {
@@ -403,6 +411,9 @@ export default function SettingsPage() {
                                 </SettingRow>
                                 <SettingRow label={copy.comfort.disableRushHourEffects} description={copy.comfort.disableRushHourEffectsDescription}>
                                     <SettingsToggle checked={settings.disableRushHourEffects} onChange={value => updateSetting("disableRushHourEffects", value)} palette={palette} label={copy.comfort.disableRushHourEffects} />
+                                </SettingRow>
+                                <SettingRow label={copy.comfort.useClassicDeckCreator} description={copy.comfort.useClassicDeckCreatorDescription}>
+                                    <SettingsToggle checked={settings.useClassicDeckCreator} onChange={updateUseClassicDeckCreator} palette={palette} label={copy.comfort.useClassicDeckCreator} />
                                 </SettingRow>
                             </SettingsSection>
                             </div>

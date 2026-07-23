@@ -16,6 +16,7 @@ namespace SpellStack.Api.Data {
         public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
         public DbSet<UserAchievement> UserAchievements { get; set; }
         public DbSet<UpdatePost> UpdatePosts { get; set; }
+        public DbSet<TranslationCacheEntry> TranslationCacheEntries { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             modelBuilder.Entity<Deck>()
@@ -34,6 +35,19 @@ namespace SpellStack.Api.Data {
             modelBuilder.Entity<GameRunResult>()
                 .HasIndex(result => result.GameSessionId)
                 .IsUnique();
+
+            modelBuilder.Entity<TranslationCacheEntry>(entity => {
+                entity.Property(entry => entry.SourceLanguage).HasMaxLength(16);
+                entity.Property(entry => entry.TargetLanguage).HasMaxLength(16);
+                entity.Property(entry => entry.NormalizedSourceText).HasMaxLength(256);
+                entity.Property(entry => entry.TranslationText).HasMaxLength(512);
+                entity.Property(entry => entry.DetectedSourceLanguage).HasMaxLength(16);
+                entity.HasIndex(entry => new {
+                    entry.SourceLanguage,
+                    entry.TargetLanguage,
+                    entry.NormalizedSourceText
+                }).IsUnique();
+            });
 
             modelBuilder.Entity<UpdatePost>(entity => {
                 entity.HasIndex(post => post.Slug).IsUnique();

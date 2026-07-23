@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 
 import DeckPage from "./Pages/DeckPage"
 import CreateDeckPage from "./Pages/CreateDeckPage"
+import ClassicCreateDeckPage from "./Pages/ClassicCreateDeckPage"
 import PlayPage from "./Pages/PlayPage"
 import AuthPage from "./Pages/AuthPage"
 import ProfileContainer from "./Pages/ProfileContainer"
@@ -66,7 +67,7 @@ function App() {
                                     <Route path="/multiplayer" element={<MultiplayerPage />} />
                                     <Route path="/decks" element={<DeckPage />} />
                                     <Route path="/decks/create" element={<CreateDeckPage />} />
-                                    <Route path="/decks/:id/edit" element={<CreateDeckPage />} />
+                                    <Route path="/decks/:id/edit" element={<ClassicCreateDeckPage />} />
                                 </Routes>
                             </motion.div>
                         </AnimatePresence>

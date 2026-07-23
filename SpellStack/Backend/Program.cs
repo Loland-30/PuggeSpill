@@ -5,6 +5,8 @@ using SpellStack.Api.Data;
 using SpellStack.Api.Multiplayer;
 using SpellStack.Api.Services;
 
+LoadLocalEnvironmentFile();
+
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
@@ -35,6 +37,10 @@ builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<AchievementService>();
+builder.Services.AddHttpClient<DeepLTranslationService>(client => {
+    client.Timeout = TimeSpan.FromSeconds(12);
+});
+builder.Services.AddSingleton<TranslationRequestLimiter>();
 builder.Services.AddSingleton<UploadStorageService>();
 builder.Services.AddSingleton<MultiplayerRoomService>();
 builder.Services.AddSingleton<MultiplayerDisconnectCleanupService>();
@@ -106,4 +112,32 @@ static string NormalizeCorsOrigin(string origin) {
     }
 
     return uri.GetLeftPart(UriPartial.Authority);
+}
+
+static void LoadLocalEnvironmentFile() {
+    var currentDirectory = Directory.GetCurrentDirectory();
+    var candidates = new[] {
+        Path.Combine(currentDirectory, ".env"),
+        Path.Combine(currentDirectory, "Backend", ".env")
+    };
+    var envPath = candidates.FirstOrDefault(File.Exists);
+    if (envPath == null) return;
+
+    foreach (var rawLine in File.ReadLines(envPath)) {
+        var line = rawLine.Trim();
+        if (line.Length == 0 || line.StartsWith('#')) continue;
+
+        var separatorIndex = line.IndexOf('=');
+        if (separatorIndex <= 0) continue;
+
+        var key = line[..separatorIndex].Trim();
+        if (string.IsNullOrWhiteSpace(key) || Environment.GetEnvironmentVariable(key) != null) continue;
+
+        var value = line[(separatorIndex + 1)..].Trim();
+        if (value.Length >= 2 &&
+            ((value[0] == '"' && value[^1] == '"') || (value[0] == '\'' && value[^1] == '\''))) {
+            value = value[1..^1];
+        }
+        Environment.SetEnvironmentVariable(key, value);
+    }
 }
