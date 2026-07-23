@@ -2,6 +2,7 @@ import type { Deck } from "../../api/decks"
 import type { PaletteTheme } from "../../theme/themes"
 import FadeIn from "../FadeIn"
 import DeckListRow from "./DeckListRow"
+import { isDeckTrialEligible } from "../../utils/trialRules"
 
 interface DeckListViewProps {
     decks: Deck[]
@@ -9,9 +10,10 @@ interface DeckListViewProps {
     onEdit: (deck: Deck) => void
     onDelete: (deck: Deck) => void
     palette: PaletteTheme
+    trialModeActive: boolean
 }
 
-export default function DeckListView({ decks, onPlay, onEdit, onDelete, palette }: DeckListViewProps) {
+export default function DeckListView({ decks, onPlay, onEdit, onDelete, palette, trialModeActive }: DeckListViewProps) {
     return (
         <div className="flex flex-col gap-5">
             {decks.map(deck => (
@@ -22,6 +24,7 @@ export default function DeckListView({ decks, onPlay, onEdit, onDelete, palette 
                         onEdit={() => onEdit(deck)}
                         onDelete={() => onDelete(deck)}
                         palette={palette}
+                        trialLocked={trialModeActive && !isDeckTrialEligible(deck.words.length)}
                     />
                 </FadeIn>
             ))}

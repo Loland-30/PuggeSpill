@@ -45,7 +45,6 @@ export default function DeckPage() {
     const usesFixedGridLayout = useMediaQuery("(max-width: 1399px)")
     const effectiveViewMode: DeckViewMode = usesFixedGridLayout ? "grid" : viewMode
     const trialModeActive = searchParams.get("mode") === "trial"
-    const [trialStartError, setTrialStartError] = useState("")
 
     useEffect(() => {
         if (authLoading) return
@@ -73,7 +72,6 @@ export default function DeckPage() {
     const handlePlay = (deck: Deck) => {
         if (trialModeActive) {
             if (!isDeckTrialEligible(deck.words.length)) {
-                setTrialStartError(t.trials.minimumWords)
                 return
             }
             navigate(`/decks/${deck.id}/trial`)
@@ -87,7 +85,6 @@ export default function DeckPage() {
         const nextParams = new URLSearchParams(searchParams)
         if (trialModeActive) nextParams.delete("mode")
         else nextParams.set("mode", "trial")
-        setTrialStartError("")
         setSelectedDeck(null)
         setSearchParams(nextParams)
     }
@@ -213,10 +210,6 @@ export default function DeckPage() {
                         }
                     />
 
-                    {trialStartError && (
-                        <p className="mb-4 text-sm font-bold text-red-300" role="alert">{trialStartError}</p>
-                    )}
-
                     <div
                         className={`relative z-[1000] transition-[max-height,opacity,transform] duration-300 ease-out ${isFilterOpen ? "max-h-[32rem] translate-y-0 overflow-visible opacity-100 sm:max-h-40" : "pointer-events-none max-h-0 -translate-y-3 overflow-hidden opacity-0"}`}
                         aria-hidden={!isFilterOpen}
@@ -260,6 +253,7 @@ export default function DeckPage() {
                                 onEdit={deck => navigate(`/decks/${deck.id}/edit`)}
                                 onDelete={deck => handleDelete(deck.id)}
                                 palette={palette}
+                                trialModeActive={trialModeActive}
                             />
                         ) : (
                             <DeckGridView
@@ -268,6 +262,7 @@ export default function DeckPage() {
                                 onEdit={deck => navigate(`/decks/${deck.id}/edit`)}
                                 onDelete={deck => handleDelete(deck.id)}
                                 palette={palette}
+                                trialModeActive={trialModeActive}
                             />
                         )
                     )}

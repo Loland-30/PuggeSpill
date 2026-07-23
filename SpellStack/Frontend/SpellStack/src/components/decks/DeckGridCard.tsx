@@ -6,8 +6,10 @@ import { useUISound } from "../../audio/useUISound"
 import { languages } from "../../data/languages"
 import { useI18n } from "../../i18n/I18nContext"
 import type { PaletteTheme } from "../../theme/themes"
+import { TRIAL_MINIMUM_DECK_WORD_COUNT } from "../../utils/trialRules"
 import GradientFrame from "../GradientFrame"
 import DeckTrialRating from "./DeckTrialRating"
+import DeckTrialLockedOverlay from "./DeckTrialLockedOverlay"
 
 interface DeckGridCardProps {
     deck: Deck
@@ -15,6 +17,7 @@ interface DeckGridCardProps {
     onEdit: () => void
     onDelete: () => void
     palette: PaletteTheme
+    trialLocked: boolean
 }
 
 function getLanguage(code: string) {
@@ -25,7 +28,7 @@ function formatScore(score: number) {
     return score.toLocaleString("nb-NO")
 }
 
-export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }: DeckGridCardProps) {
+export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette, trialLocked }: DeckGridCardProps) {
     const { t } = useI18n()
     const { playHoverSound } = useUISound()
     const sourceLanguage = getLanguage(deck.language)
@@ -39,6 +42,8 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
     }
 
     const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+        if (trialLocked) return
+
         if (event.key === "Enter" || event.key === " ") {
             event.preventDefault()
             onPlay()
@@ -50,18 +55,19 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
             glow
             radius={24}
             radiusClass="rounded-3xl"
-            className="group h-full rounded-3xl transition duration-300 hover:-translate-y-1"
+            className={`group h-full rounded-3xl transition duration-300 ${trialLocked ? "" : "hover:-translate-y-1"}`}
             contentClassName="h-full rounded-[inherit] px-4 py-3 sm:px-4"
             hoverFillClassName="group-hover/gradient-frame:bg-black/30"
         >
             <div
                 role="button"
-                tabIndex={0}
-                onClick={onPlay}
+                tabIndex={trialLocked ? -1 : 0}
+                onClick={trialLocked ? undefined : onPlay}
                 onKeyDown={handleKeyDown}
-                onMouseEnter={playHoverSound}
-                className="relative flex h-full min-h-[9rem] cursor-pointer flex-col overflow-hidden outline-none"
+                onMouseEnter={trialLocked ? undefined : playHoverSound}
+                className={`relative flex h-full min-h-[9rem] flex-col overflow-hidden outline-none ${trialLocked ? "cursor-not-allowed" : "cursor-pointer"}`}
                 aria-label={`${t.common.play} ${deck.name}`}
+                aria-disabled={trialLocked || undefined}
             >
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex min-w-0 flex-wrap items-start gap-3 pr-0 sm:gap-4 min-[1400px]:pr-24">
@@ -82,6 +88,7 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
                     <div className="flex shrink-0 items-start gap-1 opacity-100 transition-opacity duration-200 min-[1400px]:absolute min-[1400px]:right-0 min-[1400px]:top-0 min-[1400px]:gap-2 min-[1400px]:opacity-0 min-[1400px]:group-hover:opacity-100 min-[1400px]:group-focus-within:opacity-100">
                         <button
                             type="button"
+                            disabled={trialLocked}
                             onClick={event => handleActionClick(event, onEdit)}
                             className="flex h-12 w-10 flex-col items-center justify-center rounded-lg text-white/80 transition hover:bg-white/10 hover:text-white"
                             aria-label={`${t.common.edit} ${deck.name}`}
@@ -92,6 +99,7 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
 
                         <button
                             type="button"
+                            disabled={trialLocked}
                             onClick={event => handleActionClick(event, onDelete)}
                             className="flex h-12 w-12 flex-col items-center justify-center rounded-lg text-white/80 transition hover:bg-red-500/25 hover:text-white"
                             aria-label={`${t.common.delete} ${deck.name}`}
@@ -117,7 +125,15 @@ export default function DeckGridCard({ deck, onPlay, onEdit, onDelete, palette }
                         <p className="mt-1 text-sm font-semibold text-white/70">{t.deckPage.words}</p>
                     </div>
                 </div>
+
             </div>
+
+            {trialLocked && (
+                <DeckTrialLockedOverlay
+                    wordsRemaining={TRIAL_MINIMUM_DECK_WORD_COUNT - deck.words.length}
+                    palette={palette}
+                />
+            )}
         </GradientFrame>
     )
 }

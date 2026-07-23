@@ -5,8 +5,10 @@ import { useUISound } from "../../audio/useUISound"
 import { languages } from "../../data/languages"
 import { useI18n } from "../../i18n/I18nContext"
 import type { PaletteTheme } from "../../theme/themes"
+import { TRIAL_MINIMUM_DECK_WORD_COUNT } from "../../utils/trialRules"
 import GradientFrame from "../GradientFrame"
 import DeckTrialRating from "./DeckTrialRating"
+import DeckTrialLockedOverlay from "./DeckTrialLockedOverlay"
 
 interface DeckListRowProps {
     deck: Deck
@@ -14,13 +16,14 @@ interface DeckListRowProps {
     onEdit: () => void
     onDelete: () => void
     palette: PaletteTheme
+    trialLocked: boolean
 }
 
 function getLanguageFlag(code: string) {
     return languages.find(language => language.code === code)?.flagUrl
 }
 
-export default function DeckListRow({ deck, onPlay, onEdit, onDelete, palette }: DeckListRowProps) {
+export default function DeckListRow({ deck, onPlay, onEdit, onDelete, palette, trialLocked }: DeckListRowProps) {
     const { t } = useI18n()
     const { playHoverSound } = useUISound()
 
@@ -30,10 +33,10 @@ export default function DeckListRow({ deck, onPlay, onEdit, onDelete, palette }:
                 glow
                 radius={28}
                 radiusClass="rounded-[28px]"
-                className="group w-full max-w-2xl rounded-[28px] transition-all duration-300 lg:hover:max-w-[52rem]"
+                className={`group w-full max-w-2xl rounded-[28px] transition-all duration-300 ${trialLocked ? "" : "lg:hover:max-w-[52rem]"}`}
                 contentClassName="relative min-h-24 overflow-hidden rounded-[inherit] px-4 py-4 sm:px-8 sm:py-5"
             >
-                <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 lg:max-w-[38rem] lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:gap-4">
+                <div className={`grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 lg:max-w-[38rem] lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:gap-4 ${trialLocked ? "cursor-not-allowed" : ""}`} aria-disabled={trialLocked || undefined}>
                     <div className="min-w-0">
                         <h2 className="line-clamp-2 break-words text-xl font-black sm:text-2xl lg:truncate lg:text-3xl" title={deck.name}>{deck.name}</h2>
                         <p className="mt-1 text-sm font-semibold text-white/80">
@@ -59,9 +62,11 @@ export default function DeckListRow({ deck, onPlay, onEdit, onDelete, palette }:
                     </div>
 
                     <button
+                        type="button"
+                        disabled={trialLocked}
                         onClick={onPlay}
-                        onMouseEnter={playHoverSound}
-                        className={`col-span-2 min-h-11 rounded-full px-5 py-2 text-sm font-black lg:col-span-1 ${palette.primaryButtonText} opacity-100 shadow-lg transition ${palette.primaryButton}`}
+                        onMouseEnter={trialLocked ? undefined : playHoverSound}
+                        className={`col-span-2 min-h-11 rounded-full px-5 py-2 text-sm font-black lg:col-span-1 ${palette.primaryButtonText} opacity-100 shadow-lg transition ${palette.primaryButton} ${trialLocked ? "cursor-not-allowed" : ""}`}
                     >
                         {t.common.play}
                     </button>
@@ -69,6 +74,8 @@ export default function DeckListRow({ deck, onPlay, onEdit, onDelete, palette }:
 
                 <div className="mt-3 flex items-center justify-end gap-2 border-t border-white/10 pt-2 lg:pointer-events-none lg:absolute lg:right-5 lg:top-1/2 lg:mt-0 lg:w-40 lg:-translate-y-1/2 lg:border-0 lg:pt-0 lg:opacity-0 lg:transition-opacity lg:duration-300 lg:group-hover:pointer-events-auto lg:group-hover:opacity-100 lg:group-focus-within:pointer-events-auto lg:group-focus-within:opacity-100">
                     <button
+                        type="button"
+                        disabled={trialLocked}
                         onClick={onEdit}
                         onMouseEnter={playHoverSound}
                         className="flex h-14 w-16 flex-col items-center justify-center rounded-lg text-white transition hover:bg-white/10"
@@ -79,6 +86,8 @@ export default function DeckListRow({ deck, onPlay, onEdit, onDelete, palette }:
                     </button>
 
                     <button
+                        type="button"
+                        disabled={trialLocked}
                         onClick={onDelete}
                         onMouseEnter={playHoverSound}
                         className="flex h-14 w-16 flex-col items-center justify-center rounded-lg text-white transition hover:bg-red-500/30"
@@ -88,6 +97,13 @@ export default function DeckListRow({ deck, onPlay, onEdit, onDelete, palette }:
                         <span className="mt-1 text-xs font-bold">{t.common.delete}</span>
                     </button>
                 </div>
+
+                {trialLocked && (
+                    <DeckTrialLockedOverlay
+                        wordsRemaining={TRIAL_MINIMUM_DECK_WORD_COUNT - deck.words.length}
+                        palette={palette}
+                    />
+                )}
             </GradientFrame>
         </div>
     )
