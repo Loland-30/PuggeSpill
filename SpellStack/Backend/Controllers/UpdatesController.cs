@@ -79,7 +79,7 @@ namespace SpellStack.Api.Controllers {
                 Slug = slug,
                 Version = request.Version.Trim(),
                 Title = request.Title.Trim(),
-                Summary = request.Summary.Trim(),
+                Summary = NormalizeSummary(request.Summary),
                 Content = request.Content.Trim(),
                 Category = request.Category.Trim(),
                 Status = request.Status.Trim(),
@@ -114,7 +114,7 @@ namespace SpellStack.Api.Controllers {
             update.Slug = slug;
             update.Version = request.Version.Trim();
             update.Title = request.Title.Trim();
-            update.Summary = request.Summary.Trim();
+            update.Summary = NormalizeSummary(request.Summary);
             update.Content = request.Content.Trim();
             update.Category = request.Category.Trim();
             update.Status = request.Status.Trim();
@@ -142,13 +142,12 @@ namespace SpellStack.Api.Controllers {
         private static string? ValidateRequest(UpdatePostRequest request) {
             if (string.IsNullOrWhiteSpace(request.Version)) return "Version is required.";
             if (string.IsNullOrWhiteSpace(request.Title)) return "Title is required.";
-            if (string.IsNullOrWhiteSpace(request.Summary)) return "Summary is required.";
             if (string.IsNullOrWhiteSpace(request.Content)) return "Content is required.";
             if (string.IsNullOrWhiteSpace(request.Category)) return "Category is required.";
             if (string.IsNullOrWhiteSpace(request.Status)) return "Status is required.";
             if (request.Version.Trim().Length > 32) return "Version must be 32 characters or fewer.";
             if (request.Title.Trim().Length > 180) return "Title must be 180 characters or fewer.";
-            if (request.Summary.Trim().Length > 500) return "Summary must be 500 characters or fewer.";
+            if ((request.Summary?.Trim().Length ?? 0) > 500) return "Summary must be 500 characters or fewer.";
             if (request.Category.Trim().Length > 64) return "Category must be 64 characters or fewer.";
             if (request.Status.Trim().Length > 64) return "Status must be 64 characters or fewer.";
 
@@ -161,6 +160,10 @@ namespace SpellStack.Api.Controllers {
                 : request.Slug;
 
             return NormalizeSlug(source);
+        }
+
+        private static string NormalizeSummary(string? summary) {
+            return string.IsNullOrWhiteSpace(summary) ? "" : summary.Trim();
         }
 
         private static string NormalizeSlug(string value) {
@@ -202,7 +205,7 @@ namespace SpellStack.Api.Controllers {
         string? Slug,
         string Version,
         string Title,
-        string Summary,
+        string? Summary,
         string Content,
         string Category,
         string Status,

@@ -6,20 +6,21 @@ import { createUpdate, getUpdateBySlug, updateUpdate, UpdatesApiError, type Upda
 import GradientFrame from "../components/GradientFrame"
 import AppPageShell from "../components/layout/AppPageShell"
 import PageContentTransition from "../components/PageContentTransition"
+import UpdateDescription from "../components/updates/UpdateDescription"
 import UpdateMarkdown from "../components/updates/UpdateMarkdown"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
 import {
-    deriveUpdateSummary,
     fromPublishedAt,
     getLocalCalendarDate,
     toPublishedAt,
+    UPDATE_SUMMARY_MAX_LENGTH,
     UPDATE_TITLE_MAX_LENGTH,
     UPDATE_VERSION_MAX_LENGTH
 } from "../utils/updateEditor"
 
 type EditorMode = "write" | "preview"
-type FieldErrors = Partial<Record<"version" | "publishedDate" | "title" | "content", string>>
+type FieldErrors = Partial<Record<"version" | "publishedDate" | "title" | "summary" | "content", string>>
 
 export default function UpdateEditorPage() {
     const { slug } = useParams()
@@ -31,6 +32,7 @@ export default function UpdateEditorPage() {
     const [version, setVersion] = useState("")
     const [publishedDate, setPublishedDate] = useState(getLocalCalendarDate)
     const [title, setTitle] = useState("")
+    const [summary, setSummary] = useState("")
     const [content, setContent] = useState("")
     const [mode, setMode] = useState<EditorMode>("write")
     const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -58,6 +60,7 @@ export default function UpdateEditorPage() {
             setVersion(nextUpdate.version)
             setPublishedDate(fromPublishedAt(nextUpdate.publishedAt))
             setTitle(nextUpdate.title)
+            setSummary(nextUpdate.summary)
             setContent(nextUpdate.content)
         } catch (error) {
             if (controller.signal.aborted) return
@@ -86,6 +89,7 @@ export default function UpdateEditorPage() {
         if (!version.trim()) nextErrors.version = t.updatesAdmin.required
         if (!publishedDate) nextErrors.publishedDate = t.updatesAdmin.required
         if (!title.trim()) nextErrors.title = t.updatesAdmin.required
+        if (summary.trim().length > UPDATE_SUMMARY_MAX_LENGTH) nextErrors.summary = t.updatesAdmin.shortDescriptionTooLong
         if (!content.trim()) nextErrors.content = t.updatesAdmin.required
         setFieldErrors(nextErrors)
         return Object.keys(nextErrors).length === 0
@@ -102,7 +106,7 @@ export default function UpdateEditorPage() {
             slug: null,
             version: version.trim(),
             title: title.trim(),
-            summary: deriveUpdateSummary(content),
+            summary: summary.trim(),
             content,
             category: loadedUpdate?.category || "General",
             status: loadedUpdate?.status || "Released",
@@ -193,6 +197,32 @@ export default function UpdateEditorPage() {
                                             <input value={title} onChange={event => setTitle(event.target.value)} maxLength={UPDATE_TITLE_MAX_LENGTH} className={fieldClassName} aria-invalid={Boolean(fieldErrors.title)} aria-describedby={fieldErrors.title ? "title-error" : undefined} />
                                             {fieldErrors.title && <span id="title-error" className="mt-2 block text-sm text-red-200">{fieldErrors.title}</span>}
                                         </label>
+                                        <div>
+                                            <label htmlFor="update-short-description" className="font-black text-white">
+                                                {t.updatesAdmin.shortDescription}
+                                            </label>
+                                            <p id="short-description-help" className="mt-1 text-sm font-medium leading-6 text-white/55">
+                                                {t.updatesAdmin.shortDescriptionHelp}
+                                            </p>
+                                            <textarea
+                                                id="update-short-description"
+                                                value={summary}
+                                                onChange={event => setSummary(event.target.value)}
+                                                maxLength={UPDATE_SUMMARY_MAX_LENGTH}
+                                                rows={3}
+                                                className={`${fieldClassName} resize-y font-medium leading-7`}
+                                                aria-invalid={Boolean(fieldErrors.summary)}
+                                                aria-describedby={`short-description-help short-description-count${fieldErrors.summary ? " short-description-error" : ""}`}
+                                            />
+                                            <div className="mt-2 flex items-start justify-between gap-4">
+                                                {fieldErrors.summary
+                                                    ? <span id="short-description-error" className="text-sm text-red-200">{fieldErrors.summary}</span>
+                                                    : <span aria-hidden="true" />}
+                                                <span id="short-description-count" className="shrink-0 text-sm font-medium tabular-nums text-white/45">
+                                                    {summary.length} / {UPDATE_SUMMARY_MAX_LENGTH}
+                                                </span>
+                                            </div>
+                                        </div>
                                         <label className="font-black text-white">
                                             {t.updatesAdmin.content}
                                             <textarea value={content} onChange={event => setContent(event.target.value)} className={`${fieldClassName} min-h-[28rem] resize-y font-mono text-sm leading-7 sm:text-base`} aria-invalid={Boolean(fieldErrors.content)} aria-describedby={fieldErrors.content ? "content-error" : undefined} />
@@ -204,7 +234,8 @@ export default function UpdateEditorPage() {
                                         <p className={`break-words text-sm font-black uppercase tracking-[0.16em] ${palette.accentText}`}>Version {version || "—"}</p>
                                         {formattedPreviewDate && <p className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-white/50"><CalendarDays size={16} aria-hidden="true" />{t.updatesPage.published} {formattedPreviewDate}</p>}
                                         <h2 className="mt-4 break-words text-3xl font-black text-white sm:text-5xl">{title || t.updatesAdmin.title}</h2>
-                                        <div className="my-8 h-px bg-white/15" />
+                                        <UpdateDescription summary={summary} className="mt-5 max-w-3xl whitespace-pre-line break-words text-lg font-semibold leading-8 text-white/70 sm:text-xl" />
+                                        {summary.trim() && <div className="my-8 h-px bg-white/15" />}
                                         {content ? <UpdateMarkdown content={content} /> : <p className="text-white/50">{t.updatesAdmin.previewEmpty}</p>}
                                     </article>
                                 )}

@@ -15,6 +15,7 @@ import AppPageShell from "../components/layout/AppPageShell"
 import PageContentTransition from "../components/PageContentTransition"
 import UpdateCard from "../components/updates/UpdateCard"
 import UpdateDeleteModal from "../components/updates/UpdateDeleteModal"
+import UpdateDescription from "../components/updates/UpdateDescription"
 import UpdateMarkdown from "../components/updates/UpdateMarkdown"
 import { useAuth } from "../auth/AuthContext"
 import { useI18n } from "../i18n/I18nContext"
@@ -173,11 +174,8 @@ export default function UpdateDetailsPage() {
                                     <h1 className={`${publishedDate ? "mt-3" : ""} break-words text-3xl font-black leading-tight text-white sm:text-5xl lg:text-6xl`}>
                                         {update.title}
                                     </h1>
-                                    <p className="mt-5 max-w-3xl break-words text-lg font-semibold leading-8 text-white/70 sm:text-xl">
-                                        {update.summary}
-                                    </p>
-
-                                    <div className="my-8 h-px bg-white/15 sm:my-10" />
+                                    <UpdateDescription summary={update.summary} className="mt-5 max-w-3xl whitespace-pre-line break-words text-lg font-semibold leading-8 text-white/70 sm:text-xl" />
+                                    {update.summary.trim() && <div className="my-8 h-px bg-white/15 sm:my-10" />}
                                     <UpdateMarkdown content={update.content} />
                                 </article>
                             </GradientFrame>

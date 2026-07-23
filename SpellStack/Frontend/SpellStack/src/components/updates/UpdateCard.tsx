@@ -43,7 +43,9 @@ export default function UpdateCard({ update, locale, featured = false, readMoreL
                         <div className="min-w-0">
                             <p className={`text-sm font-black uppercase tracking-[0.2em] ${palette.accentText}`}>{update.version}</p>
                             <h2 className="mt-2 break-words text-2xl font-black text-white sm:text-3xl">{update.title}</h2>
-                            <p className="mt-3 max-w-2xl break-words text-sm font-medium leading-6 text-white/65 sm:text-base sm:leading-7">{update.summary}</p>
+                            {update.summary.trim() && (
+                                <p className="mt-3 max-w-2xl whitespace-pre-line break-words text-sm font-medium leading-6 text-white/65 sm:text-base sm:leading-7">{update.summary.trim()}</p>
+                            )}
                         </div>
 
                         <div className="flex shrink-0 items-end justify-between gap-4 sm:min-h-36 sm:flex-col sm:items-end">
