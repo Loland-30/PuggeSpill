@@ -294,7 +294,8 @@ namespace SpellStack.Api.Controllers {
                 user.CreatedAt,
                 user.ProfileImageUrl,
                 user.CustomLoginSplashSoundUrl,
-                user.CustomMainMenuMusicUrl
+                user.CustomMainMenuMusicUrl,
+                user.IsAdmin
             );
         }
 

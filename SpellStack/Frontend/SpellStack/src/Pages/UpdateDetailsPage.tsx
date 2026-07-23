@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { ArrowLeft, CalendarDays, RefreshCw } from "lucide-react"
-import { Link, useParams } from "react-router-dom"
+import { ArrowLeft, CalendarDays, Pencil, RefreshCw, Trash2 } from "lucide-react"
+import { Link, useNavigate, useParams } from "react-router-dom"
 
 import {
     getUpdateBySlug,
     getUpdates,
+    deleteUpdate,
     UpdatesApiError,
     type UpdateDetails,
     type UpdateListItem
@@ -13,44 +14,27 @@ import GradientFrame from "../components/GradientFrame"
 import AppPageShell from "../components/layout/AppPageShell"
 import PageContentTransition from "../components/PageContentTransition"
 import UpdateCard from "../components/updates/UpdateCard"
+import UpdateDeleteModal from "../components/updates/UpdateDeleteModal"
+import UpdateMarkdown from "../components/updates/UpdateMarkdown"
+import { useAuth } from "../auth/AuthContext"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
-
-function UpdateContent({ content }: { content: string }) {
-    return (
-        <div className="space-y-5 text-base font-medium leading-8 text-white/75 sm:text-lg">
-            {content.split(/\n{2,}/).map((block, blockIndex) => {
-                const lines = block.split("\n").filter(Boolean)
-                const isList = lines.length > 0 && lines.every(line => line.startsWith("- "))
-
-                if (isList) {
-                    return (
-                        <ul key={blockIndex} className="space-y-3 pl-5">
-                            {lines.map(line => (
-                                <li key={line} className="list-disc pl-1 marker:text-white/45">
-                                    {line.slice(2)}
-                                </li>
-                            ))}
-                        </ul>
-                    )
-                }
-
-                return <p key={blockIndex} className="break-words">{block}</p>
-            })}
-        </div>
-    )
-}
 
 export default function UpdateDetailsPage() {
     const { slug = "" } = useParams()
     const { t, appLanguage } = useI18n()
     const { palette } = useTheme()
+    const { user } = useAuth()
+    const navigate = useNavigate()
     const [update, setUpdate] = useState<UpdateDetails | null>(null)
     const [otherUpdates, setOtherUpdates] = useState<UpdateListItem[]>([])
     const [loading, setLoading] = useState(true)
     const [notFound, setNotFound] = useState(false)
     const [error, setError] = useState("")
     const activeRequestRef = useRef<AbortController | null>(null)
+    const [deleteTarget, setDeleteTarget] = useState<UpdateListItem | null>(null)
+    const [deleting, setDeleting] = useState(false)
+    const [deleteError, setDeleteError] = useState("")
 
     const loadUpdate = useCallback(async () => {
         activeRequestRef.current?.abort()
@@ -96,6 +80,32 @@ export default function UpdateDetailsPage() {
             activeRequestRef.current?.abort()
         }
     }, [loadUpdate])
+
+    const closeDeleteModal = useCallback(() => {
+        if (deleting) return
+        setDeleteTarget(null)
+        setDeleteError("")
+    }, [deleting])
+
+    const confirmDelete = async () => {
+        if (!deleteTarget || deleting) return
+        setDeleting(true)
+        setDeleteError("")
+        try {
+            await deleteUpdate(deleteTarget.id)
+            if (deleteTarget.id === update?.id) {
+                navigate("/updates", { replace: true })
+            } else {
+                setOtherUpdates(current => current.filter(item => item.id !== deleteTarget.id))
+                setDeleteTarget(null)
+            }
+        } catch (deleteFailure) {
+            if (deleteFailure instanceof UpdatesApiError && (deleteFailure.status === 401 || deleteFailure.status === 403)) setDeleteError(t.updatesAdmin.adminRequired)
+            else setDeleteError(t.updatesAdmin.deleteError)
+        } finally {
+            setDeleting(false)
+        }
+    }
 
     const publishedDate = update?.publishedAt
         ? new Intl.DateTimeFormat(appLanguage, { year: "numeric", month: "long", day: "numeric" }).format(new Date(update.publishedAt))
@@ -150,6 +160,16 @@ export default function UpdateDetailsPage() {
                                             {t.updatesPage.published} {publishedDate}
                                         </p>
                                     )}
+                                    {user?.isAdmin && (
+                                        <div className="mt-4 flex flex-wrap gap-2" aria-label={t.updatesAdmin.adminRequired}>
+                                            <button type="button" onClick={() => navigate(`/updates/${update.slug}/edit`)} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-white/10 px-4 text-sm font-black text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
+                                                <Pencil size={17} aria-hidden="true" />{t.updatesAdmin.editUpdate}
+                                            </button>
+                                            <button type="button" onClick={() => { setDeleteError(""); setDeleteTarget(update) }} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-red-950/75 px-4 text-sm font-black text-red-100 transition hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200">
+                                                <Trash2 size={17} aria-hidden="true" />{t.updatesAdmin.deleteUpdate}
+                                            </button>
+                                        </div>
+                                    )}
                                     <h1 className={`${publishedDate ? "mt-3" : ""} break-words text-3xl font-black leading-tight text-white sm:text-5xl lg:text-6xl`}>
                                         {update.title}
                                     </h1>
@@ -158,7 +178,7 @@ export default function UpdateDetailsPage() {
                                     </p>
 
                                     <div className="my-8 h-px bg-white/15 sm:my-10" />
-                                    <UpdateContent content={update.content} />
+                                    <UpdateMarkdown content={update.content} />
                                 </article>
                             </GradientFrame>
 
@@ -174,6 +194,8 @@ export default function UpdateDetailsPage() {
                                                 update={otherUpdate}
                                                 locale={appLanguage}
                                                 readMoreLabel={t.updatesPage.readMore}
+                                                onEdit={user?.isAdmin ? item => navigate(`/updates/${item.slug}/edit`) : undefined}
+                                                onDelete={user?.isAdmin ? item => { setDeleteError(""); setDeleteTarget(item) } : undefined}
                                             />
                                         ))}
                                     </div>
@@ -183,6 +205,7 @@ export default function UpdateDetailsPage() {
                     )}
                 </div>
             </AppPageShell>
+            <UpdateDeleteModal update={deleteTarget} deleting={deleting} error={deleteError} onCancel={closeDeleteModal} onConfirm={() => void confirmDelete()} />
         </PageContentTransition>
     )
 }

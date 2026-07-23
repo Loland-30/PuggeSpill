@@ -13,12 +13,14 @@ import TrialPage from "./Pages/TrialPage"
 import MultiplayerPage from "./Pages/MultiplayerPage"
 import UpdatesPage from "./Pages/UpdatesPage"
 import UpdateDetailsPage from "./Pages/UpdateDetailsPage"
+import UpdateEditorPage from "./Pages/UpdateEditorPage"
 import ThemedPage from "./components/ThemedPage"
 import AppSideNav from "./components/AppSideNav"
 import AppStartupGate from "./components/startup/AppStartupGate"
 import MainMenuAudio from "./components/audio/MainMenuAudio"
 import { AchievementNotificationProvider } from "./achievements/AchievementNotificationContext"
 import MobileNavigationProvider from "./components/navigation/MobileNavigationProvider"
+import RequireAdmin from "./components/auth/RequireAdmin"
 
 function App() {
     const location = useLocation()
@@ -58,6 +60,8 @@ function App() {
                                     <Route path="/theme" element={<ThemePage />} />
                                     <Route path="/settings" element={<SettingsPage />} />
                                     <Route path="/updates" element={<UpdatesPage />} />
+                                    <Route path="/updates/new" element={<RequireAdmin><UpdateEditorPage /></RequireAdmin>} />
+                                    <Route path="/updates/:slug/edit" element={<RequireAdmin><UpdateEditorPage /></RequireAdmin>} />
                                     <Route path="/updates/:slug" element={<UpdateDetailsPage />} />
                                     <Route path="/multiplayer" element={<MultiplayerPage />} />
                                     <Route path="/decks" element={<DeckPage />} />

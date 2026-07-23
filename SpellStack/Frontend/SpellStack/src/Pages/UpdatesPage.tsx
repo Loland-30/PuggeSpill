@@ -1,21 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { RefreshCw } from "lucide-react"
+import { Plus, RefreshCw } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 
-import { getUpdates, type UpdateListItem } from "../api/updates"
+import { deleteUpdate, getUpdates, UpdatesApiError, type UpdateListItem } from "../api/updates"
+import { useAuth } from "../auth/AuthContext"
 import GradientFrame from "../components/GradientFrame"
 import AppPageShell from "../components/layout/AppPageShell"
 import PageContentTransition from "../components/PageContentTransition"
 import UpdateCard from "../components/updates/UpdateCard"
+import UpdateDeleteModal from "../components/updates/UpdateDeleteModal"
 import { useI18n } from "../i18n/I18nContext"
 import { useTheme } from "../theme/ThemeContext"
 
 export default function UpdatesPage() {
     const { t, appLanguage } = useI18n()
     const { palette } = useTheme()
+    const { user } = useAuth()
+    const navigate = useNavigate()
     const [updates, setUpdates] = useState<UpdateListItem[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const activeRequestRef = useRef<AbortController | null>(null)
+    const [deleteTarget, setDeleteTarget] = useState<UpdateListItem | null>(null)
+    const [deleting, setDeleting] = useState(false)
+    const [deleteError, setDeleteError] = useState("")
 
     const loadUpdates = useCallback(async () => {
         activeRequestRef.current?.abort()
@@ -49,16 +57,53 @@ export default function UpdatesPage() {
         }
     }, [loadUpdates])
 
+    const closeDeleteModal = useCallback(() => {
+        if (deleting) return
+        setDeleteTarget(null)
+        setDeleteError("")
+    }, [deleting])
+
+    const confirmDelete = async () => {
+        if (!deleteTarget || deleting) return
+        setDeleting(true)
+        setDeleteError("")
+        try {
+            await deleteUpdate(deleteTarget.id)
+            setUpdates(current => current.filter(update => update.id !== deleteTarget.id))
+            setDeleteTarget(null)
+        } catch (deleteFailure) {
+            if (deleteFailure instanceof UpdatesApiError && (deleteFailure.status === 401 || deleteFailure.status === 403)) {
+                setDeleteError(t.updatesAdmin.adminRequired)
+            } else {
+                setDeleteError(t.updatesAdmin.deleteError)
+            }
+        } finally {
+            setDeleting(false)
+        }
+    }
+
     return (
         <PageContentTransition>
             <AppPageShell contentClassName="min-h-[calc(100dvh-7rem)] pb-24 pt-8 sm:min-h-[calc(100dvh-9rem)] sm:pb-12 sm:pt-12">
-                <header className="mx-auto max-w-3xl text-center">
+                <header className="relative mx-auto max-w-4xl text-center">
                     <h1 className="text-4xl font-black text-white sm:text-6xl">
                         {t.updatesPage.title}
                     </h1>
                     <p className="mx-auto mt-4 max-w-2xl text-base font-medium leading-7 text-white/70 sm:text-lg">
                         {t.updatesPage.description}
                     </p>
+                    {user?.isAdmin && (
+                        <button
+                            type="button"
+                            onClick={() => navigate("/updates/new")}
+                            aria-label={t.updatesAdmin.newUpdate}
+                            title={t.updatesAdmin.newUpdate}
+                            className={`group mx-auto mt-6 flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full px-0 text-xs font-black shadow-lg transition-[width,box-shadow] duration-300 ease-out hover:w-32 focus-visible:w-32 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 sm:absolute sm:right-0 sm:top-0 sm:mt-0 ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`}
+                        >
+                            <Plus size={24} strokeWidth={3} className="shrink-0" aria-hidden="true" />
+                            <span className="ml-0 max-w-0 whitespace-nowrap opacity-0 transition-all duration-300 group-hover:ml-2 group-hover:max-w-24 group-hover:opacity-100 group-focus-visible:ml-2 group-focus-visible:max-w-24 group-focus-visible:opacity-100">{t.updatesAdmin.newUpdate}</span>
+                        </button>
+                    )}
                 </header>
 
                 {loading && (
@@ -98,11 +143,17 @@ export default function UpdatesPage() {
                                 locale={appLanguage}
                                 featured={index === 0}
                                 readMoreLabel={t.updatesPage.readMore}
+                                onEdit={user?.isAdmin ? item => navigate(`/updates/${item.slug}/edit`) : undefined}
+                                onDelete={user?.isAdmin ? item => {
+                                    setDeleteError("")
+                                    setDeleteTarget(item)
+                                } : undefined}
                             />
                         ))}
                     </section>
                 )}
             </AppPageShell>
+            <UpdateDeleteModal update={deleteTarget} deleting={deleting} error={deleteError} onCancel={closeDeleteModal} onConfirm={() => void confirmDelete()} />
         </PageContentTransition>
     )
 }

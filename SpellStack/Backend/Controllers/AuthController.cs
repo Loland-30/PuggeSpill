@@ -228,7 +228,8 @@ namespace SpellStack.Api.Controllers {
                 user.CreatedAt,
                 user.ProfileImageUrl,
                 user.CustomLoginSplashSoundUrl,
-                user.CustomMainMenuMusicUrl
+                user.CustomMainMenuMusicUrl,
+                user.IsAdmin
             );
         }
 
@@ -248,6 +249,7 @@ namespace SpellStack.Api.Controllers {
         DateTime CreatedAt,
         string? ProfileImageUrl,
         string? CustomLoginSplashSoundUrl,
-        string? CustomMainMenuMusicUrl
+        string? CustomMainMenuMusicUrl,
+        bool IsAdmin
     );
 }

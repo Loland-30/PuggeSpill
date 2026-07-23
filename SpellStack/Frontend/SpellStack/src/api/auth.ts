@@ -12,6 +12,7 @@ export interface AuthUser {
     profileImageUrl?: string | null
     customLoginSplashSoundUrl?: string | null
     customMainMenuMusicUrl?: string | null
+    isAdmin: boolean
 }
 
 export interface AuthResponse {
