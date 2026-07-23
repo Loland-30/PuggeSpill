@@ -41,3 +41,8 @@ Thumbs.db
 !**/wwwroot/uploads/audio/login-splash/.gitkeep
 **/wwwroot/uploads/audio/main-menu/*
 !**/wwwroot/uploads/audio/main-menu/.gitkeep
+
+# Environment files / secrets
+.env
+.env.*
+!.env.example
