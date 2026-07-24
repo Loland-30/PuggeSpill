@@ -69,6 +69,8 @@ public class LexiconEnrichmentServiceTests {
         Assert.Equal("noun", suggestion.PartOfSpeech);
         Assert.Equal(["ふゆ", "トウ"], suggestion.Readings!.Select(reading => reading.Text));
         Assert.Equal(["kun", "on"], suggestion.Readings!.Select(reading => reading.Type));
+        Assert.All(suggestion.Readings!, reading => Assert.Equal("forms", reading.Source));
+        Assert.All(suggestion.Readings!, reading => Assert.Equal("structured", reading.Confidence));
     }
 
     [Fact]

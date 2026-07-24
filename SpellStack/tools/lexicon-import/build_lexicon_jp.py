@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
+import re
 import sys
 import unicodedata
 from collections import defaultdict
@@ -14,6 +15,14 @@ from typing import Any
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_SOURCE = SCRIPT_DIR / "data" / "ja-extract.jsonl.gz"
 DEFAULT_OUTPUT = SCRIPT_DIR / "output" / "ja-readings.json"
+LEADING_GLOSS_READING = re.compile(r"^\uff08([^\uff09]*)\uff09")
+GLOSS_READING_SEPARATOR = re.compile(r"[\u3001,\uff0c]")
+GLOSS_FALLBACK_EXCLUDED_PARTS_OF_SPEECH = {
+    "character",
+    "name",
+    "proper noun",
+    "proper-noun",
+}
 
 
 def normalize(text: str) -> str:
@@ -114,6 +123,105 @@ def detect_reading_type(tags: set[str]) -> str:
     return "unknown"
 
 
+def detect_gloss_reading_script(text: str) -> str:
+    """
+    Validate a gloss-derived reading and return its kana script.
+
+    Gloss fallback is deliberately stricter than structured Kaikki forms:
+    only kana and the Japanese prolonged sound mark are accepted.
+    """
+    normalized_text = unicodedata.normalize("NFC", text)
+    if not normalized_text:
+        return "unknown"
+
+    has_hiragana = False
+    has_katakana = False
+
+    for character in normalized_text:
+        if (
+            "\u3041" <= character <= "\u3096"
+            or "\u3099" <= character <= "\u309f"
+        ):
+            has_hiragana = True
+            continue
+
+        if (
+            "\u30a1" <= character <= "\u30fa"
+            or "\u30fd" <= character <= "\u30ff"
+        ):
+            has_katakana = True
+            continue
+
+        if character == "\u30fc":
+            continue
+
+        return "unknown"
+
+    if has_hiragana and not has_katakana:
+        return "hiragana"
+
+    if has_katakana and not has_hiragana:
+        return "katakana"
+
+    return "unknown"
+
+
+def extract_gloss_readings(
+    entry: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """
+    Extract conservative fallback readings from leading gloss parentheses.
+
+    Kaikki sense order and candidate order are retained. These readings have
+    no inferred kun/on or register semantics.
+    """
+    part_of_speech = normalize(str(entry.get("pos", "")))
+    if part_of_speech in GLOSS_FALLBACK_EXCLUDED_PARTS_OF_SPEECH:
+        return []
+
+    raw_senses = entry.get("senses")
+    if not isinstance(raw_senses, list):
+        return []
+
+    readings: list[dict[str, Any]] = []
+
+    for raw_sense in raw_senses:
+        if not isinstance(raw_sense, dict):
+            continue
+
+        raw_glosses = raw_sense.get("glosses")
+        if not isinstance(raw_glosses, list):
+            continue
+
+        for raw_gloss in raw_glosses:
+            if not isinstance(raw_gloss, str):
+                continue
+
+            normalized_gloss = unicodedata.normalize("NFC", raw_gloss)
+            match = LEADING_GLOSS_READING.match(normalized_gloss)
+            if match is None:
+                continue
+
+            for raw_candidate in GLOSS_READING_SEPARATOR.split(match.group(1)):
+                candidate = unicodedata.normalize("NFC", raw_candidate.strip())
+                script = detect_gloss_reading_script(candidate)
+                if script not in {"hiragana", "katakana"}:
+                    continue
+
+                readings.append(
+                    {
+                        "text": candidate,
+                        "type": "unknown",
+                        "script": script,
+                        "source": "gloss",
+                        "confidence": "fallback",
+                        "tags": [],
+                    }
+                )
+
+    return deduplicate_readings(readings)
+
+
 def deduplicate_readings(
     readings: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
@@ -136,6 +244,8 @@ def deduplicate_readings(
                 "text": reading["text"],
                 "type": reading["type"],
                 "script": reading["script"],
+                "source": reading["source"],
+                "confidence": reading["confidence"],
                 "tags": set(reading["tags"]),
             }
             continue
@@ -150,9 +260,19 @@ def deduplicate_readings(
                 "text": reading["text"],
                 "type": reading["type"],
                 "script": reading["script"],
+                "source": reading["source"],
+                "confidence": reading["confidence"],
                 "tags": sorted(reading["tags"]),
             }
         )
+
+    # Fallback readings retain Kaikki sense/candidate order. Structured forms
+    # keep the builder's established kun/on ordering.
+    if result and all(
+        reading["source"] == "gloss"
+        for reading in result
+    ):
+        return result
 
     reading_type_order = {
         "kun": 0,
@@ -199,12 +319,9 @@ def build_compact_entry(
 
     raw_forms = entry.get("forms")
 
-    if not isinstance(raw_forms, list):
-        return None
-
     readings: list[dict[str, Any]] = []
 
-    for raw_form in raw_forms:
+    for raw_form in raw_forms if isinstance(raw_forms, list) else []:
         if not isinstance(raw_form, dict):
             continue
 
@@ -234,11 +351,16 @@ def build_compact_entry(
                 "text": reading_text,
                 "type": detect_reading_type(tags),
                 "script": script,
+                "source": "forms",
+                "confidence": "structured",
                 "tags": sorted(tags),
             }
         )
 
     readings = deduplicate_readings(readings)
+
+    if not readings:
+        readings = extract_gloss_readings(entry)
 
     if not readings:
         return None

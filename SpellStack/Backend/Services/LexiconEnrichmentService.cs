@@ -102,20 +102,27 @@ namespace SpellStack.Api.Services {
                 var normalizedType = NormalizeReadingType(reading.Type);
                 var key = $"{normalizedText}\0{normalizedType}";
                 var tags = DeduplicateTags(reading.Tags);
+                var source = NormalizeReadingSource(reading.Source);
+                var confidence = NormalizeReadingConfidence(reading.Confidence, source);
+                var candidate = new TranslationReading(
+                    reading.Text,
+                    normalizedType,
+                    NormalizeReadingScript(reading.Script),
+                    tags,
+                    source,
+                    confidence);
                 if (readingIndexes.TryGetValue(key, out var existingIndex)) {
                     var existing = readings[existingIndex];
-                    readings[existingIndex] = existing with {
-                        Tags = DeduplicateTags(existing.Tags.Concat(tags))
-                    };
+                    var mergedTags = DeduplicateTags(existing.Tags.Concat(tags));
+                    readings[existingIndex] =
+                        GetReadingPriority(candidate) < GetReadingPriority(existing)
+                            ? candidate with { Tags = mergedTags }
+                            : existing with { Tags = mergedTags };
                     continue;
                 }
 
                 readingIndexes[key] = readings.Count;
-                readings.Add(new TranslationReading(
-                    reading.Text,
-                    normalizedType,
-                    NormalizeReadingScript(reading.Script),
-                    tags));
+                readings.Add(candidate);
             }
 
             return [new TranslationSuggestion(
@@ -205,6 +212,22 @@ namespace SpellStack.Api.Services {
             return normalized is "hiragana" or "katakana" ? normalized : "unknown";
         }
 
+        private static string NormalizeReadingSource(string? value) {
+            var normalized = value?.Trim().ToLowerInvariant();
+            // Files generated before source metadata existed only contained
+            // structured forms, so missing values remain backward compatible.
+            return normalized == "gloss" ? "gloss" : "forms";
+        }
+
+        private static string NormalizeReadingConfidence(string? value, string source) {
+            var normalized = value?.Trim().ToLowerInvariant();
+            if (normalized is "structured" or "fallback") return normalized;
+            return source == "gloss" ? "fallback" : "structured";
+        }
+
+        private static int GetReadingPriority(TranslationReading reading) =>
+            reading.Source == "forms" || reading.Confidence == "structured" ? 0 : 1;
+
         private static IReadOnlyList<string> DeduplicateTags(IEnumerable<string>? tags) {
             if (tags == null) return [];
 
@@ -244,6 +267,8 @@ namespace SpellStack.Api.Services {
             public string Text { get; set; } = "";
             public string? Type { get; set; }
             public string? Script { get; set; }
+            public string? Source { get; set; }
+            public string? Confidence { get; set; }
             public List<string> Tags { get; set; } = [];
         }
     }

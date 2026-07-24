@@ -16,6 +16,8 @@ export interface TranslationReading {
     text: string
     type: "kun" | "on" | "unknown" | string
     script: "hiragana" | "katakana" | "unknown" | string
+    source?: "forms" | "gloss" | string | null
+    confidence?: "structured" | "fallback" | string | null
     tags: string[]
 }
 

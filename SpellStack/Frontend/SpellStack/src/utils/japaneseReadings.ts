@@ -13,6 +13,19 @@ function isSingleKanji(value: string) {
     return characters.length === 1 && containsKanji(characters[0])
 }
 
+function isStructuredReading(reading: TranslationReading) {
+    // Missing metadata means the reading came from a pre-metadata index,
+    // where every reading was extracted from structured forms.
+    return reading.source?.toLocaleLowerCase() !== "gloss"
+        && reading.confidence?.toLocaleLowerCase() !== "fallback"
+}
+
+function isValidHiraganaReading(reading: TranslationReading) {
+    const text = normalizeReadingText(reading.text)
+    return reading.script.toLocaleLowerCase() === "hiragana"
+        && /^[\u3041-\u3096\u3099-\u309f\u30fc]+$/u.test(text)
+}
+
 function deduplicateReadings(readings: readonly TranslationReading[]) {
     const unique = new Map<string, TranslationReading>()
 
@@ -21,7 +34,8 @@ function deduplicateReadings(readings: readonly TranslationReading[]) {
         if (!text) continue
 
         const key = text.toLocaleLowerCase("ja-JP")
-        if (!unique.has(key)) {
+        const existing = unique.get(key)
+        if (!existing || (!isStructuredReading(existing) && isStructuredReading(reading))) {
             unique.set(key, { ...reading, text })
         }
     }
@@ -39,15 +53,23 @@ export function selectPrimaryJapaneseReading(
     }
 
     const hiraganaReadings = deduplicateReadings(readings)
-        .filter(reading => reading.script.toLocaleLowerCase() === "hiragana")
+        .filter(isValidHiraganaReading)
+    const structuredReadings = hiraganaReadings.filter(isStructuredReading)
+    const fallbackReadings = hiraganaReadings.filter(reading => !isStructuredReading(reading))
 
     if (isSingleKanji(normalizedSuggestion)) {
-        return hiraganaReadings.find(reading => reading.type.toLocaleLowerCase() === "kun")
-            ?? (hiraganaReadings.length === 1 ? hiraganaReadings[0] : null)
+        if (structuredReadings.length > 0) {
+            return structuredReadings.find(reading => reading.type.toLocaleLowerCase() === "kun")
+                ?? (structuredReadings.length === 1 ? structuredReadings[0] : null)
+        }
+
+        return fallbackReadings[0] ?? null
     }
 
     // Compound/okurigana entries use whole-word transliterations with an unknown
-    // reading type. Kun/on entries are component readings and are not shown inline.
-    return hiraganaReadings.find(reading => reading.type.toLocaleLowerCase() === "unknown")
+    // reading type. Gloss candidates are a deterministic fallback in Kaikki sense
+    // order; they are not semantically ranked by register or source-language sense.
+    return structuredReadings.find(reading => reading.type.toLocaleLowerCase() === "unknown")
+        ?? fallbackReadings.find(reading => reading.type.toLocaleLowerCase() === "unknown")
         ?? null
 }

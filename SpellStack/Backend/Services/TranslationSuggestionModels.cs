@@ -8,7 +8,9 @@ namespace SpellStack.Api.Services {
         string Text,
         string Type,
         string Script,
-        IReadOnlyList<string> Tags);
+        IReadOnlyList<string> Tags,
+        string? Source = null,
+        string? Confidence = null);
 
     public record TranslationSuggestion(
         string Text,
