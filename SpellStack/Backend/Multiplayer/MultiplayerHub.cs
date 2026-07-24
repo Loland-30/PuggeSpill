@@ -50,6 +50,17 @@ namespace SpellStack.Api.Multiplayer {
             }
         }
 
+        public async Task<MultiplayerRoomDto> UpdateRoomSettings(string gameModeId, int scoreCap) {
+            try {
+                var room = rooms.UpdateRoomSettings(Context.ConnectionId, gameModeId, scoreCap);
+                await Clients.Group(room.Code).SendAsync("RoomUpdated", room);
+                return room;
+            }
+            catch (MultiplayerRoomException exception) {
+                throw new HubException(exception.Message);
+            }
+        }
+
         public override async Task OnDisconnectedAsync(Exception? exception) {
             disconnectCleanup.Schedule(Context.ConnectionId);
             await base.OnDisconnectedAsync(exception);

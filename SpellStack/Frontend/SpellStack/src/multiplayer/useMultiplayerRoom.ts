@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import {
     getMultiplayerConnection,
@@ -11,7 +11,7 @@ import {
     subscribeToMultiplayerConnectionStatus,
     type MultiplayerConnectionStatus
 } from "./multiplayerConnection"
-import type { MultiplayerRoom } from "./multiplayerTypes"
+import type { MultiplayerGameModeId, MultiplayerRaceScoreCap, MultiplayerRoom } from "./multiplayerTypes"
 
 function getErrorMessage(error: unknown) {
     if (error instanceof Error && error.message.trim()) {
@@ -31,7 +31,10 @@ export function useMultiplayerRoom() {
     const [connectionStatus, setConnectionStatus] = useState<MultiplayerConnectionStatus>(getMultiplayerConnectionStatus())
     const [error, setError] = useState<string | null>(null)
     const [requestBusy, setRequestBusy] = useState(false)
+    const [settingsError, setSettingsError] = useState<string | null>(null)
+    const [settingsBusy, setSettingsBusy] = useState(false)
     const [roomSessionInvalidationId, setRoomSessionInvalidationId] = useState(0)
+    const settingsRequestInFlightRef = useRef(false)
 
     useEffect(() => subscribeToMultiplayerConnectionStatus(setConnectionStatus), [])
 
@@ -113,7 +116,35 @@ export function useMultiplayerRoom() {
         setError(null)
     }, [])
 
+    const updateRoomSettings = useCallback(async (
+        gameModeId: MultiplayerGameModeId,
+        scoreCap: MultiplayerRaceScoreCap
+    ) => {
+        if (settingsRequestInFlightRef.current) return null
+
+        settingsRequestInFlightRef.current = true
+        setSettingsBusy(true)
+        setSettingsError(null)
+
+        try {
+            const connection = await startMultiplayerConnection()
+            const updatedRoom = await connection.invoke<MultiplayerRoom>("UpdateRoomSettings", gameModeId, scoreCap)
+            setRoom(updatedRoom)
+            return updatedRoom
+        }
+        catch (updateError) {
+            const message = getErrorMessage(updateError)
+            setSettingsError(message)
+            throw new Error(message)
+        }
+        finally {
+            settingsRequestInFlightRef.current = false
+            setSettingsBusy(false)
+        }
+    }, [])
+
     const clearError = useCallback(() => setError(null), [])
+    const clearSettingsError = useCallback(() => setSettingsError(null), [])
     const isConnectionBusy = connectionStatus === "connecting" || connectionStatus === "reconnecting"
 
     return {
@@ -121,10 +152,14 @@ export function useMultiplayerRoom() {
         status: connectionStatus,
         error,
         isBusy: requestBusy || isConnectionBusy,
+        isUpdatingSettings: settingsBusy,
+        settingsError,
         roomSessionInvalidationId,
         createRoom,
         joinRoom,
         leaveRoom,
-        clearError
+        updateRoomSettings,
+        clearError,
+        clearSettingsError
     }
 }

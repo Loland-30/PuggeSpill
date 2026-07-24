@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
-import { Check, Crown, Lock, Plus, Send, Trophy, UsersRound } from "lucide-react"
+import { Check, Crown, Lock, Plus, Send, Trophy } from "lucide-react"
 
 import { getDecks, type Deck } from "../api/decks"
 import { useUISound } from "../audio/useUISound"
@@ -12,13 +12,19 @@ import GameModeModal from "../components/GameModeModal"
 import GradientFrame from "../components/GradientFrame"
 import AppPageShell from "../components/layout/AppPageShell"
 import JoinRoomModal from "../components/multiplayer/JoinRoomModal"
+import RoomGameModeModal from "../components/multiplayer/RoomGameModeModal"
 import LibraryPageToolbar from "../components/navigation/LibraryPageToolbar"
 import PageContentTransition from "../components/PageContentTransition"
 import ProfileImage from "../components/ProfileImage"
 import { countries, getCountryName } from "../data/countries"
 import { languages } from "../data/languages"
 import { useI18n } from "../i18n/I18nContext"
-import type { MultiplayerPlayer } from "../multiplayer/multiplayerTypes"
+import type {
+    MultiplayerGameModeId,
+    MultiplayerPlayer,
+    MultiplayerRaceScoreCap,
+    MultiplayerRoomSettings
+} from "../multiplayer/multiplayerTypes"
 import { type MultiplayerConnectionStatus } from "../multiplayer/multiplayerConnection"
 import { useMultiplayerRoom } from "../multiplayer/useMultiplayerRoom"
 import { useTheme } from "../theme/ThemeContext"
@@ -68,10 +74,12 @@ export default function MultiplayerPage() {
     const { user, loading: authLoading } = useAuth()
     const { palette, theme } = useTheme()
     const readySoundRef = useRef<HTMLAudioElement | null>(null)
+    const changeSettingsButtonRef = useRef<HTMLButtonElement | null>(null)
     const attemptedJoinRoomRef = useRef<string | null>(null)
     const handledInvalidationIdRef = useRef(0)
     const [decks, setDecks] = useState<Deck[]>([])
     const [joinModalOpen, setJoinModalOpen] = useState(false)
+    const [roomSettingsModalOpen, setRoomSettingsModalOpen] = useState(false)
     const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null)
     const [modalDeck, setModalDeck] = useState<Deck | null>(null)
     const [readyConfig, setReadyConfig] = useState<ReadyConfig | null>(null)
@@ -80,11 +88,15 @@ export default function MultiplayerPage() {
         status: multiplayerStatus,
         error: multiplayerError,
         isBusy: multiplayerBusy,
+        isUpdatingSettings,
+        settingsError,
         roomSessionInvalidationId,
         createRoom: createMultiplayerRoom,
         joinRoom: joinMultiplayerRoom,
         leaveRoom: leaveMultiplayerRoom,
-        clearError
+        updateRoomSettings,
+        clearError,
+        clearSettingsError
     } = useMultiplayerRoom()
     const currentHostId = room?.ownerUserId ?? null
     const isLocalHost = Boolean(user && currentHostId === String(user.id))
@@ -162,6 +174,7 @@ export default function MultiplayerPage() {
     const createRoom = async () => {
         try {
             const createdRoom = await createMultiplayerRoom()
+            setRoomSettingsModalOpen(false)
             setSelectedDeck(null)
             setReadyConfig(null)
             navigate(`/multiplayer?room=${encodeURIComponent(createdRoom.code)}`, { replace: true })
@@ -175,6 +188,7 @@ export default function MultiplayerPage() {
         try {
             const joinedRoom = await joinMultiplayerRoom(code)
             setJoinModalOpen(false)
+            setRoomSettingsModalOpen(false)
             setSelectedDeck(null)
             setReadyConfig(null)
             navigate(`/multiplayer?room=${encodeURIComponent(joinedRoom.code)}`, { replace: true })
@@ -186,6 +200,7 @@ export default function MultiplayerPage() {
 
     const handleLeaveRoom = async () => {
         await leaveMultiplayerRoom()
+        setRoomSettingsModalOpen(false)
         setSelectedDeck(null)
         setReadyConfig(null)
         setModalDeck(null)
@@ -217,6 +232,19 @@ export default function MultiplayerPage() {
         setModalDeck(null)
     }
 
+    const closeRoomSettingsModal = () => {
+        setRoomSettingsModalOpen(false)
+        window.requestAnimationFrame(() => changeSettingsButtonRef.current?.focus())
+    }
+
+    const handleRoomSettingsConfirm = async (
+        gameModeId: MultiplayerGameModeId,
+        scoreCap: MultiplayerRaceScoreCap
+    ) => {
+        await updateRoomSettings(gameModeId, scoreCap)
+        closeRoomSettingsModal()
+    }
+
     return (
         <>
             <JoinRoomModal
@@ -230,6 +258,19 @@ export default function MultiplayerPage() {
                 error={multiplayerError}
                 palette={palette}
             />
+
+            {room && (
+                <RoomGameModeModal
+                    key={`${room.settings.settingsVersion}-${roomSettingsModalOpen}`}
+                    isOpen={roomSettingsModalOpen && isLocalHost}
+                    settings={room.settings}
+                    isLoading={isUpdatingSettings}
+                    error={settingsError}
+                    palette={palette}
+                    onClose={closeRoomSettingsModal}
+                    onConfirm={handleRoomSettingsConfirm}
+                />
+            )}
 
             {modalDeck && (
                 <GameModeModal
@@ -274,7 +315,13 @@ export default function MultiplayerPage() {
                             currentHostId={currentHostId}
                             isLocalHost={isLocalHost}
                             players={players}
+                            settings={room.settings}
                             onLeaveRoom={handleLeaveRoom}
+                            onChangeSettings={() => {
+                                clearSettingsError()
+                                setRoomSettingsModalOpen(true)
+                            }}
+                            changeSettingsButtonRef={changeSettingsButtonRef}
                             onDeckSelect={openDeckSetup}
                             connectionStatus={multiplayerStatus}
                             connectionError={multiplayerError}
@@ -372,7 +419,7 @@ function LandingAction({ title, description, icon, onClick, disabled, palette }:
     )
 }
 
-function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConfig, currentHostId, isLocalHost, players, onLeaveRoom, onDeckSelect, connectionStatus, connectionError, networkBusy, palette }: {
+function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConfig, currentHostId, isLocalHost, players, settings, onLeaveRoom, onChangeSettings, changeSettingsButtonRef, onDeckSelect, connectionStatus, connectionError, networkBusy, palette }: {
     roomCode: string
     maxPlayers: number
     decks: Deck[]
@@ -381,7 +428,10 @@ function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConf
     currentHostId: string | null
     isLocalHost: boolean
     players: LobbyPlayer[]
+    settings: MultiplayerRoomSettings
     onLeaveRoom: () => void | Promise<void>
+    onChangeSettings: () => void
+    changeSettingsButtonRef: RefObject<HTMLButtonElement | null>
     onDeckSelect: (deck: Deck) => void
     connectionStatus: MultiplayerConnectionStatus
     connectionError: string | null
@@ -416,6 +466,30 @@ function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConf
                         {statusMessage}
                     </p>
                 )}
+
+                <div className="mt-5 flex flex-wrap items-end justify-between gap-4 border-t border-white/10 pt-4">
+                    <dl className="flex flex-wrap gap-x-8 gap-y-3">
+                        <div>
+                            <dt className="text-xs font-black uppercase tracking-[0.14em] text-white/42">Game mode</dt>
+                            <dd className="mt-1 text-base font-black text-white">Race</dd>
+                        </div>
+                        <div>
+                            <dt className="text-xs font-black uppercase tracking-[0.14em] text-white/42">Score cap</dt>
+                            <dd className="mt-1 text-base font-black text-white">{settings.scoreCap.toLocaleString("en-US")}</dd>
+                        </div>
+                    </dl>
+
+                    {isLocalHost && (
+                        <button
+                            ref={changeSettingsButtonRef}
+                            type="button"
+                            onClick={onChangeSettings}
+                            className={`rounded-full border ${palette.border} bg-white/[0.06] px-4 py-2 text-sm font-black text-white/75 transition hover:bg-white/[0.12] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/55`}
+                        >
+                            Change
+                        </button>
+                    )}
+                </div>
             </header>
 
             <section className="w-full min-w-0 self-start">
@@ -556,13 +630,10 @@ function PlayersPanel({ players, currentHostId, maxPlayers, palette }: {
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
     return (
-        <div className={`h-fit w-full rounded-2xl border ${palette.border} ${palette.card} p-4 shadow-2xl backdrop-blur-xl sm:rounded-[2rem] sm:p-5`}>
-            <div className="flex items-center justify-between gap-4">
-                <h2 className="text-2xl font-black text-white">Players {players.length}/{maxPlayers}</h2>
-                <UsersRound size={26} strokeWidth={2.5} className="text-white/50" />
-            </div>
+        <div className="h-fit w-full">
+            <h2 className="text-2xl font-black text-white">Players {players.length}/{maxPlayers}</h2>
 
-            <div className="mt-6 space-y-4">
+            <div className="mt-5 space-y-4">
                 {players.map(player => (
                     <PlayerRow key={player.id} player={player} isCurrentHost={player.id === currentHostId} palette={palette} />
                 ))}
@@ -583,11 +654,11 @@ function PlayerRow({ player, isCurrentHost, palette }: {
     const flagUrl = getCountryFlag(player.countryCode)
     const countryName = player.countryCode ? getCountryName(player.countryCode, appLanguage) : null
     const canOpenProfile = Boolean(player.profilePath)
-    const rowClassName = `flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
+    const rowClassName = `flex w-full items-center gap-3 rounded-2xl border border-transparent bg-transparent p-3 text-left transition duration-200 ${
         player.ready
-            ? "border-emerald-300/30 bg-emerald-500/15 shadow-[0_0_22px_rgba(52,211,153,0.12)]"
-            : "border-white/10 bg-black/15"
-    } ${canOpenProfile ? "cursor-pointer hover:border-white/24 hover:bg-white/[0.08]" : ""}`
+            ? "hover:border-emerald-300/30 hover:bg-emerald-500/15 hover:shadow-[0_0_22px_rgba(52,211,153,0.12)] focus-visible:border-emerald-300/30 focus-visible:bg-emerald-500/15"
+            : "hover:border-white/10 hover:bg-black/25 focus-visible:border-white/10 focus-visible:bg-black/25"
+    } ${canOpenProfile ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35" : ""}`
     const rowContent = (
         <>
             <div className="relative grid h-12 w-12 place-items-center overflow-visible rounded-full bg-white/12 text-lg font-black text-white">
