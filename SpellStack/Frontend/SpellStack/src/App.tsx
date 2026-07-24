@@ -7,7 +7,6 @@ import ClassicCreateDeckPage from "./Pages/ClassicCreateDeckPage"
 import PlayPage from "./Pages/PlayPage"
 import AuthPage from "./Pages/AuthPage"
 import ProfileContainer from "./Pages/ProfileContainer"
-import ResetPasswordPage from "./Pages/ResetPasswordPage"
 import ThemePage from "./Pages/ThemePage"
 import SettingsPage from "./Pages/SettingsPage"
 import TrialPage from "./Pages/TrialPage"
@@ -27,7 +26,7 @@ function App() {
     const location = useLocation()
     const prefersReducedMotion = useReducedMotion()
     const isGameplay = location.pathname.includes("/play") || /\/decks\/\d+\/trial$/.test(location.pathname)
-    const showSideNav = !isGameplay && location.pathname !== "/login" && location.pathname !== "/reset-password"
+    const showSideNav = !isGameplay && location.pathname !== "/login"
     const lockPageScroll = location.pathname === "/multiplayer"
 
     return (
@@ -55,7 +54,6 @@ function App() {
                                 <Routes location={location}>
                                     <Route path="/" element={<DeckPage />} />
                                     <Route path="/login" element={<AuthPage />} />
-                                    <Route path="/reset-password" element={<ResetPasswordPage />} />
                                     <Route path="/profile" element={<ProfileContainer />} />
                                     <Route path="/profile/:userId" element={<ProfileContainer />} />
                                     <Route path="/theme" element={<ThemePage />} />

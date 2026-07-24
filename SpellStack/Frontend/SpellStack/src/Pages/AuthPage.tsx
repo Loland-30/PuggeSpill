@@ -1,11 +1,11 @@
 ﻿import { AnimatePresence, motion } from "framer-motion"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { requestPasswordReset } from "../api/auth"
 import { useAuth } from "../auth/AuthContext"
 import AuthShell from "../components/auth/AuthShell"
 import AuthWelcomeSplash from "../components/auth/AuthWelcomeSplash"
 import LoginForm from "../components/auth/LoginForm"
+import PasswordResetFlow from "../components/auth/PasswordResetFlow"
 import SignupFlow from "../components/auth/SignupFlow"
 import type { AuthCountryOption } from "../components/auth/SignupStepProfile"
 import { countries, getCountryFlag, getCountryName } from "../data/countries"
@@ -29,6 +29,7 @@ export default function AuthPage() {
     const navigate = useNavigate()
     const { loginUser, registerUser, uploadProfileImage } = useAuth()
     const [mode, setMode] = useState<"login" | "signup">("login")
+    const [passwordResetActive, setPasswordResetActive] = useState(false)
     const [signupStep, setSignupStep] = useState<1 | 2 | 3>(1)
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
@@ -51,6 +52,7 @@ export default function AuthPage() {
     const changeMode = (nextMode: "login" | "signup") => {
         setError("")
         setMessage("")
+        setPasswordResetActive(false)
         setMode(nextMode)
         if (nextMode === "signup") setSignupStep(1)
     }
@@ -146,39 +148,29 @@ export default function AuthPage() {
         }
     }
 
-    const handleForgotPassword = async () => {
-        setError("")
-        setMessage("")
-
-        if (!email) {
-            setError("Enter your email first.")
-            return
-        }
-
-        setSubmitting(true)
-        try {
-            const result = await requestPasswordReset(email)
-            setMessage(result)
-        } catch (error) {
-            setError(error instanceof Error ? error.message : "Something went wrong")
-        } finally {
-            setSubmitting(false)
-        }
-    }
-
     return (
         <>
             <AuthShell mode={mode} onModeChange={changeMode}>
                 <AnimatePresence mode="wait" initial={false}>
                     <motion.div
-                        key={mode}
+                        key={passwordResetActive ? "password-reset" : mode}
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -12 }}
                         transition={{ duration: 0.24, ease: "easeOut" }}
                         className="w-full"
                     >
-                        {mode === "login" ? (
+                        {passwordResetActive ? (
+                            <PasswordResetFlow
+                                email={email}
+                                onEmailChange={setEmail}
+                                onBackToSignIn={() => {
+                                    setError("")
+                                    setMessage("")
+                                    setPasswordResetActive(false)
+                                }}
+                            />
+                        ) : mode === "login" ? (
                             <LoginForm
                                 email={email}
                                 password={password}
@@ -189,7 +181,11 @@ export default function AuthPage() {
                                 onEmailChange={setEmail}
                                 onPasswordChange={setPassword}
                                 onRememberMeChange={setRememberMe}
-                                onForgotPassword={handleForgotPassword}
+                                onForgotPassword={() => {
+                                    setError("")
+                                    setMessage("")
+                                    setPasswordResetActive(true)
+                                }}
                                 onSubmit={handleLogin}
                             />
                         ) : (

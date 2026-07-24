@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.RateLimiting;
 using SpellStack.Api.Auth;
 using SpellStack.Api.Data;
 using SpellStack.Api.Multiplayer;
@@ -11,6 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
 var allowedOrigins = GetAllowedOrigins(builder.Configuration, builder.Environment);
+ValidatePasswordResetConfiguration(builder.Configuration, builder.Environment);
 
 builder.Services.AddControllers()
     .AddJsonOptions(options => {
@@ -33,10 +36,27 @@ builder.Services.AddAuthentication(SessionTokenAuthenticationHandler.SchemeName)
     .AddScheme<AuthenticationSchemeOptions, SessionTokenAuthenticationHandler>(SessionTokenAuthenticationHandler.SchemeName, _ => { });
 builder.Services.AddAuthorization();
 builder.Services.AddSignalR();
+builder.Services.AddRateLimiter(options => {
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) => {
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            new { message = "Too many attempts. Please try again later." },
+            cancellationToken);
+    };
+    AddPasswordResetRateLimit(options, "password-reset-request", 5);
+    AddPasswordResetRateLimit(options, "password-reset-verify", 20);
+    AddPasswordResetRateLimit(options, "password-reset-complete", 10);
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<AchievementService>();
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+builder.Services.AddSingleton<IPasswordResetEmailSender, SmtpPasswordResetEmailSender>();
+builder.Services.AddSingleton<
+    IPasswordResetIdentifierRateLimiter,
+    PasswordResetIdentifierRateLimiter>();
 builder.Services.AddHttpClient<IDeepLTranslationService, DeepLTranslationService>(client => {
     client.Timeout = TimeSpan.FromSeconds(12);
 });
@@ -61,6 +81,7 @@ if (app.Environment.IsDevelopment()) {
 }
 
 app.UseCors("AllowFrontend");
+app.UseRateLimiter();
 app.UseStaticFiles();
 app.UseStaticFiles(new StaticFileOptions {
     FileProvider = app.Services.GetRequiredService<UploadStorageService>().CreateFileProvider(),
@@ -75,6 +96,34 @@ app.MapControllers();
 app.MapHub<MultiplayerHub>("/hubs/multiplayer");
 
 app.Run();
+
+static void AddPasswordResetRateLimit(
+    RateLimiterOptions options,
+    string policyName,
+    int permitLimit) {
+    options.AddPolicy(policyName, context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions {
+                PermitLimit = permitLimit,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+}
+
+static void ValidatePasswordResetConfiguration(
+    IConfiguration configuration,
+    IWebHostEnvironment environment) {
+    if (!environment.IsProduction()) return;
+
+    var hmacKey = configuration["PASSWORD_RESET_HMAC_KEY"]
+        ?? configuration["PasswordReset:HmacKey"];
+    if (string.IsNullOrWhiteSpace(hmacKey) || hmacKey.Length < 32) {
+        throw new InvalidOperationException(
+            "PASSWORD_RESET_HMAC_KEY must contain at least 32 characters in production.");
+    }
+}
 
 static string[] GetAllowedOrigins(IConfiguration configuration, IWebHostEnvironment environment) {
     var configuredOrigins = configuration

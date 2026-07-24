@@ -36,6 +36,18 @@ namespace SpellStack.Api.Data {
                 .HasIndex(result => result.GameSessionId)
                 .IsUnique();
 
+            modelBuilder.Entity<PasswordResetToken>(entity => {
+                entity.Property(token => token.CodeHash).HasMaxLength(128);
+                entity.Property(token => token.CodeSalt).HasMaxLength(64);
+                entity.Property(token => token.ResetTokenHash).HasMaxLength(128);
+                entity.Property(token => token.RequestIpHash).HasMaxLength(128);
+                entity.Property(token => token.ConcurrencyStamp)
+                    .HasMaxLength(32)
+                    .IsConcurrencyToken();
+                entity.HasIndex(token => new { token.UserId, token.CreatedAt });
+                entity.HasIndex(token => token.ResetTokenHash).IsUnique();
+            });
+
             modelBuilder.Entity<TranslationCacheEntry>(entity => {
                 entity.Property(entry => entry.SourceLanguage).HasMaxLength(16);
                 entity.Property(entry => entry.TargetLanguage).HasMaxLength(16);

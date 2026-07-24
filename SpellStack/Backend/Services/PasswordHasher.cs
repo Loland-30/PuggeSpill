@@ -19,7 +19,13 @@ namespace SpellStack.Api.Services {
         }
 
         public static bool VerifyPassword(string password, string salt, string expectedHash) {
-            return HashPassword(password, salt) == expectedHash;
+            try {
+                var actual = Convert.FromBase64String(HashPassword(password, salt));
+                var expected = Convert.FromBase64String(expectedHash);
+                return CryptographicOperations.FixedTimeEquals(actual, expected);
+            } catch (FormatException) {
+                return false;
+            }
         }
     }
 }

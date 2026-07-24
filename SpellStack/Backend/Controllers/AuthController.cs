@@ -1,8 +1,6 @@
 using System.Security.Cryptography;
-using System.Net;
-using System.Net.Mail;
-using System.Text;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SpellStack.Api.Data;
 using SpellStack.Api.Models;
@@ -13,13 +11,13 @@ namespace SpellStack.Api.Controllers {
     [Route("api/[controller]")]
     public class AuthController : ControllerBase {
         private readonly AppDbContext _context;
-        private readonly IConfiguration _configuration;
-        private readonly ILogger<AuthController> _logger;
+        private readonly IPasswordResetService _passwordResetService;
 
-        public AuthController(AppDbContext context, IConfiguration configuration, ILogger<AuthController> logger) {
+        public AuthController(
+            AppDbContext context,
+            IPasswordResetService passwordResetService) {
             _context = context;
-            _configuration = configuration;
-            _logger = logger;
+            _passwordResetService = passwordResetService;
         }
 
         [HttpPost("register")]
@@ -68,55 +66,89 @@ namespace SpellStack.Api.Controllers {
             return Ok(ToAuthResponse(user, token));
         }
 
-        [HttpPost("forgot-password")]
-        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request) {
-            var email = request.Email.Trim().ToLowerInvariant();
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email);
-
-            if (user != null) {
-                var rawToken = CreateUrlSafeToken();
-                var resetToken = new PasswordResetToken {
-                    UserId = user.Id,
-                    TokenHash = HashResetToken(rawToken),
-                    ExpiresAt = DateTime.UtcNow.AddMinutes(30)
-                };
-
-                _context.PasswordResetTokens.Add(resetToken);
-                await _context.SaveChangesAsync();
-
-                var frontendUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
-                var resetLink = $"{frontendUrl}/reset-password?token={Uri.EscapeDataString(rawToken)}";
-
-                await SendPasswordResetEmail(user.Email, resetLink);
+        [HttpPost("password-reset/request")]
+        [EnableRateLimiting("password-reset-request")]
+        public async Task<IActionResult> RequestPasswordReset(
+            [FromBody] PasswordResetRequest request,
+            CancellationToken cancellationToken) {
+            if (!IsStructurallyValidEmail(request.Email)) {
+                return BadRequest(new { message = "Enter a valid email address." });
             }
 
-            return Ok(new { message = "Hvis e-posten finnes, sender vi en reset-lenke." });
+            var result = await _passwordResetService.RequestCode(
+                request.Email,
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                cancellationToken);
+
+            return Accepted(new {
+                message = "If an account exists for this email, a reset code has been sent.",
+                retryAfterSeconds = result.RetryAfterSeconds
+            });
         }
 
-        [HttpPost("reset-password")]
-        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request) {
-            if (request.NewPassword.Length < 6) return BadRequest("Passord må være minst 6 tegn");
+        [HttpPost("password-reset/verify")]
+        [EnableRateLimiting("password-reset-verify")]
+        public async Task<IActionResult> VerifyPasswordReset(
+            [FromBody] PasswordResetVerifyRequest request,
+            CancellationToken cancellationToken) {
+            if (!IsStructurallyValidEmail(request.Email) ||
+                request.Code?.Trim().Length != PasswordResetService.CodeLength ||
+                !request.Code.Trim().All(char.IsDigit)) {
+                return BadRequest(new {
+                    message = "The code is invalid or expired."
+                });
+            }
 
-            var tokenHash = HashResetToken(request.Token);
-            var resetToken = await _context.PasswordResetTokens
-                .Include(t => t.User)
-                .FirstOrDefaultAsync(t =>
-                    t.TokenHash == tokenHash &&
-                    t.UsedAt == null &&
-                    t.ExpiresAt > DateTime.UtcNow);
+            var result = await _passwordResetService.VerifyCode(
+                request.Email,
+                request.Code.Trim(),
+                cancellationToken);
 
-            if (resetToken == null) return BadRequest("Reset-lenken er ugyldig eller utløpt");
+            return result.Status switch {
+                PasswordResetVerifyStatus.Verified => Ok(new {
+                    resetToken = result.ResetToken
+                }),
+                PasswordResetVerifyStatus.TooManyAttempts =>
+                    StatusCode(StatusCodes.Status429TooManyRequests, new {
+                        message = "Too many attempts. Request a new code."
+                    }),
+                _ => BadRequest(new {
+                    message = "The code is invalid or expired."
+                })
+            };
+        }
 
-            var salt = PasswordHasher.CreateSalt();
-            resetToken.User.PasswordSalt = salt;
-            resetToken.User.PasswordHash = PasswordHasher.HashPassword(request.NewPassword, salt);
-            resetToken.UsedAt = DateTime.UtcNow;
+        [HttpPost("password-reset/complete")]
+        [EnableRateLimiting("password-reset-complete")]
+        public async Task<IActionResult> CompletePasswordReset(
+            [FromBody] PasswordResetCompleteRequest request,
+            CancellationToken cancellationToken) {
+            if (string.IsNullOrWhiteSpace(request.ResetToken)) {
+                return BadRequest(new {
+                    message = "Your reset authorization is invalid or expired."
+                });
+            }
 
-            var sessions = _context.UserSessions.Where(s => s.UserId == resetToken.UserId);
-            _context.UserSessions.RemoveRange(sessions);
+            var result = await _passwordResetService.Complete(
+                request.ResetToken,
+                request.NewPassword ?? "",
+                cancellationToken);
 
-            await _context.SaveChangesAsync();
-            return Ok(new { message = "Passordet er oppdatert. Logg inn med nytt passord." });
+            return result.Status switch {
+                PasswordResetCompleteStatus.Completed => Ok(new {
+                    message = "Password updated"
+                }),
+                PasswordResetCompleteStatus.WeakPassword => BadRequest(new {
+                    message = result.Error
+                }),
+                PasswordResetCompleteStatus.RateLimited =>
+                    StatusCode(StatusCodes.Status429TooManyRequests, new {
+                        message = "Too many attempts. Please try again later."
+                    }),
+                _ => BadRequest(new {
+                    message = "Your reset authorization is invalid or expired."
+                })
+            };
         }
 
         [HttpGet("me")]
@@ -172,46 +204,17 @@ namespace SpellStack.Api.Controllers {
             return header["Bearer ".Length..].Trim();
         }
 
-        private static string CreateUrlSafeToken() {
-            return Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
-                .Replace("+", "-")
-                .Replace("/", "_")
-                .TrimEnd('=');
-        }
-
-        private static string HashResetToken(string token) {
-            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
-            return Convert.ToBase64String(bytes);
-        }
-
-        private async Task SendPasswordResetEmail(string email, string resetLink) {
-            var host = _configuration["Smtp:Host"];
-            // Hosted builds should configure Smtp:* settings so reset links are only delivered by email.
-            // Until then, keep this as a safe no-op so forgot-password requests do not fail or leak tokens.
-            if (string.IsNullOrWhiteSpace(host)) {
-                _logger.LogInformation("SMTP is not configured; password reset email was not sent.");
-                return;
+        private static bool IsStructurallyValidEmail(string? email) {
+            if (string.IsNullOrWhiteSpace(email) || email.Length > 320) return false;
+            try {
+                var address = new System.Net.Mail.MailAddress(email.Trim());
+                return string.Equals(
+                    address.Address,
+                    email.Trim(),
+                    StringComparison.OrdinalIgnoreCase);
+            } catch (FormatException) {
+                return false;
             }
-
-            var port = int.TryParse(_configuration["Smtp:Port"], out var parsedPort) ? parsedPort : 587;
-            var username = _configuration["Smtp:Username"];
-            var password = _configuration["Smtp:Password"];
-            var from = _configuration["Smtp:From"] ?? username ?? "spellstack@localhost";
-
-            using var client = new SmtpClient(host, port) {
-                EnableSsl = bool.TryParse(_configuration["Smtp:EnableSsl"], out var enableSsl) ? enableSsl : true
-            };
-
-            if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password)) {
-                client.Credentials = new NetworkCredential(username, password);
-            }
-
-            using var message = new MailMessage(from, email) {
-                Subject = "Reset SpellStack password",
-                Body = $"Reset passordet ditt her: {resetLink}\n\nLenken utløper om 30 minutter."
-            };
-
-            await client.SendMailAsync(message);
         }
 
         private static AuthResponse ToAuthResponse(User user, string token) {
@@ -237,8 +240,9 @@ namespace SpellStack.Api.Controllers {
 
     public record RegisterRequest(string Username, string Email, string Password, string? FavoriteLanguage, string? Country);
     public record LoginRequest(string Email, string Password);
-    public record ForgotPasswordRequest(string Email);
-    public record ResetPasswordRequest(string Token, string NewPassword);
+    public record PasswordResetRequest(string Email);
+    public record PasswordResetVerifyRequest(string Email, string Code);
+    public record PasswordResetCompleteRequest(string ResetToken, string NewPassword);
     public record AuthResponse(string Token, UserResponse User);
     public record UserResponse(
         int Id,

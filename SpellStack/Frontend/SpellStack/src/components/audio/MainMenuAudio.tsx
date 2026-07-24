@@ -19,7 +19,6 @@ export default function MainMenuAudio() {
     const fallbackSource = getAudioPreset(theme.audio.backgroundMusic)?.file ?? null
     const shouldPlay = Boolean(user) &&
         location.pathname !== "/login" &&
-        location.pathname !== "/reset-password" &&
         theme.audio.audioEnabled &&
         theme.audio.musicVolume > 0
 

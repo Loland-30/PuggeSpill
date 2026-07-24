@@ -68,8 +68,14 @@ async function fetchAuth(input: RequestInfo | URL, init?: RequestInit) {
 }
 
 async function readErrorMessage(response: Response, fallback: string) {
-    const message = (await response.text()).trim()
-    return message || fallback
+    const body = (await response.text()).trim()
+    if (!body) return fallback
+    try {
+        const parsed = JSON.parse(body) as { message?: string }
+        return parsed.message?.trim() || fallback
+    } catch {
+        return body
+    }
 }
 
 export async function register(username: string, email: string, password: string, favoriteLanguage: string, country: string): Promise<AuthResponse> {
@@ -92,24 +98,48 @@ export async function login(email: string, password: string): Promise<AuthRespon
     return response.json()
 }
 
-export async function requestPasswordReset(email: string): Promise<string> {
-    const response = await fetch(`${API_URL}/auth/forgot-password`, {
+export interface PasswordResetRequestResponse {
+    message: string
+    retryAfterSeconds: number
+}
+
+export async function requestPasswordReset(email: string): Promise<PasswordResetRequestResponse> {
+    const response = await fetchAuth(`${API_URL}/auth/password-reset/request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email })
     })
-    if (!response.ok) throw new Error(await response.text())
-    const result: { message: string } = await response.json()
-    return result.message
+    if (!response.ok) {
+        throw new Error(await readErrorMessage(response, "Could not send a reset code."))
+    }
+    return response.json()
 }
 
-export async function resetPassword(token: string, newPassword: string): Promise<string> {
-    const response = await fetch(`${API_URL}/auth/reset-password`, {
+export async function verifyPasswordResetCode(email: string, code: string): Promise<string> {
+    const response = await fetchAuth(`${API_URL}/auth/password-reset/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, newPassword })
+        body: JSON.stringify({ email, code })
     })
-    if (!response.ok) throw new Error(await response.text())
+    if (!response.ok) {
+        throw new Error(await readErrorMessage(response, "The code is invalid or expired."))
+    }
+    const result: { resetToken: string } = await response.json()
+    return result.resetToken
+}
+
+export async function completePasswordReset(resetToken: string, newPassword: string): Promise<string> {
+    const response = await fetchAuth(`${API_URL}/auth/password-reset/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resetToken, newPassword })
+    })
+    if (!response.ok) {
+        throw new Error(await readErrorMessage(
+            response,
+            "Could not update your password. Please request a new code."
+        ))
+    }
     const result: { message: string } = await response.json()
     return result.message
 }
