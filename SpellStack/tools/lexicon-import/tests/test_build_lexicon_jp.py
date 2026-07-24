@@ -89,6 +89,45 @@ class JapaneseLexiconBuilderTests(unittest.TestCase):
         self.assertEqual("forms", readings[0]["source"])
         self.assertEqual("structured", readings[0]["confidence"])
 
+    def test_structured_romaji_is_attached_to_its_kana_reading(self) -> None:
+        payload = self.build_fixture(
+            [
+                entry(
+                    "\u660e\u65e5",
+                    forms=[
+                        {
+                            "form": "\u3042\u3057\u305f",
+                            "tags": ["transliteration"],
+                        },
+                        {
+                            "form": "ashita",
+                            "tags": ["romanization"],
+                        },
+                        {
+                            "form": "\u307f\u3087\u3046\u306b\u3061",
+                            "tags": ["transliteration"],
+                        },
+                        {
+                            "form": "myounichi",
+                            "tags": ["romanization"],
+                        },
+                    ],
+                )
+            ]
+        )
+
+        readings = payload["entries"]["\u660e\u65e5"][0]["readings"]
+        self.assertEqual(
+            [
+                ("\u3042\u3057\u305f", "ashita"),
+                ("\u307f\u3087\u3046\u306b\u3061", "myounichi"),
+            ],
+            [
+                (reading["text"], reading["romanization"])
+                for reading in readings
+            ],
+        )
+
     def test_gloss_fallback_extracts_and_deduplicates_in_source_order(self) -> None:
         payload = self.build_fixture(
             [

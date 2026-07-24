@@ -16,6 +16,7 @@ interface ThemeContextValue {
     setTextTone: (tone: TextTone) => void
     setGlowStrength: (strength: GlowStrength) => void
     setFont: (fontId: FontThemeId) => void
+    setShowRomanization: (show: boolean) => void
     setAudioEnabled: (enabled: boolean) => void
     setUiVolume: (volume: number) => void
     setMusicVolume: (volume: number) => void
@@ -132,6 +133,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         setTextTone: textTone => updateTheme(current => ({ ...current, textTone })),
         setGlowStrength: glowStrength => updateTheme(current => ({ ...current, glowStrength })),
         setFont: fontId => updateTheme(current => ({ ...current, fontId })),
+        setShowRomanization: showRomanization => updateTheme(current => ({ ...current, showRomanization })),
         setAudioEnabled: audioEnabled => updateAudio({ audioEnabled }),
         setUiVolume: uiVolume => updateAudio({ uiVolume: clampVolume(uiVolume) }),
         setMusicVolume: musicVolume => updateAudio({ musicVolume: clampVolume(musicVolume) }),

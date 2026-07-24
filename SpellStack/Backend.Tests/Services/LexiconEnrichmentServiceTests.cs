@@ -71,6 +71,7 @@ public class LexiconEnrichmentServiceTests {
         Assert.Equal(["kun", "on"], suggestion.Readings!.Select(reading => reading.Type));
         Assert.All(suggestion.Readings!, reading => Assert.Equal("forms", reading.Source));
         Assert.All(suggestion.Readings!, reading => Assert.Equal("structured", reading.Confidence));
+        Assert.Equal(["fuyu", "tou"], suggestion.Readings!.Select(reading => reading.Romanization));
     }
 
     [Fact]
@@ -82,6 +83,46 @@ public class LexiconEnrichmentServiceTests {
 
         Assert.Equal(["go-on", "joyo", "kan-on"], onReading.Tags);
         Assert.Equal(onReading.Tags.Count, onReading.Tags.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
+    [Fact]
+    public void JapaneseReadingsRetainTheirOwnRomanization() {
+        var suggestion = Assert.Single(CreateService().Enrich(Raw("明日"), "ja"));
+
+        Assert.Equal(
+            [("みょうにち", "myounichi"), ("あす", "asu"), ("あした", "ashita")],
+            suggestion.Readings!.Select(reading => (reading.Text, reading.Romanization)));
+    }
+
+    [Fact]
+    public void JapaneseMissingStructuredRomajiUsesSafeKanaFallback() {
+        var suggestion = Assert.Single(CreateService().Enrich(Raw("食べる"), "ja"));
+        var reading = Assert.Single(suggestion.Readings!);
+
+        Assert.Equal("たべる", reading.Text);
+        Assert.Equal("taberu", reading.Romanization);
+    }
+
+    [Theory]
+    [InlineData("먹다", "meokda")]
+    [InlineData("학교", "hakgyo")]
+    [InlineData("사랑", "sarang")]
+    [InlineData("컴퓨터", "keompyuteo")]
+    public void KoreanLookupAttachesPreferredRomanization(string word, string expected) {
+        var suggestion = Assert.Single(CreateService().Enrich(Raw(word), "ko"));
+
+        Assert.Equal(word, suggestion.Text);
+        Assert.Equal(expected, suggestion.Romanization);
+        Assert.Null(suggestion.Readings);
+    }
+
+    [Fact]
+    public void KoreanNoMatchReturnsRawSuggestionWithoutDuplicates() {
+        var suggestions = CreateService().Enrich(Raw("없는단어"), "ko");
+
+        var suggestion = Assert.Single(suggestions);
+        Assert.Equal("없는단어", suggestion.Text);
+        Assert.Null(suggestion.Romanization);
     }
 
     [Fact]

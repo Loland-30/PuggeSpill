@@ -450,7 +450,9 @@ export const ja = {
             disableRushHourEffects: "強いRush Hour効果を無効化",
             disableRushHourEffectsDescription: "効果が増えてもRush Hourを読みやすく保ちます。",
             useClassicDeckCreator: "クラシックデッキ作成を使う",
-            useClassicDeckCreatorDescription: "新しいデッキ作成時に元の手動エディターを開きます。"
+            useClassicDeckCreatorDescription: "新しいデッキ作成時に元の手動エディターを開きます。",
+            showRomanization: "ローマ字を表示",
+            showRomanizationDescription: "日本語と韓国語にラテン文字の発音ガイドを表示します。"
         },
         privacy: {
             title: "プライバシー",

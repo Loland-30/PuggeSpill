@@ -10,6 +10,7 @@ export interface TranslationSuggestion {
     number?: "singular" | "plural" | string | null
     inferred?: boolean | null
     readings?: TranslationReading[] | null
+    romanization?: string | null
 }
 
 export interface TranslationReading {
@@ -19,6 +20,7 @@ export interface TranslationReading {
     source?: "forms" | "gloss" | string | null
     confidence?: "structured" | "fallback" | string | null
     tags: string[]
+    romanization?: string | null
 }
 
 export type TranslationRequestVariant = "default" | "masculine-singular" | "feminine-singular"

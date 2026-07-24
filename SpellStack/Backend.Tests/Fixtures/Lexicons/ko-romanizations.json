@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "language": "ko",
+  "entries": {
+    "먹다": [
+      {
+        "word": "먹다",
+        "partOfSpeech": "verb",
+        "romanizations": [
+          {
+            "text": "meokda",
+            "system": "revised-romanization",
+            "source": "sounds",
+            "confidence": "structured",
+            "tags": ["revised", "romanization"]
+          }
+        ]
+      }
+    ],
+    "학교": [
+      {
+        "word": "학교",
+        "partOfSpeech": "noun",
+        "romanizations": [
+          {
+            "text": "hakgyo",
+            "system": "revised-romanization",
+            "source": "sounds",
+            "confidence": "structured",
+            "tags": ["revised", "romanization"]
+          }
+        ]
+      }
+    ],
+    "사랑": [
+      {
+        "word": "사랑",
+        "partOfSpeech": "noun",
+        "romanizations": [
+          {
+            "text": "sarang",
+            "system": "revised-romanization",
+            "source": "sounds",
+            "confidence": "structured",
+            "tags": ["revised", "romanization"]
+          }
+        ]
+      }
+    ],
+    "컴퓨터": [
+      {
+        "word": "컴퓨터",
+        "partOfSpeech": "noun",
+        "romanizations": [
+          {
+            "text": "keompyuteo",
+            "system": "revised-romanization",
+            "source": "sounds",
+            "confidence": "structured",
+            "tags": ["revised", "romanization", "transliteration"]
+          }
+        ]
+      }
+    ]
+  }
+}

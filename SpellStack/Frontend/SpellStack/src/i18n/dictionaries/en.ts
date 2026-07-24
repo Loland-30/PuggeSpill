@@ -454,7 +454,9 @@
             disableRushHourEffects: "Disable intense Rush Hour effects",
             disableRushHourEffectsDescription: "Keep Rush Hour readable when effects are expanded later.",
             useClassicDeckCreator: "Use classic deck creator",
-            useClassicDeckCreatorDescription: "Open the original manual deck editor when creating a new deck."
+            useClassicDeckCreatorDescription: "Open the original manual deck editor when creating a new deck.",
+            showRomanization: "Show romanization",
+            showRomanizationDescription: "Display Latin-script pronunciation guides for Japanese and Korean."
         },
         privacy: {
             title: "Privacy",

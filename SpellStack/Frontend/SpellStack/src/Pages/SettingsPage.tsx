@@ -64,7 +64,7 @@ const appLanguageOptions: SettingsSelectOption[] = appLanguages.map(language => 
 
 export default function SettingsPage() {
     const { user, updateAccountProfile } = useAuth()
-    const { palette } = useTheme()
+    const { palette, theme, setShowRomanization } = useTheme()
     const {
         t,
         appLanguage,
@@ -414,6 +414,9 @@ export default function SettingsPage() {
                                 </SettingRow>
                                 <SettingRow label={copy.comfort.useClassicDeckCreator} description={copy.comfort.useClassicDeckCreatorDescription}>
                                     <SettingsToggle checked={settings.useClassicDeckCreator} onChange={updateUseClassicDeckCreator} palette={palette} label={copy.comfort.useClassicDeckCreator} />
+                                </SettingRow>
+                                <SettingRow label={copy.comfort.showRomanization} description={copy.comfort.showRomanizationDescription}>
+                                    <SettingsToggle checked={theme.showRomanization} onChange={setShowRomanization} palette={palette} label={copy.comfort.showRomanization} />
                                 </SettingRow>
                             </SettingsSection>
                             </div>

@@ -8,6 +8,7 @@ import { createDeck } from "../api/decks"
 import {
     getTranslationSuggestions,
     TranslationApiError,
+    type TranslationReading,
     type TranslationRequestVariant,
     type TranslationSuggestion
 } from "../api/translation"
@@ -22,14 +23,24 @@ import { useI18n } from "../i18n/I18nContext"
 import { getAppLanguageLocale } from "../i18n/localeMap"
 import { useTheme } from "../theme/ThemeContext"
 import { readDeckCreatorSettings } from "../utils/deckCreatorSettings"
-import { selectPrimaryJapaneseReading } from "../utils/japaneseReadings"
+import { getJapaneseReadingVariants } from "../utils/japaneseReadings"
 import ClassicCreateDeckPage from "./ClassicCreateDeckPage"
 
 interface DraftWord {
     id: string
     source: string
     translation: string
+    reading: string | null
+    romanization: string | null
     alternativeTranslation: string | null
+}
+
+interface SelectableSuggestion {
+    key: string
+    translation: string
+    reading: TranslationReading | null
+    romanization: string | null
+    suggestion: TranslationSuggestion
 }
 
 function createDraftId() {
@@ -48,7 +59,7 @@ export default function CreateDeckPage() {
 function AssistedCreateDeckPage() {
     const navigate = useNavigate()
     const { t } = useI18n()
-    const { palette, textTone } = useTheme()
+    const { palette, textTone, theme } = useTheme()
     const copy = t.createDeckAssistant
     const [sourceLanguage, setSourceLanguage] = useState("no")
     const [targetLanguage, setTargetLanguage] = useState("es")
@@ -79,38 +90,46 @@ function AssistedCreateDeckPage() {
         setIsWordOverlayOpen(true)
     }
 
-    const handleWordSave = (sourceText: string, selections: TranslationSuggestion[]) => {
+    const handleWordSave = (sourceText: string, selections: SelectableSuggestion[]) => {
         const cleanedSource = sourceText.trim()
-        const uniqueSelections = deduplicateSuggestions(selections)
+        const uniqueSelections = deduplicateSelectableSuggestions(selections)
         if (!cleanedSource || uniqueSelections.length === 0) return
 
-        const grammaticalForms = uniqueSelections.filter(suggestion =>
+        const grammaticalForms = uniqueSelections.filter(({ suggestion }) =>
             suggestion.variant !== "default" ||
             (
                 suggestion.number === "singular" &&
                 (suggestion.gender === "masculine" || suggestion.gender === "feminine")
             )
         )
-        const grammaticalFormTexts = new Set(grammaticalForms.map(suggestion => normalizeSuggestionText(suggestion.text)))
-        const ordinarySuggestions = uniqueSelections.filter(suggestion =>
-            !grammaticalFormTexts.has(normalizeSuggestionText(suggestion.text))
+        const grammaticalFormTexts = new Set(grammaticalForms.map(selection =>
+            normalizeSuggestionText(selection.translation)
+        ))
+        const ordinarySuggestions = uniqueSelections.filter(selection =>
+            !grammaticalFormTexts.has(normalizeSuggestionText(selection.translation))
         )
-        const nextWords: Omit<DraftWord, "id">[] = ordinarySuggestions.map(suggestion => ({
+        const nextWords: Omit<DraftWord, "id">[] = ordinarySuggestions.map(selection => ({
             source: cleanedSource,
-            translation: suggestion.text,
+            translation: selection.translation,
+            reading: selection.reading?.text ?? null,
+            romanization: selection.romanization,
             alternativeTranslation: null
         }))
 
         if (grammaticalForms.length >= 2) {
             nextWords.push({
                 source: cleanedSource,
-                translation: grammaticalForms[0].text,
-                alternativeTranslation: grammaticalForms.slice(1).map(suggestion => suggestion.text).join(", ")
+                translation: grammaticalForms[0].translation,
+                reading: null,
+                romanization: null,
+                alternativeTranslation: grammaticalForms.slice(1).map(selection => selection.translation).join(", ")
             })
         } else if (grammaticalForms.length === 1) {
             nextWords.push({
                 source: cleanedSource,
-                translation: grammaticalForms[0].text,
+                translation: grammaticalForms[0].translation,
+                reading: null,
+                romanization: null,
                 alternativeTranslation: null
             })
         }
@@ -125,13 +144,21 @@ function AssistedCreateDeckPage() {
             return
         }
 
-        setWords(currentWords => [
-            ...currentWords,
-            ...nextWords.map(word => ({
-                id: createDraftId(),
-                ...word
-            }))
-        ])
+        setWords(currentWords => {
+            const existingWords = new Set(currentWords.map(getDraftWordIdentity))
+            const additions = nextWords
+                .filter(word => {
+                    const identity = getDraftWordIdentity(word)
+                    if (existingWords.has(identity)) return false
+                    existingWords.add(identity)
+                    return true
+                })
+                .map(word => ({
+                    id: createDraftId(),
+                    ...word
+                }))
+            return [...currentWords, ...additions]
+        })
     }
 
     const handleSaveDeck = async (event: FormEvent) => {
@@ -163,7 +190,7 @@ function AssistedCreateDeckPage() {
             )
 
             const results = await Promise.allSettled(words.map(word =>
-                addWord(word.source, word.translation, null, deck.id, word.alternativeTranslation)
+                addWord(word.source, word.translation, word.reading, deck.id, word.alternativeTranslation)
             ))
             const failedWords = results.filter(result => result.status === "rejected")
 
@@ -278,9 +305,7 @@ function AssistedCreateDeckPage() {
                                             <span className="hidden h-10 w-px bg-white/20 sm:block" aria-hidden="true" />
                                             <LanguageValue
                                                 flagUrl={target?.flagUrl}
-                                                value={word.alternativeTranslation
-                                                    ? `${word.translation} / ${word.alternativeTranslation}`
-                                                    : word.translation}
+                                                value={formatDraftTranslation(word, theme.showRomanization)}
                                             />
                                             <div className="flex justify-end gap-2">
                                                 <button
@@ -367,12 +392,46 @@ interface AddWordOverlayProps {
     sourceLanguage: string
     targetLanguage: string
     initialWord: DraftWord | null
-    onSave: (source: string, suggestions: TranslationSuggestion[]) => void
+    onSave: (source: string, suggestions: SelectableSuggestion[]) => void
     onClose: () => void
+}
+
+function formatDraftTranslation(word: DraftWord, showRomanization: boolean) {
+    const writtenForm = word.reading
+        ? `${word.translation}（${word.reading}）`
+        : word.alternativeTranslation
+            ? `${word.translation} / ${word.alternativeTranslation}`
+            : word.translation
+    return showRomanization && word.romanization
+        ? `${writtenForm} (${word.romanization})`
+        : writtenForm
 }
 
 function normalizeSuggestionText(value: string) {
     return value.normalize("NFKC").trim().toLocaleLowerCase()
+}
+
+function createSelectionKey(translation: string, reading: string | null) {
+    return JSON.stringify([
+        normalizeSuggestionText(translation),
+        reading ? normalizeSuggestionText(reading) : null
+    ])
+}
+
+function getDraftWordIdentity(word: Pick<DraftWord, "source" | "translation" | "reading">) {
+    return JSON.stringify([
+        normalizeSuggestionText(word.source),
+        normalizeSuggestionText(word.translation),
+        word.reading ? normalizeSuggestionText(word.reading) : null
+    ])
+}
+
+function deduplicateSelectableSuggestions(selections: SelectableSuggestion[]) {
+    const unique = new Map<string, SelectableSuggestion>()
+    for (const selection of selections) {
+        if (!unique.has(selection.key)) unique.set(selection.key, selection)
+    }
+    return Array.from(unique.values())
 }
 
 function deduplicateSuggestions(suggestions: TranslationSuggestion[]) {
@@ -390,6 +449,10 @@ function deduplicateSuggestions(suggestions: TranslationSuggestion[]) {
         const preferSuggestion = existing.variant === "default" && suggestion.variant !== "default"
         const preferred = preferSuggestion ? suggestion : existing
         const fallback = preferSuggestion ? existing : suggestion
+        const readings = getJapaneseReadingVariants([
+            ...(preferred.readings ?? []),
+            ...(fallback.readings ?? [])
+        ])
         unique.set(normalizedText, {
             ...preferred,
             text: preferred.text.trim(),
@@ -397,32 +460,87 @@ function deduplicateSuggestions(suggestions: TranslationSuggestion[]) {
             gender: preferred.gender ?? fallback.gender,
             number: preferred.number ?? fallback.number,
             inferred: preferred.inferred ?? fallback.inferred,
-            readings: preferred.readings?.length ? preferred.readings : fallback.readings
+            romanization: preferred.romanization ?? fallback.romanization,
+            readings: readings.length > 0 ? readings : null
         })
     }
     return Array.from(unique.values())
 }
 
+function flattenTranslationSuggestions(
+    suggestions: TranslationSuggestion[],
+    targetLanguage: string
+): SelectableSuggestion[] {
+    const options: SelectableSuggestion[] = []
+    const seen = new Set<string>()
+
+    for (const suggestion of deduplicateSuggestions(suggestions)) {
+        const readings = targetLanguage === "ja"
+            ? getJapaneseReadingVariants(suggestion.readings)
+            : []
+        const variants = readings.length > 0 ? readings : [null]
+
+        for (const reading of variants) {
+            const key = createSelectionKey(suggestion.text, reading?.text ?? null)
+            if (!seen.add(key)) continue
+            options.push({
+                key,
+                translation: suggestion.text.trim(),
+                reading,
+                romanization: reading?.romanization?.trim() ||
+                    suggestion.romanization?.trim() ||
+                    null,
+                suggestion
+            })
+        }
+    }
+
+    return options
+}
+
 function AddWordOverlay({ sourceLanguage, targetLanguage, initialWord, onSave, onClose }: AddWordOverlayProps) {
     const { t, appLanguage } = useI18n()
-    const { palette, textTone } = useTheme()
+    const { palette, textTone, theme } = useTheme()
     const prefersReducedMotion = useReducedMotion()
     const copy = t.createDeckAssistant
     const locale = getAppLanguageLocale(appLanguage)
     const initialSuggestions = useMemo<TranslationSuggestion[]>(() => {
         if (!initialWord) return []
+        if (initialWord.reading) {
+            return [{
+                text: initialWord.translation,
+                detectedSourceLanguage: null,
+                variant: "default",
+                readings: [{
+                    text: initialWord.reading,
+                    type: "unknown",
+                    script: "hiragana",
+                    tags: [],
+                    romanization: initialWord.romanization
+                }]
+            }]
+        }
         if (initialWord.alternativeTranslation) {
             return [
                 { text: initialWord.translation, detectedSourceLanguage: null, variant: "masculine-singular" },
                 { text: initialWord.alternativeTranslation, detectedSourceLanguage: null, variant: "feminine-singular" }
             ]
         }
-        return [{ text: initialWord.translation, detectedSourceLanguage: null, variant: "default" }]
+        return [{
+            text: initialWord.translation,
+            detectedSourceLanguage: null,
+            variant: "default",
+            romanization: initialWord.romanization
+        }]
     }, [initialWord])
+    const initialSelectableSuggestions = useMemo(
+        () => flattenTranslationSuggestions(initialSuggestions, targetLanguage),
+        [initialSuggestions, targetLanguage]
+    )
     const [sourceText, setSourceText] = useState(initialWord?.source ?? "")
     const [suggestions, setSuggestions] = useState<TranslationSuggestion[]>(initialSuggestions)
     const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(() =>
-        new Set(initialSuggestions.map(suggestion => suggestion.text))
+        new Set(initialSelectableSuggestions.map(suggestion => suggestion.key))
     )
     const [isLoading, setIsLoading] = useState(false)
     const [hasLookupCompleted, setHasLookupCompleted] = useState(initialSuggestions.length > 0)
@@ -441,6 +559,10 @@ function AddWordOverlay({ sourceLanguage, targetLanguage, initialWord, onSave, o
     const abortRef = useRef<AbortController | null>(null)
     const formsAbortRef = useRef<AbortController | null>(null)
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const selectableSuggestions = useMemo(
+        () => flattenTranslationSuggestions(suggestions, targetLanguage),
+        [suggestions, targetLanguage]
+    )
 
     const resetForNextWord = () => {
         setSourceText("")
@@ -592,7 +714,7 @@ function AddWordOverlay({ sourceLanguage, targetLanguage, initialWord, onSave, o
         setFormsError(false)
     }
 
-    const addTranslations = (nextSuggestions: TranslationSuggestion[]) => {
+    const addTranslations = (nextSuggestions: SelectableSuggestion[]) => {
         onSave(sourceText, nextSuggestions)
         if (initialWord) {
             onClose()
@@ -734,52 +856,55 @@ function AddWordOverlay({ sourceLanguage, targetLanguage, initialWord, onSave, o
                             {errorMessage && <p className="mt-4 text-sm font-bold text-amber-200" role="alert">{errorMessage}</p>}
 
                             <div className="mt-4 space-y-3">
-                            {suggestions.map((suggestion, index) => {
-                                const isSelected = selectedSuggestions.has(suggestion.text)
-                                const primaryJapaneseReading = targetLanguage === "ja"
-                                    ? selectPrimaryJapaneseReading(suggestion.text, suggestion.readings)
-                                    : null
-                                return (
-                                    <FadeIn key={suggestion.text} delayMs={index * 70} durationMs={280}>
-                                        <button
-                                            type="button"
-                                            onClick={() => setSelectedSuggestions(current => {
-                                                const next = new Set(current)
-                                                if (next.has(suggestion.text)) next.delete(suggestion.text)
-                                                else next.add(suggestion.text)
-                                                return next
-                                            })}
-                                            aria-pressed={isSelected}
-                                            className={`flex w-full items-center justify-between gap-4 rounded-2xl border-2 px-5 py-5 text-left text-lg font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
-                                                isSelected
-                                                    ? `${palette.border} ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`
-                                                    : `${palette.border} bg-white/8 text-white hover:bg-white/12`
-                                            }`}
-                                        >
-                                            <span>
-                                                <span className="block">
-                                                    {suggestion.text}
-                                                    {primaryJapaneseReading && (
-                                                        <span className="font-bold opacity-70">
-                                                            {" "}({primaryJapaneseReading.text})
+                                {selectableSuggestions.map((option, index) => {
+                                    const { suggestion, reading } = option
+                                    const isSelected = selectedSuggestions.has(option.key)
+                                    return (
+                                        <FadeIn key={option.key} delayMs={index * 70} durationMs={280}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedSuggestions(current => {
+                                                    const next = new Set(current)
+                                                    if (next.has(option.key)) next.delete(option.key)
+                                                    else next.add(option.key)
+                                                    return next
+                                                })}
+                                                aria-pressed={isSelected}
+                                                className={`flex w-full items-center justify-between gap-4 rounded-2xl border-2 px-5 py-5 text-left text-lg font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+                                                    isSelected
+                                                        ? `${palette.border} ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`
+                                                        : `${palette.border} bg-white/8 text-white hover:bg-white/12`
+                                                }`}
+                                            >
+                                                <span>
+                                                    <span className="block">
+                                                        <span>{option.translation}</span>
+                                                        {reading && (
+                                                            <span className="font-bold opacity-70">
+                                                                （{reading.text}）
+                                                            </span>
+                                                        )}
+                                                        {theme.showRomanization && option.romanization && (
+                                                            <span className="ml-1 text-sm font-bold opacity-65">
+                                                                ({option.romanization})
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                    {(suggestion.gender || suggestion.variant !== "default") && (
+                                                        <span className="mt-1 block text-xs font-bold opacity-65">
+                                                            {suggestion.gender === "masculine" || suggestion.variant === "masculine-singular"
+                                                                ? copy.masculine
+                                                                : copy.feminine}
                                                         </span>
                                                     )}
                                                 </span>
-                                                 {(suggestion.gender || suggestion.variant !== "default") && (
-                                                     <span className="mt-1 block text-xs font-bold opacity-65">
-                                                         {suggestion.gender === "masculine" || suggestion.variant === "masculine-singular"
-                                                             ? copy.masculine
-                                                             : copy.feminine}
-                                                     </span>
-                                                 )}
-                                            </span>
-                                            <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border ${isSelected ? "border-current" : "border-white/35"}`}>
-                                                {isSelected && <Check size={17} strokeWidth={3} />}
-                                            </span>
-                                        </button>
-                                    </FadeIn>
-                                )
-                            })}
+                                                <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border ${isSelected ? "border-current" : "border-white/35"}`}>
+                                                    {isSelected && <Check size={17} strokeWidth={3} />}
+                                                </span>
+                                            </button>
+                                        </FadeIn>
+                                    )
+                                })}
                             </div>
 
                             {suggestions.length > 0 && (
@@ -868,9 +993,15 @@ function AddWordOverlay({ sourceLanguage, targetLanguage, initialWord, onSave, o
                                             type="button"
                                             disabled={!sourceText.trim() || !manualTranslation.trim()}
                                             onClick={() => addTranslations([{
-                                                text: manualTranslation.trim(),
-                                                detectedSourceLanguage: null,
-                                                variant: "default"
+                                                key: createSelectionKey(manualTranslation.trim(), null),
+                                                translation: manualTranslation.trim(),
+                                                reading: null,
+                                                romanization: null,
+                                                suggestion: {
+                                                    text: manualTranslation.trim(),
+                                                    detectedSourceLanguage: null,
+                                                    variant: "default"
+                                                }
                                             }])}
                                             className={`min-h-12 rounded-full px-6 py-3 text-sm font-black ${palette.primaryButton} ${palette.primaryButtonText} transition disabled:cursor-not-allowed disabled:opacity-45`}
                                         >
@@ -885,7 +1016,9 @@ function AddWordOverlay({ sourceLanguage, targetLanguage, initialWord, onSave, o
                                     <button
                                         type="button"
                                         onClick={() => addTranslations(
-                                            suggestions.filter(suggestion => selectedSuggestions.has(suggestion.text))
+                                            selectableSuggestions.filter(option =>
+                                                selectedSuggestions.has(option.key)
+                                            )
                                         )}
                                         className={`mt-6 min-h-12 w-full rounded-full px-6 py-3 text-sm font-black ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow} transition hover:-translate-y-0.5`}
                                     >

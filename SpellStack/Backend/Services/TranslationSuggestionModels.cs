@@ -10,7 +10,8 @@ namespace SpellStack.Api.Services {
         string Script,
         IReadOnlyList<string> Tags,
         string? Source = null,
-        string? Confidence = null);
+        string? Confidence = null,
+        string? Romanization = null);
 
     public record TranslationSuggestion(
         string Text,
@@ -20,5 +21,6 @@ namespace SpellStack.Api.Services {
         string? Gender = null,
         string? Number = null,
         bool? Inferred = null,
-        IReadOnlyList<TranslationReading>? Readings = null);
+        IReadOnlyList<TranslationReading>? Readings = null,
+        string? Romanization = null);
 }

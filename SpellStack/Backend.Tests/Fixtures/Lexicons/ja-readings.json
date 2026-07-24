@@ -11,19 +11,65 @@
             "text": "ふゆ",
             "type": "kun",
             "script": "hiragana",
+            "romanization": "fuyu",
             "tags": ["joyo", "kun", "kun"]
           },
           {
             "text": "トウ",
             "type": "on",
             "script": "katakana",
+            "romanization": "tou",
             "tags": ["go-on", "joyo"]
           },
           {
             "text": "トウ",
             "type": "on",
             "script": "katakana",
+            "romanization": "tou",
             "tags": ["joyo", "kan-on"]
+          }
+        ]
+      }
+    ],
+    "明日": [
+      {
+        "word": "明日",
+        "partOfSpeech": "noun",
+        "readings": [
+          {
+            "text": "みょうにち",
+            "type": "unknown",
+            "script": "hiragana",
+            "romanization": "myounichi",
+            "tags": []
+          },
+          {
+            "text": "あす",
+            "type": "unknown",
+            "script": "hiragana",
+            "romanization": "asu",
+            "tags": []
+          },
+          {
+            "text": "あした",
+            "type": "unknown",
+            "script": "hiragana",
+            "romanization": "ashita",
+            "tags": []
+          }
+        ]
+      }
+    ],
+    "食べる": [
+      {
+        "word": "食べる",
+        "partOfSpeech": "verb",
+        "readings": [
+          {
+            "text": "たべる",
+            "type": "unknown",
+            "script": "hiragana",
+            "tags": []
           }
         ]
       }

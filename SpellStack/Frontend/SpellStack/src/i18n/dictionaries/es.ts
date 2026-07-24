@@ -450,7 +450,9 @@ export const es = {
             disableRushHourEffects: "Desactivar efectos intensos de Rush Hour",
             disableRushHourEffectsDescription: "Mantiene Rush Hour legible cuando se expandan los efectos.",
             useClassicDeckCreator: "Usar creador de mazos clásico",
-            useClassicDeckCreatorDescription: "Abre el editor manual original al crear un mazo nuevo."
+            useClassicDeckCreatorDescription: "Abre el editor manual original al crear un mazo nuevo.",
+            showRomanization: "Mostrar romanización",
+            showRomanizationDescription: "Muestra guías de pronunciación en alfabeto latino para japonés y coreano."
         },
         privacy: {
             title: "Privacidad",

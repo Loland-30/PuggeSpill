@@ -450,7 +450,9 @@ export const no = {
             disableRushHourEffects: "Skru av intense Rush Hour-effekter",
             disableRushHourEffectsDescription: "Hold Rush Hour lesbart når effekter utvides senere.",
             useClassicDeckCreator: "Bruk klassisk deck-creator",
-            useClassicDeckCreatorDescription: "Åpne den originale manuelle editoren når du lager et nytt deck."
+            useClassicDeckCreatorDescription: "Åpne den originale manuelle editoren når du lager et nytt deck.",
+            showRomanization: "Vis romanisering",
+            showRomanizationDescription: "Vis uttalehjelp med latinske bokstaver for japansk og koreansk."
         },
         privacy: {
             title: "Personvern",

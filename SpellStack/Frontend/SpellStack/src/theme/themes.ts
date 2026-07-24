@@ -42,6 +42,7 @@ export interface AppTheme {
     textTone: TextTone
     glowStrength: GlowStrength
     fontId: FontThemeId
+    showRomanization: boolean
     audio: AudioSettings
 }
 
@@ -298,6 +299,7 @@ export const defaultTheme: AppTheme = {
     textTone: "light",
     glowStrength: "medium",
     fontId: "default",
+    showRomanization: false,
     audio: defaultAudioSettings
 }
 
@@ -323,6 +325,7 @@ export function normalizeTheme(theme: Partial<AppTheme> | null | undefined): App
         customBackgroundImage,
         glowStrength,
         fontId,
+        showRomanization: theme?.showRomanization === true,
         audio: {
             ...defaultAudioSettings,
             ...(theme?.audio ?? {})

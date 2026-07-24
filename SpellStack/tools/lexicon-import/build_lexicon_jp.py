@@ -17,6 +17,7 @@ DEFAULT_SOURCE = SCRIPT_DIR / "data" / "ja-extract.jsonl.gz"
 DEFAULT_OUTPUT = SCRIPT_DIR / "output" / "ja-readings.json"
 LEADING_GLOSS_READING = re.compile(r"^\uff08([^\uff09]*)\uff09")
 GLOSS_READING_SEPARATOR = re.compile(r"[\u3001,\uff0c]")
+ROMAJI_READING = re.compile(r"^[A-Za-z'’\-\s]+$")
 GLOSS_FALLBACK_EXCLUDED_PARTS_OF_SPEECH = {
     "character",
     "name",
@@ -121,6 +122,49 @@ def detect_reading_type(tags: set[str]) -> str:
         return "on"
 
     return "unknown"
+
+
+def normalize_romaji(value: Any) -> str | None:
+    """Return a structured Latin-script romanization or None."""
+    if not isinstance(value, str):
+        return None
+
+    candidate = unicodedata.normalize("NFC", value).strip()
+    return candidate if candidate and ROMAJI_READING.fullmatch(candidate) else None
+
+
+def find_structured_romaji(
+    forms: list[dict[str, Any]],
+    reading_index: int,
+) -> str | None:
+    """
+    Find romaji explicitly paired with a kana form in Kaikki data.
+
+    A direct `roman` value wins. Otherwise, Kaikki commonly places the
+    Latin transliteration immediately after its kana form; searching stops
+    at the next kana form so unrelated readings are never paired.
+    """
+    direct = normalize_romaji(forms[reading_index].get("roman"))
+    if direct:
+        return direct
+
+    for candidate in forms[reading_index + 1:]:
+        candidate_text = candidate.get("form")
+        if not isinstance(candidate_text, str):
+            continue
+        if detect_japanese_script(candidate_text.strip()) in {"hiragana", "katakana"}:
+            break
+
+        tags = read_tags(candidate)
+        romanization = normalize_romaji(candidate_text)
+        if romanization and (
+            "romanization" in tags
+            or "romanisation" in tags
+            or "transliteration" in tags
+        ):
+            return romanization
+
+    return None
 
 
 def detect_gloss_reading_script(text: str) -> str:
@@ -246,17 +290,19 @@ def deduplicate_readings(
                 "script": reading["script"],
                 "source": reading["source"],
                 "confidence": reading["confidence"],
+                "romanization": reading.get("romanization"),
                 "tags": set(reading["tags"]),
             }
             continue
 
         merged[key]["tags"].update(reading["tags"])
+        if not merged[key].get("romanization") and reading.get("romanization"):
+            merged[key]["romanization"] = reading["romanization"]
 
     result: list[dict[str, Any]] = []
 
     for reading in merged.values():
-        result.append(
-            {
+        compact_reading = {
                 "text": reading["text"],
                 "type": reading["type"],
                 "script": reading["script"],
@@ -264,7 +310,9 @@ def deduplicate_readings(
                 "confidence": reading["confidence"],
                 "tags": sorted(reading["tags"]),
             }
-        )
+        if reading.get("romanization"):
+            compact_reading["romanization"] = reading["romanization"]
+        result.append(compact_reading)
 
     # Fallback readings retain Kaikki sense/candidate order. Structured forms
     # keep the builder's established kun/on ordering.
@@ -318,13 +366,15 @@ def build_compact_entry(
         return None
 
     raw_forms = entry.get("forms")
+    forms = [
+        raw_form
+        for raw_form in (raw_forms if isinstance(raw_forms, list) else [])
+        if isinstance(raw_form, dict)
+    ]
 
     readings: list[dict[str, Any]] = []
 
-    for raw_form in raw_forms if isinstance(raw_forms, list) else []:
-        if not isinstance(raw_form, dict):
-            continue
-
+    for form_index, raw_form in enumerate(forms):
         reading_text = raw_form.get("form")
 
         if (
@@ -353,6 +403,7 @@ def build_compact_entry(
                 "script": script,
                 "source": "forms",
                 "confidence": "structured",
+                "romanization": find_structured_romaji(forms, form_index),
                 "tags": sorted(tags),
             }
         )

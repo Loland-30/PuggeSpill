@@ -6,6 +6,7 @@ namespace SpellStack.Api.Services {
         private const int SupportedSchemaVersion = 1;
         private readonly IReadOnlyDictionary<string, IReadOnlyList<SpanishEntry>> spanishEntries;
         private readonly IReadOnlyDictionary<string, IReadOnlyList<JapaneseEntry>> japaneseEntries;
+        private readonly IReadOnlyDictionary<string, IReadOnlyList<KoreanEntry>> koreanEntries;
 
         public LexiconEnrichmentService(
             IConfiguration configuration,
@@ -25,6 +26,11 @@ namespace SpellStack.Api.Services {
                 "ja",
                 NormalizeJapanese,
                 logger);
+            koreanEntries = LoadLexicon<KoreanEntry>(
+                Path.Combine(root, "ko-romanizations.json"),
+                "ko",
+                NormalizeKorean,
+                logger);
         }
 
         public IReadOnlyList<TranslationSuggestion> Enrich(
@@ -36,6 +42,9 @@ namespace SpellStack.Api.Services {
             }
             if (normalizedTargetLanguage == "ja") {
                 return EnrichJapanese(rawSuggestion);
+            }
+            if (normalizedTargetLanguage == "ko") {
+                return EnrichKorean(rawSuggestion);
             }
 
             return [ToSuggestion(rawSuggestion)];
@@ -110,7 +119,9 @@ namespace SpellStack.Api.Services {
                     NormalizeReadingScript(reading.Script),
                     tags,
                     source,
-                    confidence);
+                    confidence,
+                    NormalizeRomanization(reading.Romanization) ??
+                        JapaneseRomaji.ToRomaji(reading.Text));
                 if (readingIndexes.TryGetValue(key, out var existingIndex)) {
                     var existing = readings[existingIndex];
                     var mergedTags = DeduplicateTags(existing.Tags.Concat(tags));
@@ -131,6 +142,26 @@ namespace SpellStack.Api.Services {
                 rawSuggestion.Variant,
                 entries.Select(entry => entry.PartOfSpeech).FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)),
                 Readings: readings)];
+        }
+
+        private IReadOnlyList<TranslationSuggestion> EnrichKorean(
+            RawTranslationSuggestion rawSuggestion) {
+            var lookupKey = NormalizeKorean(rawSuggestion.Text);
+            if (!koreanEntries.TryGetValue(lookupKey, out var entries)) {
+                return [ToSuggestion(rawSuggestion)];
+            }
+
+            var entry = entries.FirstOrDefault(item => item.Romanizations.Count > 0);
+            var romanization = entry?.Romanizations
+                .Select(item => NormalizeRomanization(item.Text))
+                .FirstOrDefault(value => value != null);
+
+            return [new TranslationSuggestion(
+                rawSuggestion.Text,
+                rawSuggestion.DetectedSourceLanguage,
+                rawSuggestion.Variant,
+                entry?.PartOfSpeech,
+                Romanization: romanization)];
         }
 
         private static TranslationSuggestion ToSuggestion(RawTranslationSuggestion rawSuggestion) =>
@@ -202,6 +233,14 @@ namespace SpellStack.Api.Services {
         private static string NormalizeJapanese(string value) =>
             value.Trim().Normalize(NormalizationForm.FormC);
 
+        private static string NormalizeKorean(string value) =>
+            value.Trim().Normalize(NormalizationForm.FormC);
+
+        private static string? NormalizeRomanization(string? value) {
+            var normalized = value?.Trim().Normalize(NormalizationForm.FormC);
+            return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
+        }
+
         private static string NormalizeReadingType(string? value) {
             var normalized = value?.Trim().ToLowerInvariant();
             return normalized is "kun" or "on" ? normalized : "unknown";
@@ -267,6 +306,21 @@ namespace SpellStack.Api.Services {
             public string Text { get; set; } = "";
             public string? Type { get; set; }
             public string? Script { get; set; }
+            public string? Source { get; set; }
+            public string? Confidence { get; set; }
+            public string? Romanization { get; set; }
+            public List<string> Tags { get; set; } = [];
+        }
+
+        private sealed class KoreanEntry {
+            public string Word { get; set; } = "";
+            public string? PartOfSpeech { get; set; }
+            public List<KoreanRomanization> Romanizations { get; set; } = [];
+        }
+
+        private sealed class KoreanRomanization {
+            public string Text { get; set; } = "";
+            public string? System { get; set; }
             public string? Source { get; set; }
             public string? Confidence { get; set; }
             public List<string> Tags { get; set; } = [];
