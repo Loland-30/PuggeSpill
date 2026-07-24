@@ -40,6 +40,7 @@ builder.Services.AddScoped<AchievementService>();
 builder.Services.AddHttpClient<IDeepLTranslationService, DeepLTranslationService>(client => {
     client.Timeout = TimeSpan.FromSeconds(12);
 });
+builder.Services.AddSingleton<IKoreanRomanizer, KoreanRomanizer>();
 builder.Services.AddSingleton<ILexiconEnrichmentService, LexiconEnrichmentService>();
 builder.Services.AddScoped<TranslationSuggestionService>();
 builder.Services.AddSingleton<TranslationRequestLimiter>();

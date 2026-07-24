@@ -7,10 +7,13 @@ namespace SpellStack.Api.Services {
         private readonly IReadOnlyDictionary<string, IReadOnlyList<SpanishEntry>> spanishEntries;
         private readonly IReadOnlyDictionary<string, IReadOnlyList<JapaneseEntry>> japaneseEntries;
         private readonly IReadOnlyDictionary<string, IReadOnlyList<KoreanEntry>> koreanEntries;
+        private readonly IKoreanRomanizer koreanRomanizer;
 
         public LexiconEnrichmentService(
             IConfiguration configuration,
-            ILogger<LexiconEnrichmentService> logger) {
+            ILogger<LexiconEnrichmentService> logger,
+            IKoreanRomanizer koreanRomanizer) {
+            this.koreanRomanizer = koreanRomanizer;
             var root = configuration["Lexicons:Root"];
             if (string.IsNullOrWhiteSpace(root)) {
                 root = Path.Combine(AppContext.BaseDirectory, "Data", "Lexicons");
@@ -147,14 +150,12 @@ namespace SpellStack.Api.Services {
         private IReadOnlyList<TranslationSuggestion> EnrichKorean(
             RawTranslationSuggestion rawSuggestion) {
             var lookupKey = NormalizeKorean(rawSuggestion.Text);
-            if (!koreanEntries.TryGetValue(lookupKey, out var entries)) {
-                return [ToSuggestion(rawSuggestion)];
-            }
-
-            var entry = entries.FirstOrDefault(item => item.Romanizations.Count > 0);
+            koreanEntries.TryGetValue(lookupKey, out var entries);
+            var entry = entries?.FirstOrDefault(item => item.Romanizations.Count > 0);
             var romanization = entry?.Romanizations
                 .Select(item => NormalizeRomanization(item.Text))
-                .FirstOrDefault(value => value != null);
+                .FirstOrDefault(value => value != null)
+                ?? koreanRomanizer.TryRomanize(rawSuggestion.Text);
 
             return [new TranslationSuggestion(
                 rawSuggestion.Text,

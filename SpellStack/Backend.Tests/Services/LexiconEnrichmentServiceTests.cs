@@ -122,6 +122,58 @@ public class LexiconEnrichmentServiceTests {
 
         var suggestion = Assert.Single(suggestions);
         Assert.Equal("없는단어", suggestion.Text);
+        Assert.Equal("eomneundaneo", suggestion.Romanization);
+    }
+
+    [Theory]
+    [InlineData("달콤한", "dalkomhan")]
+    [InlineData("자동차 회사", "jadongcha hoesa")]
+    public void KoreanNoMatchUsesGeneratedRomanization(string word, string expected) {
+        var suggestion = Assert.Single(CreateService().Enrich(Raw(word), "ko"));
+
+        Assert.Equal(word, suggestion.Text);
+        Assert.Equal(expected, suggestion.Romanization);
+    }
+
+    [Fact]
+    public void KoreanExactLexiconResultTakesPrecedenceOverFallback() {
+        var romanizer = new StubKoreanRomanizer("generated-value");
+        var suggestion = Assert.Single(CreateService(koreanRomanizer: romanizer)
+            .Enrich(Raw("먹다"), "ko"));
+
+        Assert.Equal("meokda", suggestion.Romanization);
+        Assert.Equal(0, romanizer.CallCount);
+    }
+
+    [Theory]
+    [InlineData("달콤한", "dalkomhan")]
+    [InlineData("자동차 회사", "jadongcha hoesa")]
+    [InlineData("K-pop 음악!", "K-pop eumak!")]
+    [InlineData("2026년", "2026nyeon")]
+    [InlineData("USB 케이블", "USB keibeul")]
+    [InlineData("먹어", "meogeo")]
+    [InlineData("국물", "gungmul")]
+    [InlineData("설날", "seollal")]
+    [InlineData("같이", "gachi")]
+    public void KoreanRomanizerHandlesWordsSpacingPunctuationAndMixedText(
+        string text,
+        string expected) {
+        Assert.Equal(expected, new KoreanRomanizer().TryRomanize(text));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("K-pop 2026")]
+    public void KoreanRomanizerDoesNotProduceBogusOutputWithoutHangul(string text) {
+        Assert.Null(new KoreanRomanizer().TryRomanize(text));
+    }
+
+    [Fact]
+    public void KoreanNonHangulNoMatchKeepsTheNormalSuggestion() {
+        var suggestion = Assert.Single(CreateService().Enrich(Raw("K-pop 2026"), "ko"));
+
+        Assert.Equal("K-pop 2026", suggestion.Text);
         Assert.Null(suggestion.Romanization);
     }
 
@@ -202,7 +254,8 @@ public class LexiconEnrichmentServiceTests {
             deepL,
             new LexiconEnrichmentService(
                 configuration,
-                NullLogger<LexiconEnrichmentService>.Instance));
+                NullLogger<LexiconEnrichmentService>.Instance,
+                new KoreanRomanizer()));
 
         var first = await suggestions.GetSuggestions(
             7, "Tired", "en", "es", null, null, TestContext.Current.CancellationToken);
@@ -212,6 +265,60 @@ public class LexiconEnrichmentServiceTests {
         Assert.Equal(1, requests);
         Assert.Equal(["cansado", "cansada"], first.Select(suggestion => suggestion.Text));
         Assert.Equal(["cansado", "cansada"], cached.Select(suggestion => suggestion.Text));
+    }
+
+    [Fact]
+    public async Task CachedKoreanDeepLResultStillReceivesGeneratedRomanization() {
+        var requests = 0;
+        var handler = new StubHandler(_ => {
+            requests++;
+            return new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new StringContent(
+                    """
+                    {
+                      "translations": [
+                        {
+                          "text": "달콤한",
+                          "detected_source_language": "EN",
+                          "billed_characters": 5,
+                          "model_type_used": "quality_optimized"
+                        }
+                      ]
+                    }
+                    """,
+                    Encoding.UTF8,
+                    "application/json")
+            };
+        });
+        await using var context = new AppDbContext(
+            new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                .Options);
+        var configuration = Configuration(FixtureRoot(), new Dictionary<string, string?> {
+            ["DEEPL_API_KEY"] = "test-key",
+            ["DEEPL_API_BASE_URL"] = "https://deepl.test/v2"
+        });
+        var deepL = new DeepLTranslationService(
+            context,
+            new HttpClient(handler),
+            configuration,
+            new TranslationRequestLimiter(),
+            NullLogger<DeepLTranslationService>.Instance);
+        var suggestions = new TranslationSuggestionService(
+            deepL,
+            new LexiconEnrichmentService(
+                configuration,
+                NullLogger<LexiconEnrichmentService>.Instance,
+                new KoreanRomanizer()));
+
+        var first = await suggestions.GetSuggestions(
+            7, "Sweet", "en", "ko", null, null, TestContext.Current.CancellationToken);
+        var cached = await suggestions.GetSuggestions(
+            7, "Sweet", "en", "ko", null, null, TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, requests);
+        Assert.Equal("dalkomhan", Assert.Single(first).Romanization);
+        Assert.Equal("dalkomhan", Assert.Single(cached).Romanization);
     }
 
     [Fact]
@@ -230,10 +337,12 @@ public class LexiconEnrichmentServiceTests {
 
     private static LexiconEnrichmentService CreateService(
         string? root = null,
-        ILogger<LexiconEnrichmentService>? logger = null) =>
+        ILogger<LexiconEnrichmentService>? logger = null,
+        IKoreanRomanizer? koreanRomanizer = null) =>
         new(
             Configuration(root ?? FixtureRoot()),
-            logger ?? NullLogger<LexiconEnrichmentService>.Instance);
+            logger ?? NullLogger<LexiconEnrichmentService>.Instance,
+            koreanRomanizer ?? new KoreanRomanizer());
 
     private static IConfiguration Configuration(
         string root,
@@ -273,6 +382,15 @@ public class LexiconEnrichmentServiceTests {
             Exception? exception,
             Func<TState, Exception?, string> formatter) =>
             Levels.Add(logLevel);
+    }
+
+    private sealed class StubKoreanRomanizer(string? result) : IKoreanRomanizer {
+        public int CallCount { get; private set; }
+
+        public string? TryRomanize(string? text) {
+            CallCount++;
+            return result;
+        }
     }
 
     private sealed class NullScope : IDisposable {
