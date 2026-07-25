@@ -14,6 +14,7 @@ namespace SpellStack.Api.Multiplayer {
         int? SelectedDeckId,
         string? SelectedDeckName,
         int? DeckWordCount,
+        string? DeckLanguage,
         string? Direction,
         IReadOnlyList<string> Modifiers,
         bool IsReady,
@@ -22,7 +23,14 @@ namespace SpellStack.Api.Multiplayer {
         long ScoreSequence,
         int LastAnswerSequence,
         bool IsFinished,
-        DateTime? FinishedAtUtc);
+        DateTime? FinishedAtUtc,
+        int? Placement,
+        bool IsDnf,
+        double FinalAccuracy,
+        int BestStreak,
+        int Kills,
+        int RushHoursTriggered,
+        bool HasReturnedToLobby);
 
     public record MultiplayerRoomSettingsDto(
         string GameModeId,
@@ -52,7 +60,13 @@ namespace SpellStack.Api.Multiplayer {
         long ScoreSequence,
         int LastAnswerSequence,
         bool IsFinished,
-        DateTime? FinishedAtUtc);
+        DateTime? FinishedAtUtc,
+        int? Placement,
+        bool IsDnf,
+        double FinalAccuracy,
+        int BestStreak,
+        int Kills,
+        int RushHoursTriggered);
 
     public record MultiplayerRaceUpdateDto(
         string RoomCode,
@@ -212,6 +226,7 @@ namespace SpellStack.Api.Multiplayer {
             int selectedDeckId,
             string selectedDeckName,
             int deckWordCount,
+            string deckLanguage,
             string direction,
             IReadOnlyCollection<string> modifiers,
             int settingsVersion) {
@@ -238,6 +253,7 @@ namespace SpellStack.Api.Multiplayer {
                 player.SelectedDeckId = selectedDeckId;
                 player.SelectedDeckName = selectedDeckName;
                 player.DeckWordCount = deckWordCount;
+                player.DeckLanguage = deckLanguage;
                 player.Direction = normalizedDirection;
                 player.Modifiers = normalizedModifiers;
                 player.IsReady = true;
@@ -305,6 +321,14 @@ namespace SpellStack.Api.Multiplayer {
                     player.LastAnswerSequence = 0;
                     player.IsFinished = false;
                     player.FinishedAtUtc = null;
+                    player.Placement = null;
+                    player.IsDnf = false;
+                    player.IsRaceParticipant = player.IsConnected;
+                    player.FinalAccuracy = 0;
+                    player.BestStreak = 0;
+                    player.Kills = 0;
+                    player.RushHoursTriggered = 0;
+                    player.HasReturnedToLobby = false;
                 }
 
                 return ToDto(room);
@@ -323,7 +347,12 @@ namespace SpellStack.Api.Multiplayer {
             string raceId,
             int answerSequence,
             int deckId,
-            int awardedScore) {
+            int awardedScore,
+            int correctAnswers,
+            int questionsAnswered,
+            int bestStreak,
+            int rushHoursTriggered,
+            bool enemyDefeated) {
             lock (syncRoot) {
                 var (room, player) = GetActiveRacePlayerLocked(userId, raceId);
                 EnsureRaceCanAcceptAnswerLocked(room, player, answerSequence, deckId);
@@ -335,23 +364,41 @@ namespace SpellStack.Api.Multiplayer {
                 }
 
                 player.LastAnswerSequence = answerSequence;
-                if (awardedScore <= 0) {
-                    return phaseChanged ? ToRaceUpdateDto(room) : null;
+                player.FinalAccuracy = questionsAnswered <= 0
+                    ? 0
+                    : Math.Round(correctAnswers * 100d / questionsAnswered, 2);
+                player.BestStreak = Math.Max(player.BestStreak, bestStreak);
+                player.RushHoursTriggered = Math.Max(player.RushHoursTriggered, rushHoursTriggered);
+                if (enemyDefeated) player.Kills++;
+
+                if (awardedScore > 0) {
+                    player.RaceScore = Math.Min(int.MaxValue, player.RaceScore + awardedScore);
+                    player.ScoreSequence = ++room.NextScoreSequence;
                 }
 
-                player.RaceScore = Math.Min(int.MaxValue, player.RaceScore + awardedScore);
-                player.ScoreSequence = ++room.NextScoreSequence;
-
-                if (player.RaceScore >= room.Race!.ScoreCap && room.Race.WinnerUserId == null) {
+                if (player.RaceScore >= room.Race!.ScoreCap && !player.IsFinished) {
                     var finishedAtUtc = UtcNow;
-                    room.Race.WinnerUserId = player.UserId;
-                    room.Race.FinishedAtUtc = finishedAtUtc;
-                    room.Phase = FinishedPhase;
                     player.IsFinished = true;
                     player.FinishedAtUtc = finishedAtUtc;
+                    player.Placement = ++room.Race.FinishCount;
+                    room.Race.WinnerUserId ??= player.UserId;
                 }
 
+                FinalizeRaceIfCompleteLocked(room);
                 return ToRaceUpdateDto(room);
+            }
+        }
+
+        public MultiplayerRoomDto ReturnToLobby(string connectionId) {
+            lock (syncRoot) {
+                var (room, player) = GetRoomAndPlayerLocked(connectionId);
+                if (room.Phase != FinishedPhase || room.Race == null) {
+                    throw new MultiplayerRoomException("The Race results are not ready.");
+                }
+
+                player.HasReturnedToLobby = true;
+                ResetRaceWhenEveryoneReturnedLocked(room);
+                return ToDto(room);
             }
         }
 
@@ -360,7 +407,7 @@ namespace SpellStack.Api.Multiplayer {
             PlayerState player,
             int answerSequence,
             int deckId) {
-            if (room.Phase == FinishedPhase || room.Race?.WinnerUserId != null) {
+            if (room.Phase == FinishedPhase) {
                 throw new MultiplayerRoomException("This Race is finished.");
             }
 
@@ -374,6 +421,10 @@ namespace SpellStack.Api.Multiplayer {
 
             if (!player.IsConnected) {
                 throw new MultiplayerRoomException("The player is not connected.");
+            }
+
+            if (!player.IsRaceParticipant || player.IsFinished || player.IsDnf) {
+                throw new MultiplayerRoomException("This player has already finished the Race.");
             }
 
             if (player.SelectedDeckId != deckId) {
@@ -417,6 +468,24 @@ namespace SpellStack.Api.Multiplayer {
             }
 
             connectionRooms.Remove(connectionId);
+            player.ConnectionId = "";
+            player.IsConnected = false;
+
+            if ((room.Phase == StartingPhase || room.Phase == RacingPhase) && player.IsRaceParticipant) {
+                if (!player.IsFinished) player.IsDnf = true;
+                player.HasReturnedToLobby = true;
+                FinalizeRaceIfCompleteLocked(room);
+                var raceRoom = NormalizeRoomAfterPlayerRemovalLocked(room);
+                return new MultiplayerRoomChange(null, null, raceRoom, room.Code);
+            }
+
+            if (room.Phase == FinishedPhase && player.IsRaceParticipant) {
+                player.HasReturnedToLobby = true;
+                ResetRaceWhenEveryoneReturnedLocked(room);
+                var finishedRoom = NormalizeRoomAfterPlayerRemovalLocked(room);
+                return new MultiplayerRoomChange(null, null, finishedRoom, room.Code);
+            }
+
             room.Players.Remove(player.UserId);
             var updatedRoom = NormalizeRoomAfterPlayerRemovalLocked(room);
             return new MultiplayerRoomChange(null, null, updatedRoom, room.Code);
@@ -441,7 +510,17 @@ namespace SpellStack.Api.Multiplayer {
                     connectionRooms.Remove(player.ConnectionId);
                 }
 
-                room.Players.Remove(userId);
+                if ((room.Phase == StartingPhase || room.Phase == RacingPhase) &&
+                    player.IsRaceParticipant) {
+                    player.ConnectionId = "";
+                    player.IsConnected = false;
+                    if (!player.IsFinished) player.IsDnf = true;
+                    player.HasReturnedToLobby = true;
+                    FinalizeRaceIfCompleteLocked(room);
+                }
+                else {
+                    room.Players.Remove(userId);
+                }
                 var updatedRoom = NormalizeRoomAfterPlayerRemovalLocked(room);
                 return (updatedRoom, room.Code);
             }
@@ -455,14 +534,62 @@ namespace SpellStack.Api.Multiplayer {
                 return null;
             }
 
-            if (!room.Players.ContainsKey(room.OwnerUserId)) {
+            if (!room.Players.TryGetValue(room.OwnerUserId, out var owner) || !owner.IsConnected) {
                 room.OwnerUserId = room.Players.Values
+                    .Where(player => player.IsConnected)
                     .OrderBy(player => player.JoinedAt)
-                    .First()
-                    .UserId;
+                    .FirstOrDefault()?.UserId ?? room.Players.Values.OrderBy(player => player.JoinedAt).First().UserId;
             }
 
             return ToDto(room);
+        }
+
+        private void FinalizeRaceIfCompleteLocked(RoomState room) {
+            if (room.Race == null || room.Phase == FinishedPhase) return;
+
+            var participants = room.Players.Values.Where(player => player.IsRaceParticipant).ToList();
+            if (participants.Count == 0 || participants.Any(player => !player.IsFinished && !player.IsDnf)) return;
+
+            room.Phase = FinishedPhase;
+            room.Race.FinishedAtUtc = UtcNow;
+        }
+
+        private void ResetRaceWhenEveryoneReturnedLocked(RoomState room) {
+            if (room.Phase != FinishedPhase) return;
+
+            var waitingPlayers = room.Players.Values
+                .Where(player => player.IsConnected && player.IsRaceParticipant)
+                .Any(player => !player.HasReturnedToLobby);
+            if (waitingPlayers) return;
+
+            room.Phase = LobbyPhase;
+            room.Race = null;
+            room.NextScoreSequence = 0;
+
+            foreach (var player in room.Players.Values.ToList()) {
+                if (!player.IsConnected) {
+                    room.Players.Remove(player.UserId);
+                    continue;
+                }
+
+                player.IsReady = false;
+                player.ReadyForSettingsVersion = null;
+                player.RaceScore = 0;
+                player.ScoreSequence = 0;
+                player.LastAnswerSequence = 0;
+                player.IsFinished = false;
+                player.FinishedAtUtc = null;
+                player.Placement = null;
+                player.IsDnf = false;
+                player.IsRaceParticipant = false;
+                player.FinalAccuracy = 0;
+                player.BestStreak = 0;
+                player.Kills = 0;
+                player.RushHoursTriggered = 0;
+                player.HasReturnedToLobby = false;
+            }
+
+            NormalizeRoomAfterPlayerRemovalLocked(room);
         }
 
         private (RoomState Room, PlayerState Player) GetRoomAndPlayerLocked(string connectionId) {
@@ -552,6 +679,7 @@ namespace SpellStack.Api.Multiplayer {
                     player.SelectedDeckId,
                     player.SelectedDeckName,
                     player.DeckWordCount,
+                    player.DeckLanguage,
                     player.Direction,
                     player.Modifiers,
                     player.IsReady,
@@ -560,7 +688,14 @@ namespace SpellStack.Api.Multiplayer {
                     player.ScoreSequence,
                     player.LastAnswerSequence,
                     player.IsFinished,
-                    player.FinishedAtUtc))
+                    player.FinishedAtUtc,
+                    player.Placement,
+                    player.IsDnf,
+                    player.FinalAccuracy,
+                    player.BestStreak,
+                    player.Kills,
+                    player.RushHoursTriggered,
+                    player.HasReturnedToLobby))
                 .ToList();
 
             return new MultiplayerRoomDto(
@@ -589,7 +724,13 @@ namespace SpellStack.Api.Multiplayer {
                         player.ScoreSequence,
                         player.LastAnswerSequence,
                         player.IsFinished,
-                        player.FinishedAtUtc))
+                        player.FinishedAtUtc,
+                        player.Placement,
+                        player.IsDnf,
+                        player.FinalAccuracy,
+                        player.BestStreak,
+                        player.Kills,
+                        player.RushHoursTriggered))
                     .ToList());
         }
 
@@ -636,6 +777,7 @@ namespace SpellStack.Api.Multiplayer {
             public DateTime? StartedAtUtc { get; set; }
             public string? WinnerUserId { get; set; }
             public DateTime? FinishedAtUtc { get; set; }
+            public int FinishCount { get; set; }
         }
 
         private sealed class PlayerState {
@@ -649,6 +791,7 @@ namespace SpellStack.Api.Multiplayer {
             public int? SelectedDeckId { get; set; }
             public string? SelectedDeckName { get; set; }
             public int? DeckWordCount { get; set; }
+            public string? DeckLanguage { get; set; }
             public string? Direction { get; set; }
             public IReadOnlyList<string> Modifiers { get; set; } = [];
             public bool IsReady { get; set; }
@@ -658,6 +801,14 @@ namespace SpellStack.Api.Multiplayer {
             public int LastAnswerSequence { get; set; }
             public bool IsFinished { get; set; }
             public DateTime? FinishedAtUtc { get; set; }
+            public int? Placement { get; set; }
+            public bool IsDnf { get; set; }
+            public bool IsRaceParticipant { get; set; }
+            public double FinalAccuracy { get; set; }
+            public int BestStreak { get; set; }
+            public int Kills { get; set; }
+            public int RushHoursTriggered { get; set; }
+            public bool HasReturnedToLobby { get; set; }
 
             public static PlayerState From(MultiplayerUser user, string connectionId) {
                 return new PlayerState {

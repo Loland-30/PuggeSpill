@@ -50,6 +50,7 @@ export interface MultiplayerPlayContext {
     startsAtUtc: string
     answerSequenceStart: number
     isFinished: boolean
+    isDnf: boolean
     winnerName: string | null
     overlay: ReactNode
 }
@@ -533,7 +534,8 @@ export default function PlayPage({ multiplayerRace }: { multiplayerRace?: Multip
             const multiplayerAnswer = multiplayerRace
                 ? {
                     raceId: multiplayerRace.raceId,
-                    answerSequence: ++multiplayerAnswerSequenceRef.current
+                    answerSequence: ++multiplayerAnswerSequenceRef.current,
+                    enemyDefeated: localCorrect && currentEnemy.hp <= 1
                 }
                 : undefined
             const response = await answerWord(
@@ -855,7 +857,9 @@ export default function PlayPage({ multiplayerRace }: { multiplayerRace?: Multip
                 >
                     <p className="rounded-full border border-white/15 bg-black/65 px-5 py-2 text-sm font-black text-white shadow-2xl backdrop-blur-sm">
                         {multiplayerRace?.isFinished
-                            ? `Race finished${multiplayerRace.winnerName ? ` - Winner: ${multiplayerRace.winnerName}` : ""}`
+                            ? multiplayerRace.isDnf
+                                ? "DNF - waiting for the other players..."
+                                : `You finished${multiplayerRace.winnerName ? ` - ${multiplayerRace.winnerName} is currently leading` : ""}. Waiting for the other players...`
                             : "You are out - the Race continues"}
                     </p>
                 </div>

@@ -162,7 +162,12 @@ namespace SpellStack.Api.Controllers {
                         request.MultiplayerRaceId!,
                         request.MultiplayerAnswerSequence.Value,
                         session.DeckId,
-                        session.FinalScore - previousFinalScore);
+                        session.FinalScore - previousFinalScore,
+                        session.CorrectAnswers,
+                        session.QuestionsAnswered,
+                        session.BestStreak,
+                        session.RushHoursTriggered,
+                        correct && request.EnemyDefeated == true);
 
                     if (raceUpdate != null) {
                         await _multiplayerHub.Clients
@@ -587,7 +592,8 @@ namespace SpellStack.Api.Controllers {
         double? ResponseTimeSeconds,
         double? RushHourElapsedSeconds,
         string? MultiplayerRaceId,
-        int? MultiplayerAnswerSequence
+        int? MultiplayerAnswerSequence,
+        bool? EnemyDefeated
     );
 
     public record RushHourCompleteRequest(int BonusScore, double? DurationSeconds);

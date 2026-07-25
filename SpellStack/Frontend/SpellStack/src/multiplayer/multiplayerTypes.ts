@@ -12,6 +12,7 @@ export interface MultiplayerPlayer {
     selectedDeckId: number | null
     selectedDeckName: string | null
     deckWordCount: number | null
+    deckLanguage: string | null
     direction: GameDirection | null
     modifiers: ActiveGameModifier[]
     isReady: boolean
@@ -21,6 +22,13 @@ export interface MultiplayerPlayer {
     lastAnswerSequence: number
     isFinished: boolean
     finishedAtUtc: string | null
+    placement: number | null
+    isDnf: boolean
+    finalAccuracy: number
+    bestStreak: number
+    kills: number
+    rushHoursTriggered: number
+    hasReturnedToLobby: boolean
 }
 
 export type MultiplayerGameModeId = "race"
@@ -58,6 +66,12 @@ export interface MultiplayerRaceLeaderboardPlayer {
     lastAnswerSequence: number
     isFinished: boolean
     finishedAtUtc: string | null
+    placement: number | null
+    isDnf: boolean
+    finalAccuracy: number
+    bestStreak: number
+    kills: number
+    rushHoursTriggered: number
 }
 
 export interface MultiplayerRaceUpdate {

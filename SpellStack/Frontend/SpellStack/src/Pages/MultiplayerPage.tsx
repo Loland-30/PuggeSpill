@@ -13,6 +13,7 @@ import GradientFrame from "../components/GradientFrame"
 import AppPageShell from "../components/layout/AppPageShell"
 import JoinRoomModal from "../components/multiplayer/JoinRoomModal"
 import MultiplayerRaceLeaderboard from "../components/multiplayer/MultiplayerRaceLeaderboard"
+import MultiplayerPostRace from "../components/multiplayer/MultiplayerPostRace"
 import RoomGameModeModal from "../components/multiplayer/RoomGameModeModal"
 import LibraryPageToolbar from "../components/navigation/LibraryPageToolbar"
 import PageContentTransition from "../components/PageContentTransition"
@@ -95,6 +96,7 @@ export default function MultiplayerPage() {
         setReady,
         setUnready,
         startRace,
+        returnToLobby,
         clearError,
         clearSettingsError,
         clearRoomActionError
@@ -240,12 +242,31 @@ export default function MultiplayerPage() {
         window.requestAnimationFrame(() => changeSettingsButtonRef.current?.focus())
     }
 
+    const handleReturnToLobby = async () => {
+        try {
+            await returnToLobby()
+        } catch {
+            // The shared room action error is rendered by the current room flow.
+        }
+    }
+
     const handleRoomSettingsConfirm = async (
         gameModeId: MultiplayerGameModeId,
         scoreCap: MultiplayerRaceScoreCap
     ) => {
         await updateRoomSettings(gameModeId, scoreCap)
         closeRoomSettingsModal()
+    }
+
+    if (room?.phase === "finished" && room.race && localPlayer) {
+        return (
+            <MultiplayerPostRace
+                room={room}
+                localPlayer={localPlayer}
+                onReturnToLobby={handleReturnToLobby}
+                isReturning={isRunningRoomAction}
+            />
+        )
     }
 
     if (
@@ -266,7 +287,8 @@ export default function MultiplayerPage() {
                     raceId: room.race.raceId,
                     startsAtUtc: room.race.startsAtUtc,
                     answerSequenceStart: localPlayer.lastAnswerSequence,
-                    isFinished: room.phase === "finished",
+                    isFinished: localPlayer.isFinished || localPlayer.isDnf,
+                    isDnf: localPlayer.isDnf,
                     winnerName: winner?.username ?? null,
                     overlay: (
                         <MultiplayerRaceLeaderboard

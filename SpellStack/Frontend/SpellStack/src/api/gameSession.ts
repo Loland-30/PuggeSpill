@@ -45,6 +45,7 @@ export interface AnswerResponse {
 export interface MultiplayerAnswerContext {
     raceId: string
     answerSequence: number
+    enemyDefeated: boolean
 }
 
 export interface EndGameResponse {
@@ -113,7 +114,8 @@ export async function answerWord(
             responseTimeSeconds,
             rushHourElapsedSeconds,
             multiplayerRaceId: multiplayer?.raceId,
-            multiplayerAnswerSequence: multiplayer?.answerSequence
+            multiplayerAnswerSequence: multiplayer?.answerSequence,
+            enemyDefeated: multiplayer?.enemyDefeated
         })
     })
 

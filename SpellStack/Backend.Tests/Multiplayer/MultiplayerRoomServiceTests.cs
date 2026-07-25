@@ -64,6 +64,7 @@ public class MultiplayerRoomServiceTests {
             42,
             "Spanish verbs",
             12,
+            "es",
             "mixed",
             ["hidden", "extraHeart"],
             1);
@@ -84,7 +85,7 @@ public class MultiplayerRoomServiceTests {
         service.CreateRoom(Host, "host-connection");
 
         var exception = Assert.Throws<MultiplayerRoomException>(() =>
-            service.SetReady("host-connection", 1, "Tiny", 9, "original", [], 1));
+            service.SetReady("host-connection", 1, "Tiny", 9, "es", "original", [], 1));
 
         Assert.Contains("at least 10 words", exception.Message);
     }
@@ -154,32 +155,36 @@ public class MultiplayerRoomServiceTests {
         var service = CreateStartedRace(out var room, clock);
         clock.Advance(TimeSpan.FromSeconds(3));
 
-        var update = service.RecordRaceAnswer("host", room.Race!.RaceId, 1, 1, 500)!;
+        var update = RecordAnswer(service, "host", room.Race!.RaceId, 1, 1, 500);
 
         Assert.Equal("racing", update.Phase);
         Assert.Equal(500, update.Players.Single(player => player.UserId == "host").RaceScore);
 
         Assert.Throws<MultiplayerRoomException>(() =>
-            service.RecordRaceAnswer("host", room.Race.RaceId, 1, 1, 500));
+            RecordAnswer(service, "host", room.Race.RaceId, 1, 1, 500));
         Assert.Throws<MultiplayerRoomException>(() =>
-            service.RecordRaceAnswer("guest", room.Race.RaceId, 1, 999, 500));
+            RecordAnswer(service, "guest", room.Race.RaceId, 1, 999, 500));
         Assert.Throws<MultiplayerRoomException>(() =>
-            service.RecordRaceAnswer("host", "stale-race", 2, 1, 500));
+            RecordAnswer(service, "host", "stale-race", 2, 1, 500));
     }
 
     [Fact]
-    public void FirstPlayerAtScoreCapWinsAndFurtherScoresAreRejected() {
+    public void FirstPlayerAtScoreCapGetsFirstAndRaceWaitsForOthers() {
         var clock = new ManualTimeProvider();
         var service = CreateStartedRace(out var room, clock);
         clock.Advance(TimeSpan.FromSeconds(3));
 
-        var update = service.RecordRaceAnswer("host", room.Race!.RaceId, 1, 1, 10_000)!;
+        var update = RecordAnswer(service, "host", room.Race!.RaceId, 1, 1, 10_000);
 
-        Assert.Equal("finished", update.Phase);
+        Assert.Equal("racing", update.Phase);
         Assert.Equal("host", update.Race.WinnerUserId);
-        Assert.True(update.Players.Single(player => player.UserId == "host").IsFinished);
+        Assert.Equal(1, update.Players.Single(player => player.UserId == "host").Placement);
         Assert.Throws<MultiplayerRoomException>(() =>
-            service.RecordRaceAnswer("guest", room.Race.RaceId, 1, 2, 10_000));
+            RecordAnswer(service, "host", room.Race.RaceId, 2, 1, 500));
+
+        var final = RecordAnswer(service, "guest", room.Race.RaceId, 1, 2, 10_000);
+        Assert.Equal("finished", final.Phase);
+        Assert.Equal(2, final.Players.Single(player => player.UserId == "guest").Placement);
     }
 
     [Fact]
@@ -188,8 +193,8 @@ public class MultiplayerRoomServiceTests {
         var service = CreateStartedRace(out var room, clock);
         clock.Advance(TimeSpan.FromSeconds(3));
 
-        var first = service.RecordRaceAnswer("guest", room.Race!.RaceId, 1, 2, 500)!;
-        var second = service.RecordRaceAnswer("host", room.Race.RaceId, 1, 1, 500)!;
+        var first = RecordAnswer(service, "guest", room.Race!.RaceId, 1, 2, 500);
+        var second = RecordAnswer(service, "host", room.Race.RaceId, 1, 1, 500);
 
         Assert.True(
             second.Players.Single(player => player.UserId == "guest").ScoreSequence <
@@ -221,6 +226,71 @@ public class MultiplayerRoomServiceTests {
         Assert.Equal(room.Race!.RaceId, rejoined.Race!.RaceId);
         Assert.True(rejoined.Players.Single(player => player.UserId == "guest").IsConnected);
         Assert.True(rejoined.Players.Single(player => player.UserId == "guest").IsReady);
+    }
+
+    [Fact]
+    public void PermanentDisconnectMarksUnfinishedPlayerDnfAndCompletesRace() {
+        var clock = new ManualTimeProvider();
+        var service = CreateStartedRace(out var room, clock);
+        clock.Advance(TimeSpan.FromSeconds(3));
+        RecordAnswer(service, "host", room.Race!.RaceId, 1, 1, 10_000, 8, 10, 6, 1, true);
+
+        var change = service.CompleteDisconnect("guest-connection")!;
+        var finalRoom = change.PreviousRoom!;
+        var guest = finalRoom.Players.Single(player => player.UserId == "guest");
+
+        Assert.Equal("finished", finalRoom.Phase);
+        Assert.True(guest.IsDnf);
+        Assert.Null(guest.Placement);
+        Assert.Equal("host", finalRoom.Race!.WinnerUserId);
+    }
+
+    [Fact]
+    public void LeavingDuringRaceMarksPlayerDnf() {
+        var clock = new ManualTimeProvider();
+        var service = CreateStartedRace(out var room, clock);
+        clock.Advance(TimeSpan.FromSeconds(3));
+        RecordAnswer(service, "host", room.Race!.RaceId, 1, 1, 10_000);
+
+        var change = service.LeaveRoom("guest-connection")!;
+        var guest = change.PreviousRoom!.Players.Single(player => player.UserId == "guest");
+
+        Assert.True(guest.IsDnf);
+        Assert.Equal("finished", change.PreviousRoom.Phase);
+    }
+
+    [Fact]
+    public void FinalResultsContainAuthoritativeRunStats() {
+        var clock = new ManualTimeProvider();
+        var service = CreateStartedRace(out var room, clock);
+        clock.Advance(TimeSpan.FromSeconds(3));
+
+        var first = RecordAnswer(service, "host", room.Race!.RaceId, 1, 1, 10_000, 9, 10, 7, 2, true);
+        var host = first.Players.Single(player => player.UserId == "host");
+
+        Assert.Equal(90, host.FinalAccuracy);
+        Assert.Equal(7, host.BestStreak);
+        Assert.Equal(1, host.Kills);
+        Assert.Equal(2, host.RushHoursTriggered);
+    }
+
+    [Fact]
+    public void ReturnToLobbyWaitsForPlayersThenResetsRaceAndReadyState() {
+        var clock = new ManualTimeProvider();
+        var service = CreateStartedRace(out var room, clock);
+        clock.Advance(TimeSpan.FromSeconds(3));
+        RecordAnswer(service, "host", room.Race!.RaceId, 1, 1, 10_000);
+        RecordAnswer(service, "guest", room.Race.RaceId, 1, 2, 10_000);
+
+        var waiting = service.ReturnToLobby("host-connection");
+        Assert.Equal("finished", waiting.Phase);
+        Assert.True(waiting.Players.Single(player => player.UserId == "host").HasReturnedToLobby);
+
+        var lobby = service.ReturnToLobby("guest-connection");
+        Assert.Equal("lobby", lobby.Phase);
+        Assert.Null(lobby.Race);
+        Assert.All(lobby.Players, player => Assert.False(player.IsReady));
+        Assert.All(lobby.Players, player => Assert.Null(player.Placement));
     }
 
     [Fact]
@@ -316,9 +386,35 @@ public class MultiplayerRoomServiceTests {
             deckId,
             $"Deck {deckId}",
             10,
+            "es",
             "original",
             [],
             settingsVersion);
+    }
+
+    private static MultiplayerRaceUpdateDto RecordAnswer(
+        MultiplayerRoomService service,
+        string userId,
+        string raceId,
+        int sequence,
+        int deckId,
+        int score,
+        int correctAnswers = 1,
+        int questionsAnswered = 1,
+        int bestStreak = 1,
+        int rushHoursTriggered = 0,
+        bool enemyDefeated = false) {
+        return service.RecordRaceAnswer(
+            userId,
+            raceId,
+            sequence,
+            deckId,
+            score,
+            correctAnswers,
+            questionsAnswered,
+            bestStreak,
+            rushHoursTriggered,
+            enemyDefeated)!;
     }
 
     private sealed class ManualTimeProvider : TimeProvider {

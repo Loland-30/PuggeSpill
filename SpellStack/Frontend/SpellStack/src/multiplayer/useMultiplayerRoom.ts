@@ -145,7 +145,7 @@ export function useMultiplayerRoom() {
     }, [])
 
     const runRoomAction = useCallback(async (
-        methodName: "SetReady" | "SetUnready" | "StartRace",
+        methodName: "SetReady" | "SetUnready" | "StartRace" | "ReturnToLobby",
         ...args: unknown[]
     ) => {
         if (roomActionInFlightRef.current) return null
@@ -209,6 +209,7 @@ export function useMultiplayerRoom() {
     ) => runRoomAction("SetReady", selectedDeckId, direction, modifiers, settingsVersion), [runRoomAction])
     const setUnready = useCallback(() => runRoomAction("SetUnready"), [runRoomAction])
     const startRace = useCallback(() => runRoomAction("StartRace"), [runRoomAction])
+    const returnToLobby = useCallback(() => runRoomAction("ReturnToLobby"), [runRoomAction])
     const isConnectionBusy = connectionStatus === "connecting" || connectionStatus === "reconnecting"
 
     return {
@@ -228,6 +229,7 @@ export function useMultiplayerRoom() {
         setReady,
         setUnready,
         startRace,
+        returnToLobby,
         clearError,
         clearSettingsError,
         clearRoomActionError

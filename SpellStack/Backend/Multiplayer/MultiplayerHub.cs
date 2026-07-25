@@ -93,6 +93,7 @@ namespace SpellStack.Api.Multiplayer {
                     deck.Id,
                     deck.Name,
                     deck.Words.Count,
+                    deck.LearningLanguage,
                     direction,
                     modifiers ?? [],
                     settingsVersion);
@@ -119,6 +120,17 @@ namespace SpellStack.Api.Multiplayer {
         public async Task<MultiplayerRoomDto> StartRace() {
             try {
                 var room = rooms.StartRace(Context.ConnectionId);
+                await Clients.Group(room.Code).SendAsync("RoomUpdated", room);
+                return room;
+            }
+            catch (MultiplayerRoomException exception) {
+                throw new HubException(exception.Message);
+            }
+        }
+
+        public async Task<MultiplayerRoomDto> ReturnToLobby() {
+            try {
+                var room = rooms.ReturnToLobby(Context.ConnectionId);
                 await Clients.Group(room.Code).SendAsync("RoomUpdated", room);
                 return room;
             }
