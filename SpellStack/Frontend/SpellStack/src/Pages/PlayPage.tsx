@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, type ReactNode } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { motion, useReducedMotion } from "framer-motion"
 
@@ -41,6 +41,18 @@ const MOMENTUM_TIMER_DRAIN_MULTIPLIERS = [1, 1.1, 1.25, 1.45, 1.7, 2] as const
 
 type EndTransitionPhase = "playing" | "end-flash" | "results"
 type RunEndOutcome = "complete" | "failed" | null
+
+export interface MultiplayerPlayContext {
+    deckId: number
+    direction: GameDirection
+    modifiers: ActiveGameModifier[]
+    raceId: string
+    startsAtUtc: string
+    answerSequenceStart: number
+    isFinished: boolean
+    winnerName: string | null
+    overlay: ReactNode
+}
 
 interface RunStats {
     totalAnswers: number
@@ -137,16 +149,17 @@ function preloadAudioElements(audioElements: Array<HTMLAudioElement | null | und
 }
 
 
-export default function PlayPage() {
-    const { id } = useParams()
+export default function PlayPage({ multiplayerRace }: { multiplayerRace?: MultiplayerPlayContext }) {
+    const { id: routeDeckId } = useParams()
+    const id = String(multiplayerRace?.deckId ?? routeDeckId ?? "")
     const navigate = useNavigate()
     const prefersReducedMotion = useReducedMotion()
     const { showAchievements } = useAchievementNotifications()
     const [searchParams] = useSearchParams()
-    const selectedDirection = (searchParams.get("direction") ?? "original") as GameDirection
-    const selectedModifiers = resolveModifiers(searchParams.get("mods"), searchParams.get("modifier"))
+    const selectedDirection = multiplayerRace?.direction ?? (searchParams.get("direction") ?? "original") as GameDirection
+    const selectedModifiers = multiplayerRace?.modifiers ?? resolveModifiers(searchParams.get("mods"), searchParams.get("modifier"))
     const selectedModifierKey = selectedModifiers.join(",")
-    const selectedRoundLimit = resolveRoundLimit(searchParams.get("roundLimit"))
+    const selectedRoundLimit = multiplayerRace ? null : resolveRoundLimit(searchParams.get("roundLimit"))
     const selectedRoundLimitKey = selectedRoundLimit ?? "endless"
     const {
         currentZone,
@@ -197,6 +210,7 @@ export default function PlayPage() {
     const gameOverMusicRef = useRef<HTMLAudioElement | null>(null)
     const endTransitionTimerRef = useRef<number | null>(null)
     const visualEnemyTimerRef = useRef<number | null>(null)
+    const multiplayerAnswerSequenceRef = useRef(0)
 
     const clearEndTransitionTimer = () => {
         if (endTransitionTimerRef.current === null) return
@@ -338,7 +352,11 @@ export default function PlayPage() {
             setIsNewHighScore(false)
             setScoreDelta(null)
             countdownSoundStartedRef.current = false
-            setStartCountdown(3)
+            const raceCountdown = multiplayerRace
+                ? Math.max(0, Math.ceil((Date.parse(multiplayerRace.startsAtUtc) - Date.now()) / 1000))
+                : 3
+            setStartCountdown(raceCountdown > 0 ? raceCountdown : null)
+            multiplayerAnswerSequenceRef.current = multiplayerRace?.answerSequenceStart ?? 0
             setStats({ totalAnswers: 0, correctAnswers: 0, bestStreak: 0 })
             setFastCorrectCount(0)
             setCurrentDirection(resolveDirection(selectedDirection))
@@ -358,11 +376,32 @@ export default function PlayPage() {
         return () => {
             cancelled = true
         }
-    }, [id, selectedDirection, selectedModifierKey, selectedRoundLimitKey])
+    }, [id, selectedDirection, selectedModifierKey, selectedRoundLimitKey, multiplayerRace?.raceId, multiplayerRace?.startsAtUtc])
 
 
     useEffect(() => {
         if (!session || !stageAssetsReady || gameOver || runComplete || startCountdown === null) return
+
+        if (multiplayerRace) {
+            let previousCountdown = startCountdown
+            const updateCountdown = () => {
+                const remaining = Math.max(0, Math.ceil((Date.parse(multiplayerRace.startsAtUtc) - Date.now()) / 1000))
+                if (remaining !== previousCountdown && remaining > 0) {
+                    previousCountdown = remaining
+                    setStartCountdown(remaining)
+                    if (countdownSoundRef.current) playSound(countdownSoundRef.current, 0.75)
+                }
+
+                if (remaining <= 0) {
+                    setStartCountdown(null)
+                }
+            }
+
+            updateCountdown()
+            const intervalId = window.setInterval(updateCountdown, 100)
+            return () => window.clearInterval(intervalId)
+        }
+
         if (countdownSoundStartedRef.current) return
 
         countdownSoundStartedRef.current = true
@@ -395,7 +434,7 @@ export default function PlayPage() {
             countdownSound?.pause()
             countdownSoundStartedRef.current = false
         }
-    }, [session?.id, stageAssetsReady, gameOver, runComplete])
+    }, [session?.id, stageAssetsReady, gameOver, runComplete, multiplayerRace?.raceId, multiplayerRace?.startsAtUtc])
     useEffect(() => {
         if (!session || !stageAssetsReady || startCountdown !== null || gameOver || runComplete) return
         setCurrentDirection(resolveDirection(selectedDirection))
@@ -422,7 +461,9 @@ export default function PlayPage() {
         } catch (error) {
             console.error("Kunne ikke oppdatere high score", error)
         }
-        startEndTransition("failed")
+        if (!multiplayerRace) {
+            startEndTransition("failed")
+        }
     }
 
     const handleRunComplete = async (finishedSession: GameSession) => {
@@ -459,7 +500,7 @@ export default function PlayPage() {
     }
 
     const handleSubmit = async (submittedAnswer: string, timedOut = false) => {
-        if (result || gameOver || runComplete || !session) return
+        if (result || gameOver || runComplete || multiplayerRace?.isFinished || !session) return
         const isRushActive = rushActiveRef.current
         const submittedTimeLeft = timedOut ? 0 : timeLeftRef.current
         const answer = timedOut ? "" : submittedAnswer
@@ -488,6 +529,13 @@ export default function PlayPage() {
         }
 
         setTimeout(async () => {
+            try {
+            const multiplayerAnswer = multiplayerRace
+                ? {
+                    raceId: multiplayerRace.raceId,
+                    answerSequence: ++multiplayerAnswerSequenceRef.current
+                }
+                : undefined
             const response = await answerWord(
                 session.id,
                 answer,
@@ -495,7 +543,8 @@ export default function PlayPage() {
                 submittedTimeLeft,
                 selectedModifiers,
                 responseTimeSeconds,
-                rushHourElapsedSeconds
+                rushHourElapsedSeconds,
+                multiplayerAnswer
             )
             const wasCorrect = response.correct
             const nextStreak = wasCorrect ? streak + 1 : 0
@@ -552,7 +601,7 @@ export default function PlayPage() {
                 shouldResetTimerRef.current = true
             }
 
-            if (!isRushActive && wasCorrect) {
+            if (!multiplayerRace && !isRushActive && wasCorrect) {
                 const nextFastCorrectCount = answerTimeMs <= RUSH_FAST_ANSWER_MS
                     ? fastCorrectCount + 1
                     : 0
@@ -603,6 +652,13 @@ export default function PlayPage() {
             }
 
             setTimeout(() => inputRef.current?.focus(), 50)
+            } catch (error) {
+                console.error("Could not submit answer", error)
+                setResult(null)
+                if (!multiplayerRace?.isFinished) {
+                    setTimeout(() => inputRef.current?.focus(), 50)
+                }
+            }
         }, isRushActive ? 120 : 800)
     }
 
@@ -684,7 +740,7 @@ export default function PlayPage() {
         ? `${currentZone.name} - Final Boss`
         : `${currentZone.name} - ${currentEncounterIndex} / ${currentZone.encountersBeforeBoss}`
 
-    if ((gameOver || runComplete) && endTransitionPhase === "results") return (
+    if (!multiplayerRace && (gameOver || runComplete) && endTransitionPhase === "results") return (
         <>
             {deck && (
                 <GameModeModal
@@ -744,6 +800,7 @@ export default function PlayPage() {
                 <GameHud
                     lives={session.lives}
                     maxLives={maxLives}
+                    showLives={!multiplayerRace}
                     stageLabel={stageLabel}
                     score={session.finalScore}
                     scoreDelta={scoreDelta}
@@ -779,7 +836,7 @@ export default function PlayPage() {
                         timerResetKey={`${session.currentWordId}-${session.questionsAnswered}-${timerDuration}-${rushActive}`}
                         timerHidden={noTimeActive}
                         timerTickMs={timerTickMs}
-                        timerRunning={!result && !gameOver && !runComplete && startCountdown === null}
+                        timerRunning={!result && !gameOver && !runComplete && !multiplayerRace?.isFinished && startCountdown === null}
                         rushActive={rushActive}
                         onTimerTick={timeLeft => {
                             timeLeftRef.current = timeLeft
@@ -789,6 +846,20 @@ export default function PlayPage() {
                     />
                 </main>
             </div>
+            {multiplayerRace?.overlay}
+            {(gameOver || multiplayerRace?.isFinished) && (
+                <div
+                    className="pointer-events-none fixed inset-x-0 top-20 z-[65] flex justify-center px-4"
+                    role="status"
+                    aria-live="polite"
+                >
+                    <p className="rounded-full border border-white/15 bg-black/65 px-5 py-2 text-sm font-black text-white shadow-2xl backdrop-blur-sm">
+                        {multiplayerRace?.isFinished
+                            ? `Race finished${multiplayerRace.winnerName ? ` - Winner: ${multiplayerRace.winnerName}` : ""}`
+                            : "You are out - the Race continues"}
+                    </p>
+                </div>
+            )}
             {endTransitionPhase === "end-flash" && runEndOutcome && (
                 <motion.div
                     className="pointer-events-none fixed inset-0 z-[70] grid place-items-center bg-black/45 text-white backdrop-blur-[2px]"

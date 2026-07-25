@@ -1,8 +1,10 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using SpellStack.Api.Data;
 using SpellStack.Api.Models;
+using SpellStack.Api.Multiplayer;
 using SpellStack.Api.Services;
 
 namespace SpellStack.Api.Controllers {
@@ -13,13 +15,21 @@ namespace SpellStack.Api.Controllers {
 
         private readonly AppDbContext _context;
         private readonly AchievementService _achievementService;
+        private readonly MultiplayerRoomService _multiplayerRooms;
+        private readonly IHubContext<MultiplayerHub> _multiplayerHub;
         private const int MomentumStackInterval = 5;
         private const int MomentumMaxStacks = 5;
         private const double MomentumScoreMultiplierPerStack = 0.08;
 
-        public GameController(AppDbContext context, AchievementService achievementService) {
+        public GameController(
+            AppDbContext context,
+            AchievementService achievementService,
+            MultiplayerRoomService multiplayerRooms,
+            IHubContext<MultiplayerHub> multiplayerHub) {
             _context = context;
             _achievementService = achievementService;
+            _multiplayerRooms = multiplayerRooms;
+            _multiplayerHub = multiplayerHub;
         }
 
         [HttpPost("start/{deckId}")]
@@ -78,6 +88,26 @@ namespace SpellStack.Api.Controllers {
             if (session == null) return NotFound();
             if (!session.IsActive) return BadRequest("Session er ikke aktiv");
 
+            var isMultiplayerRace = !string.IsNullOrWhiteSpace(request.MultiplayerRaceId);
+
+            if (isMultiplayerRace) {
+                if (!request.MultiplayerAnswerSequence.HasValue) {
+                    return BadRequest("Multiplayer answer sequence is required.");
+                }
+
+                try {
+                    _multiplayerRooms.ValidateRaceAnswer(
+                        user.Id.ToString(),
+                        request.MultiplayerRaceId!,
+                        request.MultiplayerAnswerSequence.Value,
+                        session.DeckId);
+                }
+                catch (MultiplayerRoomException exception) {
+                    return BadRequest(exception.Message);
+                }
+            }
+
+            var previousFinalScore = session.FinalScore;
             var direction = request.Direction?.ToLowerInvariant() == "translation"
                 ? "translation"
                 : "original";
@@ -114,7 +144,7 @@ namespace SpellStack.Api.Controllers {
                 session.CorrectAnswers++;
                 session.BestStreak = Math.Max(session.BestStreak, nextStreak);
             } else {
-                var shouldLoseLife = !modifiers.Contains("zen");
+                var shouldLoseLife = !isMultiplayerRace && !modifiers.Contains("zen");
 
                 if (shouldLoseLife) session.Lives--;
 
@@ -124,7 +154,28 @@ namespace SpellStack.Api.Controllers {
 
             session.QuestionsAnswered++;
 
-            if (session.Lives <= 0) {
+            if (isMultiplayerRace &&
+                request.MultiplayerAnswerSequence.HasValue) {
+                try {
+                    var raceUpdate = _multiplayerRooms.RecordRaceAnswer(
+                        user.Id.ToString(),
+                        request.MultiplayerRaceId!,
+                        request.MultiplayerAnswerSequence.Value,
+                        session.DeckId,
+                        session.FinalScore - previousFinalScore);
+
+                    if (raceUpdate != null) {
+                        await _multiplayerHub.Clients
+                            .Group(raceUpdate.RoomCode)
+                            .SendAsync("RaceUpdated", raceUpdate);
+                    }
+                }
+                catch (MultiplayerRoomException exception) {
+                    return BadRequest(exception.Message);
+                }
+            }
+
+            if (!isMultiplayerRace && session.Lives <= 0) {
                 await FinishSession(session, "gameOver");
                 await _context.SaveChangesAsync();
                 var newlyUnlockedAchievements = await _achievementService.UnlockNewAchievements(user.Id);
@@ -534,7 +585,9 @@ namespace SpellStack.Api.Controllers {
         string? Modifier,
         string[]? Modifiers,
         double? ResponseTimeSeconds,
-        double? RushHourElapsedSeconds
+        double? RushHourElapsedSeconds,
+        string? MultiplayerRaceId,
+        int? MultiplayerAnswerSequence
     );
 
     public record RushHourCompleteRequest(int BonusScore, double? DurationSeconds);

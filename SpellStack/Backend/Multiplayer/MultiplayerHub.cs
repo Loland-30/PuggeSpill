@@ -1,16 +1,23 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using SpellStack.Api.Data;
 
 namespace SpellStack.Api.Multiplayer {
     [Authorize]
     public class MultiplayerHub : Hub {
         private readonly MultiplayerRoomService rooms;
         private readonly MultiplayerDisconnectCleanupService disconnectCleanup;
+        private readonly AppDbContext db;
 
-        public MultiplayerHub(MultiplayerRoomService rooms, MultiplayerDisconnectCleanupService disconnectCleanup) {
+        public MultiplayerHub(
+            MultiplayerRoomService rooms,
+            MultiplayerDisconnectCleanupService disconnectCleanup,
+            AppDbContext db) {
             this.rooms = rooms;
             this.disconnectCleanup = disconnectCleanup;
+            this.db = db;
         }
 
         public async Task<MultiplayerRoomDto> CreateRoom() {
@@ -61,7 +68,71 @@ namespace SpellStack.Api.Multiplayer {
             }
         }
 
+        public async Task<MultiplayerRoomDto> SetReady(
+            int selectedDeckId,
+            string direction,
+            string[]? modifiers,
+            int settingsVersion) {
+            try {
+                var user = GetCurrentUser();
+                if (!int.TryParse(user.UserId, out var userId)) {
+                    throw new MultiplayerRoomException("Could not validate the current player.");
+                }
+
+                var deck = await db.Decks
+                    .AsNoTracking()
+                    .Include(candidate => candidate.Words)
+                    .FirstOrDefaultAsync(candidate => candidate.Id == selectedDeckId && candidate.UserId == userId);
+
+                if (deck == null) {
+                    throw new MultiplayerRoomException("The selected deck could not be found.");
+                }
+
+                var room = rooms.SetReady(
+                    Context.ConnectionId,
+                    deck.Id,
+                    deck.Name,
+                    deck.Words.Count,
+                    direction,
+                    modifiers ?? [],
+                    settingsVersion);
+
+                await Clients.Group(room.Code).SendAsync("RoomUpdated", room);
+                return room;
+            }
+            catch (MultiplayerRoomException exception) {
+                throw new HubException(exception.Message);
+            }
+        }
+
+        public async Task<MultiplayerRoomDto> SetUnready() {
+            try {
+                var room = rooms.SetUnready(Context.ConnectionId);
+                await Clients.Group(room.Code).SendAsync("RoomUpdated", room);
+                return room;
+            }
+            catch (MultiplayerRoomException exception) {
+                throw new HubException(exception.Message);
+            }
+        }
+
+        public async Task<MultiplayerRoomDto> StartRace() {
+            try {
+                var room = rooms.StartRace(Context.ConnectionId);
+                await Clients.Group(room.Code).SendAsync("RoomUpdated", room);
+                return room;
+            }
+            catch (MultiplayerRoomException exception) {
+                throw new HubException(exception.Message);
+            }
+        }
+
         public override async Task OnDisconnectedAsync(Exception? exception) {
+            var room = rooms.MarkDisconnected(Context.ConnectionId);
+            if (room != null) {
+                await Clients.OthersInGroup(room.Code).SendAsync("RoomUpdated", room);
+            }
+
             disconnectCleanup.Schedule(Context.ConnectionId);
             await base.OnDisconnectedAsync(exception);
         }

@@ -11,7 +11,13 @@ import {
     subscribeToMultiplayerConnectionStatus,
     type MultiplayerConnectionStatus
 } from "./multiplayerConnection"
-import type { MultiplayerGameModeId, MultiplayerRaceScoreCap, MultiplayerRoom } from "./multiplayerTypes"
+import type { ActiveGameModifier, GameDirection } from "../api/gameSession"
+import type {
+    MultiplayerGameModeId,
+    MultiplayerRaceScoreCap,
+    MultiplayerRaceUpdate,
+    MultiplayerRoom
+} from "./multiplayerTypes"
 
 function getErrorMessage(error: unknown) {
     if (error instanceof Error && error.message.trim()) {
@@ -33,8 +39,11 @@ export function useMultiplayerRoom() {
     const [requestBusy, setRequestBusy] = useState(false)
     const [settingsError, setSettingsError] = useState<string | null>(null)
     const [settingsBusy, setSettingsBusy] = useState(false)
+    const [roomActionBusy, setRoomActionBusy] = useState(false)
+    const [roomActionError, setRoomActionError] = useState<string | null>(null)
     const [roomSessionInvalidationId, setRoomSessionInvalidationId] = useState(0)
     const settingsRequestInFlightRef = useRef(false)
+    const roomActionInFlightRef = useRef(false)
 
     useEffect(() => subscribeToMultiplayerConnectionStatus(setConnectionStatus), [])
 
@@ -47,6 +56,23 @@ export function useMultiplayerRoom() {
             setError(null)
         }
 
+        const handleRaceUpdated = (update: MultiplayerRaceUpdate) => {
+            setRoom(currentRoom => {
+                if (!currentRoom || currentRoom.code !== update.roomCode) return currentRoom
+
+                const playerUpdates = new Map(update.players.map(player => [player.userId, player]))
+                return {
+                    ...currentRoom,
+                    phase: update.phase,
+                    race: update.race,
+                    players: currentRoom.players.map(player => ({
+                        ...player,
+                        ...(playerUpdates.get(player.userId) ?? {})
+                    }))
+                }
+            })
+        }
+
         const invalidateActiveRoomSession = (message: string) => {
             setActiveMultiplayerRoomCode(null)
             setRoom(null)
@@ -55,6 +81,7 @@ export function useMultiplayerRoom() {
         }
 
         connection.on("RoomUpdated", handleRoomUpdated)
+        connection.on("RaceUpdated", handleRaceUpdated)
         setMultiplayerReconnectHandlers({
             onRoomRejoined: handleRoomUpdated,
             onRejoinFailed: invalidateActiveRoomSession,
@@ -63,6 +90,7 @@ export function useMultiplayerRoom() {
 
         return () => {
             connection.off("RoomUpdated", handleRoomUpdated)
+            connection.off("RaceUpdated", handleRaceUpdated)
             setMultiplayerReconnectHandlers(null)
         }
     }, [])
@@ -116,6 +144,33 @@ export function useMultiplayerRoom() {
         setError(null)
     }, [])
 
+    const runRoomAction = useCallback(async (
+        methodName: "SetReady" | "SetUnready" | "StartRace",
+        ...args: unknown[]
+    ) => {
+        if (roomActionInFlightRef.current) return null
+
+        roomActionInFlightRef.current = true
+        setRoomActionBusy(true)
+        setRoomActionError(null)
+
+        try {
+            const connection = await startMultiplayerConnection()
+            const updatedRoom = await connection.invoke<MultiplayerRoom>(methodName, ...args)
+            setRoom(updatedRoom)
+            return updatedRoom
+        }
+        catch (actionError) {
+            const message = getErrorMessage(actionError)
+            setRoomActionError(message)
+            throw new Error(message)
+        }
+        finally {
+            roomActionInFlightRef.current = false
+            setRoomActionBusy(false)
+        }
+    }, [])
+
     const updateRoomSettings = useCallback(async (
         gameModeId: MultiplayerGameModeId,
         scoreCap: MultiplayerRaceScoreCap
@@ -145,6 +200,15 @@ export function useMultiplayerRoom() {
 
     const clearError = useCallback(() => setError(null), [])
     const clearSettingsError = useCallback(() => setSettingsError(null), [])
+    const clearRoomActionError = useCallback(() => setRoomActionError(null), [])
+    const setReady = useCallback((
+        selectedDeckId: number,
+        direction: GameDirection,
+        modifiers: ActiveGameModifier[],
+        settingsVersion: number
+    ) => runRoomAction("SetReady", selectedDeckId, direction, modifiers, settingsVersion), [runRoomAction])
+    const setUnready = useCallback(() => runRoomAction("SetUnready"), [runRoomAction])
+    const startRace = useCallback(() => runRoomAction("StartRace"), [runRoomAction])
     const isConnectionBusy = connectionStatus === "connecting" || connectionStatus === "reconnecting"
 
     return {
@@ -154,12 +218,18 @@ export function useMultiplayerRoom() {
         isBusy: requestBusy || isConnectionBusy,
         isUpdatingSettings: settingsBusy,
         settingsError,
+        isRunningRoomAction: roomActionBusy,
+        roomActionError,
         roomSessionInvalidationId,
         createRoom,
         joinRoom,
         leaveRoom,
         updateRoomSettings,
+        setReady,
+        setUnready,
+        startRace,
         clearError,
-        clearSettingsError
+        clearSettingsError,
+        clearRoomActionError
     }
 }

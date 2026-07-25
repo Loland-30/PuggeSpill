@@ -1,9 +1,26 @@
+import type { ActiveGameModifier, GameDirection } from "../api/gameSession"
+
+export type MultiplayerRoomPhase = "lobby" | "starting" | "racing" | "finished"
+
 export interface MultiplayerPlayer {
     userId: string
     username: string
     profileImageUrl: string | null
     countryCode: string | null
     isOwner: boolean
+    isConnected: boolean
+    selectedDeckId: number | null
+    selectedDeckName: string | null
+    deckWordCount: number | null
+    direction: GameDirection | null
+    modifiers: ActiveGameModifier[]
+    isReady: boolean
+    readyForSettingsVersion: number | null
+    raceScore: number
+    scoreSequence: number
+    lastAnswerSequence: number
+    isFinished: boolean
+    finishedAtUtc: string | null
 }
 
 export type MultiplayerGameModeId = "race"
@@ -15,10 +32,37 @@ export interface MultiplayerRoomSettings {
     settingsVersion: number
 }
 
+export interface MultiplayerRace {
+    raceId: string
+    scoreCap: number
+    startsAtUtc: string
+    startedAtUtc: string | null
+    winnerUserId: string | null
+    finishedAtUtc: string | null
+}
+
 export interface MultiplayerRoom {
     code: string
     ownerUserId: string
     maxPlayers: number
+    phase: MultiplayerRoomPhase
     players: MultiplayerPlayer[]
     settings: MultiplayerRoomSettings
+    race: MultiplayerRace | null
+}
+
+export interface MultiplayerRaceLeaderboardPlayer {
+    userId: string
+    raceScore: number
+    scoreSequence: number
+    lastAnswerSequence: number
+    isFinished: boolean
+    finishedAtUtc: string | null
+}
+
+export interface MultiplayerRaceUpdate {
+    roomCode: string
+    phase: MultiplayerRoomPhase
+    race: MultiplayerRace
+    players: MultiplayerRaceLeaderboardPlayer[]
 }

@@ -5,13 +5,14 @@ import { Check, Crown, Lock, Plus, Send, Trophy } from "lucide-react"
 import { getDecks, type Deck } from "../api/decks"
 import { useUISound } from "../audio/useUISound"
 import readySoundUrl from "../assets/SFX/ready_sfx.mp3"
-import type { ActiveGameModifier, GameDirection, RoundLimit } from "../api/gameSession"
+import type { ActiveGameModifier, GameDirection } from "../api/gameSession"
 import { useAuth } from "../auth/AuthContext"
 import FadeIn from "../components/FadeIn"
 import GameModeModal from "../components/GameModeModal"
 import GradientFrame from "../components/GradientFrame"
 import AppPageShell from "../components/layout/AppPageShell"
 import JoinRoomModal from "../components/multiplayer/JoinRoomModal"
+import MultiplayerRaceLeaderboard from "../components/multiplayer/MultiplayerRaceLeaderboard"
 import RoomGameModeModal from "../components/multiplayer/RoomGameModeModal"
 import LibraryPageToolbar from "../components/navigation/LibraryPageToolbar"
 import PageContentTransition from "../components/PageContentTransition"
@@ -23,12 +24,14 @@ import type {
     MultiplayerGameModeId,
     MultiplayerPlayer,
     MultiplayerRaceScoreCap,
+    MultiplayerRoom,
     MultiplayerRoomSettings
 } from "../multiplayer/multiplayerTypes"
 import { type MultiplayerConnectionStatus } from "../multiplayer/multiplayerConnection"
 import { useMultiplayerRoom } from "../multiplayer/useMultiplayerRoom"
 import { useTheme } from "../theme/ThemeContext"
 import { resolveAssetUrl } from "../utils/assetUrl"
+import PlayPage from "./PlayPage"
 
 const minimumMultiplayerWords = 10
 
@@ -45,12 +48,6 @@ type ProfileNavigationState = {
     openedFrom: "multiplayer-players-panel"
     returnTo: string
     profileMode: "preview"
-}
-
-interface ReadyConfig {
-    direction: GameDirection
-    modifiers: ActiveGameModifier[]
-    roundLimit: RoundLimit
 }
 
 function getLanguage(code: string) {
@@ -80,9 +77,7 @@ export default function MultiplayerPage() {
     const [decks, setDecks] = useState<Deck[]>([])
     const [joinModalOpen, setJoinModalOpen] = useState(false)
     const [roomSettingsModalOpen, setRoomSettingsModalOpen] = useState(false)
-    const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null)
     const [modalDeck, setModalDeck] = useState<Deck | null>(null)
-    const [readyConfig, setReadyConfig] = useState<ReadyConfig | null>(null)
     const {
         room,
         status: multiplayerStatus,
@@ -90,16 +85,24 @@ export default function MultiplayerPage() {
         isBusy: multiplayerBusy,
         isUpdatingSettings,
         settingsError,
+        isRunningRoomAction,
+        roomActionError,
         roomSessionInvalidationId,
         createRoom: createMultiplayerRoom,
         joinRoom: joinMultiplayerRoom,
         leaveRoom: leaveMultiplayerRoom,
         updateRoomSettings,
+        setReady,
+        setUnready,
+        startRace,
         clearError,
-        clearSettingsError
+        clearSettingsError,
+        clearRoomActionError
     } = useMultiplayerRoom()
     const currentHostId = room?.ownerUserId ?? null
     const isLocalHost = Boolean(user && currentHostId === String(user.id))
+    const localPlayer = room?.players.find(player => user && player.userId === String(user.id)) ?? null
+    const selectedDeck = decks.find(deck => deck.id === localPlayer?.selectedDeckId) ?? null
 
     useEffect(() => {
         const audio = new Audio(readySoundUrl)
@@ -152,7 +155,8 @@ export default function MultiplayerPage() {
     useEffect(() => {
         if (!room) return
 
-        const roomUrl = `/multiplayer?room=${encodeURIComponent(room.code)}`
+        const roomPath = room.phase === "lobby" ? "/multiplayer" : "/multiplayer/race"
+        const roomUrl = `${roomPath}?room=${encodeURIComponent(room.code)}`
         if (`${location.pathname}${location.search}` !== roomUrl) {
             navigate(roomUrl, { replace: true })
         }
@@ -165,7 +169,7 @@ export default function MultiplayerPage() {
             ...player,
             id: player.userId,
             name: player.username,
-            ready: isCurrentUser && Boolean(readyConfig),
+            ready: player.isReady,
             profileImage: resolveAssetUrl(player.profileImageUrl),
             profilePath: isCurrentUser ? "/profile" : `/profile/${player.userId}`
         }
@@ -175,8 +179,6 @@ export default function MultiplayerPage() {
         try {
             const createdRoom = await createMultiplayerRoom()
             setRoomSettingsModalOpen(false)
-            setSelectedDeck(null)
-            setReadyConfig(null)
             navigate(`/multiplayer?room=${encodeURIComponent(createdRoom.code)}`, { replace: true })
         }
         catch {
@@ -189,8 +191,6 @@ export default function MultiplayerPage() {
             const joinedRoom = await joinMultiplayerRoom(code)
             setJoinModalOpen(false)
             setRoomSettingsModalOpen(false)
-            setSelectedDeck(null)
-            setReadyConfig(null)
             navigate(`/multiplayer?room=${encodeURIComponent(joinedRoom.code)}`, { replace: true })
         }
         catch {
@@ -201,8 +201,6 @@ export default function MultiplayerPage() {
     const handleLeaveRoom = async () => {
         await leaveMultiplayerRoom()
         setRoomSettingsModalOpen(false)
-        setSelectedDeck(null)
-        setReadyConfig(null)
         setModalDeck(null)
         attemptedJoinRoomRef.current = null
         navigate("/multiplayer", { replace: true })
@@ -211,25 +209,30 @@ export default function MultiplayerPage() {
     const openDeckSetup = (deck: Deck) => {
         if (deck.words.length < minimumMultiplayerWords) return
 
-        if (selectedDeck?.id !== deck.id) {
-            setReadyConfig(null)
+        if (localPlayer?.isReady && localPlayer.selectedDeckId !== deck.id) {
+            void setUnready()
         }
 
-        setSelectedDeck(deck)
         setModalDeck(deck)
     }
 
-    const handleReady = (direction: GameDirection, modifiers: ActiveGameModifier[], roundLimit: RoundLimit) => {
-        const readySound = readySoundRef.current
-        if (readySound && theme.audio.audioEnabled && theme.audio.uiVolume > 0) {
-            readySound.pause()
-            readySound.currentTime = 0
-            readySound.volume = Math.min(1, Math.max(0, theme.audio.uiVolume))
-            readySound.play().catch(() => undefined)
-        }
+    const handleReady = async (direction: GameDirection, modifiers: ActiveGameModifier[]) => {
+        if (!modalDeck || !room) return
 
-        setReadyConfig({ direction, modifiers, roundLimit })
-        setModalDeck(null)
+        try {
+            await setReady(modalDeck.id, direction, modifiers, room.settings.settingsVersion)
+            const readySound = readySoundRef.current
+            if (readySound && theme.audio.audioEnabled && theme.audio.uiVolume > 0) {
+                readySound.pause()
+                readySound.currentTime = 0
+                readySound.volume = Math.min(1, Math.max(0, theme.audio.uiVolume))
+                readySound.play().catch(() => undefined)
+            }
+
+            setModalDeck(null)
+        } catch {
+            // The shared room action error is rendered in the lobby.
+        }
     }
 
     const closeRoomSettingsModal = () => {
@@ -243,6 +246,37 @@ export default function MultiplayerPage() {
     ) => {
         await updateRoomSettings(gameModeId, scoreCap)
         closeRoomSettingsModal()
+    }
+
+    if (
+        room &&
+        room.phase !== "lobby" &&
+        room.race &&
+        localPlayer?.selectedDeckId &&
+        localPlayer.direction
+    ) {
+        const winner = room.players.find(player => player.userId === room.race?.winnerUserId)
+
+        return (
+            <PlayPage
+                multiplayerRace={{
+                    deckId: localPlayer.selectedDeckId,
+                    direction: localPlayer.direction,
+                    modifiers: localPlayer.modifiers,
+                    raceId: room.race.raceId,
+                    startsAtUtc: room.race.startsAtUtc,
+                    answerSequenceStart: localPlayer.lastAnswerSequence,
+                    isFinished: room.phase === "finished",
+                    winnerName: winner?.username ?? null,
+                    overlay: (
+                        <MultiplayerRaceLeaderboard
+                            players={room.players}
+                            localUserId={localPlayer.userId}
+                        />
+                    )
+                }}
+            />
+        )
     }
 
     return (
@@ -279,7 +313,7 @@ export default function MultiplayerPage() {
                     onSelect={handleReady}
                     onClose={() => setModalDeck(null)}
                     variant="multiplayer"
-                    primaryLabel={readyConfig ? "Update ready" : "Ready"}
+                    primaryLabel={localPlayer?.isReady ? "Update ready" : "Ready"}
                     disabledModifiers={["zen"]}
                     gameModeLocked={!isLocalHost}
                     gameModeLockedMessage="Waiting for host to choose game mode"
@@ -311,7 +345,7 @@ export default function MultiplayerPage() {
                             maxPlayers={room.maxPlayers}
                             decks={decks}
                             selectedDeck={selectedDeck}
-                            readyConfig={readyConfig}
+                            localPlayer={localPlayer}
                             currentHostId={currentHostId}
                             isLocalHost={isLocalHost}
                             players={players}
@@ -326,18 +360,32 @@ export default function MultiplayerPage() {
                             connectionStatus={multiplayerStatus}
                             connectionError={multiplayerError}
                             networkBusy={multiplayerBusy}
+                            roomActionBusy={isRunningRoomAction}
+                            roomActionError={roomActionError}
+                            onStartRace={() => {
+                                clearRoomActionError()
+                                return startRace()
+                            }}
                             palette={palette}
                         />
                     )}
                 </PageContentTransition>
             </AppPageShell>
 
-            {room && (
+            {room?.phase === "lobby" && (
                 <aside className="fixed right-9 top-[calc(50%+0.75rem)] z-30 hidden w-80 -translate-y-1/2 min-[1400px]:block 2xl:w-[21rem]">
                     <PlayersPanel
                         players={players}
                         currentHostId={currentHostId}
                         maxPlayers={room.maxPlayers}
+                        isLocalHost={isLocalHost}
+                        settingsVersion={room.settings.settingsVersion}
+                        isStartingRace={isRunningRoomAction}
+                        actionError={roomActionError}
+                        onStartRace={() => {
+                            clearRoomActionError()
+                            return startRace()
+                        }}
                         palette={palette}
                     />
                 </aside>
@@ -419,12 +467,12 @@ function LandingAction({ title, description, icon, onClick, disabled, palette }:
     )
 }
 
-function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConfig, currentHostId, isLocalHost, players, settings, onLeaveRoom, onChangeSettings, changeSettingsButtonRef, onDeckSelect, connectionStatus, connectionError, networkBusy, palette }: {
+function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, localPlayer, currentHostId, isLocalHost, players, settings, onLeaveRoom, onChangeSettings, changeSettingsButtonRef, onDeckSelect, connectionStatus, connectionError, networkBusy, roomActionBusy, roomActionError, onStartRace, palette }: {
     roomCode: string
     maxPlayers: number
     decks: Deck[]
     selectedDeck: Deck | null
-    readyConfig: ReadyConfig | null
+    localPlayer: MultiplayerPlayer | null
     currentHostId: string | null
     isLocalHost: boolean
     players: LobbyPlayer[]
@@ -436,6 +484,9 @@ function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConf
     connectionStatus: MultiplayerConnectionStatus
     connectionError: string | null
     networkBusy: boolean
+    roomActionBusy: boolean
+    roomActionError: string | null
+    onStartRace: () => Promise<MultiplayerRoom | null>
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
     const currentHost = players.find(player => player.id === currentHostId)
@@ -506,7 +557,7 @@ function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConf
                         </p>
                     </div>
 
-                    {readyConfig && selectedDeck && (
+                    {localPlayer?.isReady && selectedDeck && (
                         <div className={`rounded-full border ${palette.border} ${palette.card} px-4 py-2 text-sm font-black text-white shadow-xl`}>
                             Ready with {selectedDeck.name}
                         </div>
@@ -519,7 +570,7 @@ function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConf
                             key={deck.id}
                             deck={deck}
                             selected={selectedDeck?.id === deck.id}
-                            ready={selectedDeck?.id === deck.id && Boolean(readyConfig)}
+                            ready={selectedDeck?.id === deck.id && Boolean(localPlayer?.isReady)}
                             disabled={deck.words.length < minimumMultiplayerWords}
                             onSelect={() => onDeckSelect(deck)}
                             palette={palette}
@@ -529,7 +580,17 @@ function MultiplayerLobby({ roomCode, maxPlayers, decks, selectedDeck, readyConf
             </section>
 
             <aside className="mt-8 w-full min-[1400px]:hidden">
-                <PlayersPanel players={players} currentHostId={currentHostId} maxPlayers={maxPlayers} palette={palette} />
+                <PlayersPanel
+                    players={players}
+                    currentHostId={currentHostId}
+                    maxPlayers={maxPlayers}
+                    isLocalHost={isLocalHost}
+                    settingsVersion={settings.settingsVersion}
+                    isStartingRace={roomActionBusy}
+                    actionError={roomActionError}
+                    onStartRace={onStartRace}
+                    palette={palette}
+                />
             </aside>
         </FadeIn>
     )
@@ -623,12 +684,33 @@ function LobbyFlag({ flagUrl, label, learning }: { flagUrl?: string; label: stri
     )
 }
 
-function PlayersPanel({ players, currentHostId, maxPlayers, palette }: {
+function PlayersPanel({
+    players,
+    currentHostId,
+    maxPlayers,
+    isLocalHost,
+    settingsVersion,
+    isStartingRace,
+    actionError,
+    onStartRace,
+    palette
+}: {
     players: LobbyPlayer[]
     currentHostId: string | null
     maxPlayers: number
+    isLocalHost: boolean
+    settingsVersion: number
+    isStartingRace: boolean
+    actionError: string | null
+    onStartRace: () => Promise<MultiplayerRoom | null>
     palette: ReturnType<typeof useTheme>["palette"]
 }) {
+    const connectedPlayers = players.filter(player => player.isConnected)
+    const hasEnoughPlayers = connectedPlayers.length >= 2
+    const allPlayersReady = hasEnoughPlayers && connectedPlayers.every(player =>
+        player.isReady && player.readyForSettingsVersion === settingsVersion
+    )
+
     return (
         <div className="h-fit w-full">
             <h2 className="text-2xl font-black text-white">Players {players.length}/{maxPlayers}</h2>
@@ -637,6 +719,38 @@ function PlayersPanel({ players, currentHostId, maxPlayers, palette }: {
                 {players.map(player => (
                     <PlayerRow key={player.id} player={player} isCurrentHost={player.id === currentHostId} palette={palette} />
                 ))}
+            </div>
+
+            <div className="mt-6 border-t border-white/10 pt-5">
+                {isLocalHost ? (
+                    <>
+                        <button
+                            type="button"
+                            onClick={() => void onStartRace()}
+                            disabled={!allPlayersReady || isStartingRace}
+                            className={`w-full rounded-full px-5 py-3 text-sm font-black transition ${allPlayersReady
+                                ? `${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`
+                                : "cursor-not-allowed border border-white/10 bg-white/[0.06] text-white/35"
+                            }`}
+                        >
+                            {isStartingRace ? "Starting..." : "Start Race"}
+                        </button>
+                        {!hasEnoughPlayers && (
+                            <p className="mt-2 text-center text-xs font-bold text-white/45">Need at least 2 players</p>
+                        )}
+                        {hasEnoughPlayers && !allPlayersReady && (
+                            <p className="mt-2 text-center text-xs font-bold text-white/45">Waiting for all players</p>
+                        )}
+                    </>
+                ) : (
+                    <p className="text-center text-xs font-bold text-white/48">Waiting for host to start</p>
+                )}
+
+                {actionError && (
+                    <p className="mt-3 rounded-xl border border-red-300/20 bg-red-500/10 px-3 py-2 text-center text-xs font-bold text-red-100">
+                        {actionError}
+                    </p>
+                )}
             </div>
         </div>
     )

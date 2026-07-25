@@ -25,7 +25,9 @@ import RequireAdmin from "./components/auth/RequireAdmin"
 function App() {
     const location = useLocation()
     const prefersReducedMotion = useReducedMotion()
-    const isGameplay = location.pathname.includes("/play") || /\/decks\/\d+\/trial$/.test(location.pathname)
+    const isGameplay = location.pathname.includes("/play") ||
+        /\/decks\/\d+\/trial$/.test(location.pathname) ||
+        location.pathname === "/multiplayer/race"
     const showSideNav = !isGameplay && location.pathname !== "/login"
     const lockPageScroll = location.pathname === "/multiplayer"
 
@@ -37,6 +39,7 @@ function App() {
                 <Routes location={location}>
                     <Route path="/decks/:id/play" element={<PlayPage />} />
                     <Route path="/decks/:deckId/trial" element={<TrialPage />} />
+                    <Route path="/multiplayer/race" element={<MultiplayerPage />} />
                 </Routes>
                 ) : (
                     <ThemedPage className={`px-4 py-4 text-white sm:px-6 sm:py-8 ${showSideNav ? "pb-[calc(5.75rem+env(safe-area-inset-bottom))] min-[1400px]:pb-8" : "pb-4 sm:pb-8"} ${lockPageScroll ? "min-[1400px]:h-dvh min-[1400px]:overflow-hidden" : ""}`}>

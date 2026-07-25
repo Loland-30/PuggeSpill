@@ -42,6 +42,11 @@ export interface AnswerResponse {
     newlyUnlockedAchievements?: AchievementUnlock[]
 }
 
+export interface MultiplayerAnswerContext {
+    raceId: string
+    answerSequence: number
+}
+
 export interface EndGameResponse {
     highScore: number
     isNewHighScore: boolean
@@ -94,7 +99,8 @@ export async function answerWord(
     timeLeft: number,
     modifiers: ActiveGameModifier[] = [],
     responseTimeSeconds?: number,
-    rushHourElapsedSeconds?: number
+    rushHourElapsedSeconds?: number,
+    multiplayer?: MultiplayerAnswerContext
 ): Promise<AnswerResponse> {
     const response = await fetch(`${API_URL}/game/answer/${id}`, {
         method: "POST",
@@ -105,7 +111,9 @@ export async function answerWord(
             timeLeft,
             modifiers,
             responseTimeSeconds,
-            rushHourElapsedSeconds
+            rushHourElapsedSeconds,
+            multiplayerRaceId: multiplayer?.raceId,
+            multiplayerAnswerSequence: multiplayer?.answerSequence
         })
     })
 

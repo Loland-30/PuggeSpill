@@ -4,6 +4,7 @@ import LivesDisplay from "../LivesDisplay"
 interface GameHudProps {
     lives: number
     maxLives: number
+    showLives?: boolean
     stageLabel: string
     score: number
     scoreDelta: number | null
@@ -16,6 +17,7 @@ interface GameHudProps {
 function GameHud({
     lives,
     maxLives,
+    showLives = true,
     stageLabel,
     score,
     scoreDelta,
@@ -27,7 +29,7 @@ function GameHud({
     return (
         <header className="pointer-events-none relative z-40 flex w-full flex-col items-center gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div className="flex min-w-0 flex-col items-center gap-2 text-center sm:items-start sm:gap-3 sm:text-left">
-                <LivesDisplay lives={lives} maxLives={maxLives} size="large" />
+                {showLives && <LivesDisplay lives={lives} maxLives={maxLives} size="large" />}
 
                 <p className="max-w-[90vw] truncate text-sm font-black uppercase tracking-[0.12em] text-white/70 sm:max-w-72 sm:text-xs sm:tracking-[0.22em] sm:text-white/50">
                     {stageLabel}

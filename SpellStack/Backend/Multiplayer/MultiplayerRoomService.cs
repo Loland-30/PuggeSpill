@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 
 namespace SpellStack.Api.Multiplayer {
@@ -9,19 +9,56 @@ namespace SpellStack.Api.Multiplayer {
         string Username,
         string? ProfileImageUrl,
         string? CountryCode,
-        bool IsOwner);
+        bool IsOwner,
+        bool IsConnected,
+        int? SelectedDeckId,
+        string? SelectedDeckName,
+        int? DeckWordCount,
+        string? Direction,
+        IReadOnlyList<string> Modifiers,
+        bool IsReady,
+        int? ReadyForSettingsVersion,
+        int RaceScore,
+        long ScoreSequence,
+        int LastAnswerSequence,
+        bool IsFinished,
+        DateTime? FinishedAtUtc);
 
     public record MultiplayerRoomSettingsDto(
         string GameModeId,
         int ScoreCap,
         int SettingsVersion);
 
+    public record MultiplayerRaceDto(
+        string RaceId,
+        int ScoreCap,
+        DateTime StartsAtUtc,
+        DateTime? StartedAtUtc,
+        string? WinnerUserId,
+        DateTime? FinishedAtUtc);
+
     public record MultiplayerRoomDto(
         string Code,
         string OwnerUserId,
         int MaxPlayers,
+        string Phase,
         IReadOnlyList<MultiplayerPlayerDto> Players,
-        MultiplayerRoomSettingsDto Settings);
+        MultiplayerRoomSettingsDto Settings,
+        MultiplayerRaceDto? Race);
+
+    public record MultiplayerRaceLeaderboardPlayerDto(
+        string UserId,
+        int RaceScore,
+        long ScoreSequence,
+        int LastAnswerSequence,
+        bool IsFinished,
+        DateTime? FinishedAtUtc);
+
+    public record MultiplayerRaceUpdateDto(
+        string RoomCode,
+        string Phase,
+        MultiplayerRaceDto Race,
+        IReadOnlyList<MultiplayerRaceLeaderboardPlayerDto> Players);
 
     public record MultiplayerRoomChange(
         MultiplayerRoomDto? CurrentRoom,
@@ -35,15 +72,32 @@ namespace SpellStack.Api.Multiplayer {
     }
 
     public sealed class MultiplayerRoomService {
+        public const int MinimumRaceDeckWordCount = 10;
+
         private const int MaxPlayers = 4;
         private const string RaceGameModeId = "race";
         private const int DefaultRaceScoreCap = 10_000;
+        private const string LobbyPhase = "lobby";
+        private const string StartingPhase = "starting";
+        private const string RacingPhase = "racing";
+        private const string FinishedPhase = "finished";
         private const string CodeCharacters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        private static readonly TimeSpan RaceStartDelay = TimeSpan.FromSeconds(3);
         private static readonly HashSet<int> AllowedRaceScoreCaps = [10_000, 50_000, 100_000, 200_000];
+        private static readonly HashSet<string> AllowedDirections = ["original", "translation", "mixed"];
+        private static readonly HashSet<string> AllowedModifiers = ["extraHeart", "hardcore", "momentum", "hidden", "noTime"];
         private static readonly Regex RoomCodePattern = new("^[A-Z2-9]{2}@[A-Z2-9]{3}$", RegexOptions.Compiled);
         private readonly object syncRoot = new();
         private readonly Dictionary<string, RoomState> rooms = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, string> connectionRooms = new(StringComparer.Ordinal);
+        private readonly TimeProvider timeProvider;
+
+        public MultiplayerRoomService() : this(TimeProvider.System) {
+        }
+
+        public MultiplayerRoomService(TimeProvider timeProvider) {
+            this.timeProvider = timeProvider;
+        }
 
         public MultiplayerRoomChange CreateRoom(MultiplayerUser user, string connectionId) {
             lock (syncRoot) {
@@ -67,6 +121,10 @@ namespace SpellStack.Api.Multiplayer {
                 }
 
                 var isExistingPlayer = room.Players.ContainsKey(user.UserId);
+                if (!isExistingPlayer && room.Phase != LobbyPhase) {
+                    throw new MultiplayerRoomException("This Race has already started.");
+                }
+
                 if (!isExistingPlayer && room.Players.Count >= MaxPlayers) {
                     throw new MultiplayerRoomException("Room is full.");
                 }
@@ -82,6 +140,7 @@ namespace SpellStack.Api.Multiplayer {
                     existingPlayer.ProfileImageUrl = user.ProfileImageUrl;
                     existingPlayer.CountryCode = user.CountryCode;
                     existingPlayer.ConnectionId = connectionId;
+                    existingPlayer.IsConnected = true;
                 }
                 else {
                     room.Players[user.UserId] = PlayerState.From(user, connectionId);
@@ -98,6 +157,15 @@ namespace SpellStack.Api.Multiplayer {
             }
         }
 
+        public MultiplayerRoomDto? MarkDisconnected(string connectionId) {
+            lock (syncRoot) {
+                if (!TryGetRoomAndPlayerLocked(connectionId, out var room, out var player)) return null;
+
+                player.IsConnected = false;
+                return ToDto(room);
+            }
+        }
+
         public MultiplayerRoomChange? CompleteDisconnect(string connectionId) {
             lock (syncRoot) {
                 return RemoveConnectionFromRoomLocked(connectionId);
@@ -106,23 +174,11 @@ namespace SpellStack.Api.Multiplayer {
 
         public MultiplayerRoomDto UpdateRoomSettings(string connectionId, string gameModeId, int scoreCap) {
             lock (syncRoot) {
-                if (!connectionRooms.TryGetValue(connectionId, out var roomCode)) {
-                    throw new MultiplayerRoomException("You must be in a multiplayer room.");
-                }
+                var (room, caller) = GetRoomAndPlayerLocked(connectionId);
+                EnsureHost(room, caller);
 
-                if (!rooms.TryGetValue(roomCode, out var room)) {
-                    connectionRooms.Remove(connectionId);
-                    throw new MultiplayerRoomException("The room no longer exists.");
-                }
-
-                var caller = room.Players.Values.FirstOrDefault(player => player.ConnectionId == connectionId);
-                if (caller == null) {
-                    connectionRooms.Remove(connectionId);
-                    throw new MultiplayerRoomException("You must be in a multiplayer room.");
-                }
-
-                if (!string.Equals(caller.UserId, room.OwnerUserId, StringComparison.Ordinal)) {
-                    throw new MultiplayerRoomException("Only the host can change the game settings.");
+                if (room.Phase != LobbyPhase) {
+                    throw new MultiplayerRoomException("Game settings cannot change after the Race starts.");
                 }
 
                 var normalizedGameModeId = (gameModeId ?? "").Trim().ToLowerInvariant();
@@ -140,11 +196,209 @@ namespace SpellStack.Api.Multiplayer {
 
                 room.Settings.GameModeId = normalizedGameModeId;
                 room.Settings.ScoreCap = scoreCap;
-                // Later ready-state synchronization can invalidate readiness when this version changes.
                 room.Settings.SettingsVersion++;
+
+                foreach (var player in room.Players.Values) {
+                    player.IsReady = false;
+                    player.ReadyForSettingsVersion = null;
+                }
+
                 return ToDto(room);
             }
         }
+
+        public MultiplayerRoomDto SetReady(
+            string connectionId,
+            int selectedDeckId,
+            string selectedDeckName,
+            int deckWordCount,
+            string direction,
+            IReadOnlyCollection<string> modifiers,
+            int settingsVersion) {
+            lock (syncRoot) {
+                var (room, player) = GetRoomAndPlayerLocked(connectionId);
+                if (room.Phase != LobbyPhase) {
+                    throw new MultiplayerRoomException("You cannot change ready state after the Race starts.");
+                }
+
+                if (settingsVersion != room.Settings.SettingsVersion) {
+                    throw new MultiplayerRoomException("Room settings changed. Review them before readying again.");
+                }
+
+                if (selectedDeckId <= 0 || deckWordCount < MinimumRaceDeckWordCount) {
+                    throw new MultiplayerRoomException($"Multiplayer decks need at least {MinimumRaceDeckWordCount} words.");
+                }
+
+                var normalizedDirection = direction.Trim().ToLowerInvariant();
+                if (!AllowedDirections.Contains(normalizedDirection)) {
+                    throw new MultiplayerRoomException("Invalid game direction.");
+                }
+
+                var normalizedModifiers = NormalizeModifiers(modifiers);
+                player.SelectedDeckId = selectedDeckId;
+                player.SelectedDeckName = selectedDeckName;
+                player.DeckWordCount = deckWordCount;
+                player.Direction = normalizedDirection;
+                player.Modifiers = normalizedModifiers;
+                player.IsReady = true;
+                player.ReadyForSettingsVersion = settingsVersion;
+
+                return ToDto(room);
+            }
+        }
+
+        public MultiplayerRoomDto SetUnready(string connectionId) {
+            lock (syncRoot) {
+                var (room, player) = GetRoomAndPlayerLocked(connectionId);
+                if (room.Phase != LobbyPhase) {
+                    throw new MultiplayerRoomException("You cannot change ready state after the Race starts.");
+                }
+
+                player.IsReady = false;
+                player.ReadyForSettingsVersion = null;
+                return ToDto(room);
+            }
+        }
+
+        public MultiplayerRoomDto StartRace(string connectionId) {
+            lock (syncRoot) {
+                var (room, caller) = GetRoomAndPlayerLocked(connectionId);
+                EnsureHost(room, caller);
+
+                if (room.Phase != LobbyPhase) {
+                    throw new MultiplayerRoomException("The Race has already started.");
+                }
+
+                if (!string.Equals(room.Settings.GameModeId, RaceGameModeId, StringComparison.Ordinal)) {
+                    throw new MultiplayerRoomException("Race is not the selected game mode.");
+                }
+
+                if (!AllowedRaceScoreCaps.Contains(room.Settings.ScoreCap)) {
+                    throw new MultiplayerRoomException("Invalid Race score cap.");
+                }
+
+                var connectedPlayers = room.Players.Values.Where(player => player.IsConnected).ToList();
+                if (connectedPlayers.Count < 2) {
+                    throw new MultiplayerRoomException("Race needs at least 2 players.");
+                }
+
+                if (connectedPlayers.Any(player =>
+                        !player.IsReady ||
+                        player.ReadyForSettingsVersion != room.Settings.SettingsVersion ||
+                        !player.SelectedDeckId.HasValue ||
+                        player.DeckWordCount < MinimumRaceDeckWordCount)) {
+                    throw new MultiplayerRoomException("Every player must be ready with a valid deck.");
+                }
+
+                var startsAtUtc = UtcNow.Add(RaceStartDelay);
+                room.Phase = StartingPhase;
+                room.Race = new RaceState {
+                    RaceId = Guid.NewGuid().ToString("N"),
+                    ScoreCap = room.Settings.ScoreCap,
+                    StartsAtUtc = startsAtUtc
+                };
+                room.NextScoreSequence = 0;
+
+                foreach (var player in room.Players.Values) {
+                    player.RaceScore = 0;
+                    player.ScoreSequence = 0;
+                    player.LastAnswerSequence = 0;
+                    player.IsFinished = false;
+                    player.FinishedAtUtc = null;
+                }
+
+                return ToDto(room);
+            }
+        }
+
+        public void ValidateRaceAnswer(string userId, string raceId, int answerSequence, int deckId) {
+            lock (syncRoot) {
+                var (room, player) = GetActiveRacePlayerLocked(userId, raceId);
+                EnsureRaceCanAcceptAnswerLocked(room, player, answerSequence, deckId);
+            }
+        }
+
+        public MultiplayerRaceUpdateDto? RecordRaceAnswer(
+            string userId,
+            string raceId,
+            int answerSequence,
+            int deckId,
+            int awardedScore) {
+            lock (syncRoot) {
+                var (room, player) = GetActiveRacePlayerLocked(userId, raceId);
+                EnsureRaceCanAcceptAnswerLocked(room, player, answerSequence, deckId);
+
+                var phaseChanged = room.Phase == StartingPhase;
+                if (phaseChanged) {
+                    room.Phase = RacingPhase;
+                    room.Race!.StartedAtUtc = room.Race.StartsAtUtc;
+                }
+
+                player.LastAnswerSequence = answerSequence;
+                if (awardedScore <= 0) {
+                    return phaseChanged ? ToRaceUpdateDto(room) : null;
+                }
+
+                player.RaceScore = Math.Min(int.MaxValue, player.RaceScore + awardedScore);
+                player.ScoreSequence = ++room.NextScoreSequence;
+
+                if (player.RaceScore >= room.Race!.ScoreCap && room.Race.WinnerUserId == null) {
+                    var finishedAtUtc = UtcNow;
+                    room.Race.WinnerUserId = player.UserId;
+                    room.Race.FinishedAtUtc = finishedAtUtc;
+                    room.Phase = FinishedPhase;
+                    player.IsFinished = true;
+                    player.FinishedAtUtc = finishedAtUtc;
+                }
+
+                return ToRaceUpdateDto(room);
+            }
+        }
+
+        private void EnsureRaceCanAcceptAnswerLocked(
+            RoomState room,
+            PlayerState player,
+            int answerSequence,
+            int deckId) {
+            if (room.Phase == FinishedPhase || room.Race?.WinnerUserId != null) {
+                throw new MultiplayerRoomException("This Race is finished.");
+            }
+
+            if (room.Phase != StartingPhase && room.Phase != RacingPhase) {
+                throw new MultiplayerRoomException("This Race is not active.");
+            }
+
+            if (UtcNow < room.Race!.StartsAtUtc) {
+                throw new MultiplayerRoomException("The Race countdown is still running.");
+            }
+
+            if (!player.IsConnected) {
+                throw new MultiplayerRoomException("The player is not connected.");
+            }
+
+            if (player.SelectedDeckId != deckId) {
+                throw new MultiplayerRoomException("This game session does not match the selected Race deck.");
+            }
+
+            if (answerSequence <= player.LastAnswerSequence) {
+                throw new MultiplayerRoomException("This Race answer was already submitted.");
+            }
+        }
+
+        private (RoomState Room, PlayerState Player) GetActiveRacePlayerLocked(string userId, string raceId) {
+            var room = rooms.Values.FirstOrDefault(candidate =>
+                candidate.Race != null &&
+                string.Equals(candidate.Race.RaceId, raceId, StringComparison.Ordinal) &&
+                candidate.Players.ContainsKey(userId));
+
+            if (room == null) {
+                throw new MultiplayerRoomException("The active Race could not be found.");
+            }
+
+            return (room, room.Players[userId]);
+        }
+
+        private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
 
         private MultiplayerRoomChange? RemoveConnectionFromRoomLocked(string connectionId) {
             if (!connectionRooms.TryGetValue(connectionId, out var roomCode)) {
@@ -168,7 +422,10 @@ namespace SpellStack.Api.Multiplayer {
             return new MultiplayerRoomChange(null, null, updatedRoom, room.Code);
         }
 
-        private (MultiplayerRoomDto? Room, string? RoomCode) RemoveUserFromExistingRoomLocked(string userId, string connectionId, string? exceptRoomCode) {
+        private (MultiplayerRoomDto? Room, string? RoomCode) RemoveUserFromExistingRoomLocked(
+            string userId,
+            string connectionId,
+            string? exceptRoomCode) {
             connectionRooms.Remove(connectionId);
 
             foreach (var room in rooms.Values.ToList()) {
@@ -208,6 +465,55 @@ namespace SpellStack.Api.Multiplayer {
             return ToDto(room);
         }
 
+        private (RoomState Room, PlayerState Player) GetRoomAndPlayerLocked(string connectionId) {
+            if (!TryGetRoomAndPlayerLocked(connectionId, out var room, out var player)) {
+                throw new MultiplayerRoomException("You must be in a multiplayer room.");
+            }
+
+            return (room, player);
+        }
+
+        private bool TryGetRoomAndPlayerLocked(
+            string connectionId,
+            out RoomState room,
+            out PlayerState player) {
+            room = null!;
+            player = null!;
+
+            if (!connectionRooms.TryGetValue(connectionId, out var roomCode)) return false;
+            if (!rooms.TryGetValue(roomCode, out var foundRoom)) {
+                connectionRooms.Remove(connectionId);
+                return false;
+            }
+
+            room = foundRoom;
+            player = room.Players.Values.FirstOrDefault(candidate => candidate.ConnectionId == connectionId)!;
+            if (player != null) return true;
+
+            connectionRooms.Remove(connectionId);
+            return false;
+        }
+
+        private static void EnsureHost(RoomState room, PlayerState player) {
+            if (!string.Equals(player.UserId, room.OwnerUserId, StringComparison.Ordinal)) {
+                throw new MultiplayerRoomException("Only the host can perform this action.");
+            }
+        }
+
+        private static IReadOnlyList<string> NormalizeModifiers(IEnumerable<string>? modifiers) {
+            var normalized = (modifiers ?? [])
+                .Where(modifier => !string.IsNullOrWhiteSpace(modifier))
+                .Select(modifier => modifier.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+
+            if (normalized.Any(modifier => !AllowedModifiers.Contains(modifier))) {
+                throw new MultiplayerRoomException("One or more modifiers are not available in multiplayer.");
+            }
+
+            return normalized;
+        }
+
         private string GenerateUniqueRoomCodeLocked() {
             for (var attempt = 0; attempt < 128; attempt++) {
                 var code = $"{RandomChunk(2)}@{RandomChunk(3)}";
@@ -225,7 +531,8 @@ namespace SpellStack.Api.Multiplayer {
 
         private static string NormalizeRoomCode(string roomCode) {
             var normalized = roomCode.Trim().ToUpperInvariant();
-            if (!RoomCodePattern.IsMatch(normalized) || normalized.Any(character => character != '@' && !CodeCharacters.Contains(character))) {
+            if (!RoomCodePattern.IsMatch(normalized) ||
+                normalized.Any(character => character != '@' && !CodeCharacters.Contains(character))) {
                 throw new MultiplayerRoomException("Invalid room code.");
             }
 
@@ -240,18 +547,60 @@ namespace SpellStack.Api.Multiplayer {
                     player.Username,
                     player.ProfileImageUrl,
                     player.CountryCode,
-                    player.UserId == room.OwnerUserId))
+                    player.UserId == room.OwnerUserId,
+                    player.IsConnected,
+                    player.SelectedDeckId,
+                    player.SelectedDeckName,
+                    player.DeckWordCount,
+                    player.Direction,
+                    player.Modifiers,
+                    player.IsReady,
+                    player.ReadyForSettingsVersion,
+                    player.RaceScore,
+                    player.ScoreSequence,
+                    player.LastAnswerSequence,
+                    player.IsFinished,
+                    player.FinishedAtUtc))
                 .ToList();
 
             return new MultiplayerRoomDto(
                 room.Code,
                 room.OwnerUserId,
                 MaxPlayers,
+                room.Phase,
                 players,
                 new MultiplayerRoomSettingsDto(
                     room.Settings.GameModeId,
                     room.Settings.ScoreCap,
-                    room.Settings.SettingsVersion));
+                    room.Settings.SettingsVersion),
+                room.Race == null ? null : ToDto(room.Race));
+        }
+
+        private static MultiplayerRaceUpdateDto ToRaceUpdateDto(RoomState room) {
+            return new MultiplayerRaceUpdateDto(
+                room.Code,
+                room.Phase,
+                ToDto(room.Race!),
+                room.Players.Values
+                    .OrderBy(player => player.JoinedAt)
+                    .Select(player => new MultiplayerRaceLeaderboardPlayerDto(
+                        player.UserId,
+                        player.RaceScore,
+                        player.ScoreSequence,
+                        player.LastAnswerSequence,
+                        player.IsFinished,
+                        player.FinishedAtUtc))
+                    .ToList());
+        }
+
+        private static MultiplayerRaceDto ToDto(RaceState race) {
+            return new MultiplayerRaceDto(
+                race.RaceId,
+                race.ScoreCap,
+                race.StartsAtUtc,
+                race.StartedAtUtc,
+                race.WinnerUserId,
+                race.FinishedAtUtc);
         }
 
         private sealed class RoomState {
@@ -267,8 +616,11 @@ namespace SpellStack.Api.Multiplayer {
 
             public string Code { get; }
             public string OwnerUserId { get; set; }
+            public string Phase { get; set; } = LobbyPhase;
             public Dictionary<string, PlayerState> Players { get; } = new(StringComparer.Ordinal);
             public RoomSettingsState Settings { get; }
+            public RaceState? Race { get; set; }
+            public long NextScoreSequence { get; set; }
         }
 
         private sealed class RoomSettingsState {
@@ -277,13 +629,35 @@ namespace SpellStack.Api.Multiplayer {
             public int SettingsVersion { get; set; } = 1;
         }
 
+        private sealed class RaceState {
+            public string RaceId { get; init; } = "";
+            public int ScoreCap { get; init; }
+            public DateTime StartsAtUtc { get; init; }
+            public DateTime? StartedAtUtc { get; set; }
+            public string? WinnerUserId { get; set; }
+            public DateTime? FinishedAtUtc { get; set; }
+        }
+
         private sealed class PlayerState {
             public string UserId { get; init; } = "";
             public string Username { get; set; } = "";
             public string? ProfileImageUrl { get; set; }
             public string? CountryCode { get; set; }
             public string ConnectionId { get; set; } = "";
+            public bool IsConnected { get; set; } = true;
             public DateTime JoinedAt { get; init; }
+            public int? SelectedDeckId { get; set; }
+            public string? SelectedDeckName { get; set; }
+            public int? DeckWordCount { get; set; }
+            public string? Direction { get; set; }
+            public IReadOnlyList<string> Modifiers { get; set; } = [];
+            public bool IsReady { get; set; }
+            public int? ReadyForSettingsVersion { get; set; }
+            public int RaceScore { get; set; }
+            public long ScoreSequence { get; set; }
+            public int LastAnswerSequence { get; set; }
+            public bool IsFinished { get; set; }
+            public DateTime? FinishedAtUtc { get; set; }
 
             public static PlayerState From(MultiplayerUser user, string connectionId) {
                 return new PlayerState {
