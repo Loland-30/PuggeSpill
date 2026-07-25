@@ -275,6 +275,63 @@ public class MultiplayerRoomServiceTests {
     }
 
     [Fact]
+    public void RushHourStartsOnceForOneRacePlayerAndCanStartAgainAfterEnding() {
+        var clock = new ManualTimeProvider();
+        var service = CreateStartedRace(out var room, clock);
+        clock.Advance(TimeSpan.FromSeconds(3));
+
+        Assert.True(service.StartRaceRushHour("host", room.Race!.RaceId, 1));
+        Assert.False(service.StartRaceRushHour("host", room.Race.RaceId, 1));
+
+        var hostOnly = service.EndRaceRushHour("host", room.Race.RaceId, 1, cleared: false);
+        Assert.True(hostOnly.Applied);
+        Assert.Equal(1, hostOnly.RaceUpdate.Players.Single(player => player.UserId == "host").RushHoursTriggered);
+        Assert.Equal(0, hostOnly.RaceUpdate.Players.Single(player => player.UserId == "guest").RushHoursTriggered);
+
+        Assert.True(service.StartRaceRushHour("host", room.Race.RaceId, 1));
+        var second = service.EndRaceRushHour("host", room.Race.RaceId, 1, cleared: false);
+        Assert.Equal(2, second.RaceUpdate.Players.Single(player => player.UserId == "host").RushHoursTriggered);
+    }
+
+    [Fact]
+    public void RaceRushHourCannotStartBeforeCountdownOrAfterPlayerFinishes() {
+        var clock = new ManualTimeProvider();
+        var service = CreateStartedRace(out var room, clock);
+
+        Assert.Throws<MultiplayerRoomException>(() =>
+            service.StartRaceRushHour("host", room.Race!.RaceId, 1));
+
+        clock.Advance(TimeSpan.FromSeconds(3));
+        RecordAnswer(service, "host", room.Race!.RaceId, 1, 1, 10_000);
+
+        Assert.Throws<MultiplayerRoomException>(() =>
+            service.StartRaceRushHour("host", room.Race.RaceId, 1));
+    }
+
+    [Fact]
+    public void ClearedRaceRushHourAddsServerCalculatedBonusToRaceScore() {
+        var clock = new ManualTimeProvider();
+        var service = CreateStartedRace(out var room, clock);
+        clock.Advance(TimeSpan.FromSeconds(3));
+
+        Assert.True(service.StartRaceRushHour("host", room.Race!.RaceId, 1));
+        RecordAnswer(service, "host", room.Race.RaceId, 1, 1, 1_000);
+
+        var result = service.EndRaceRushHour("host", room.Race.RaceId, 1, cleared: true);
+        var host = result.RaceUpdate.Players.Single(player => player.UserId == "host");
+
+        Assert.True(result.Applied);
+        Assert.Equal(1_500, result.BonusScore);
+        Assert.Equal(2_500, host.RaceScore);
+        Assert.Equal(1, host.RushHoursTriggered);
+
+        var duplicate = service.EndRaceRushHour("host", room.Race.RaceId, 1, cleared: true);
+        Assert.False(duplicate.Applied);
+        Assert.Equal(0, duplicate.BonusScore);
+        Assert.Equal(2_500, duplicate.RaceUpdate.Players.Single(player => player.UserId == "host").RaceScore);
+    }
+
+    [Fact]
     public void ReturnToLobbyWaitsForPlayersThenResetsRaceAndReadyState() {
         var clock = new ManualTimeProvider();
         var service = CreateStartedRace(out var room, clock);

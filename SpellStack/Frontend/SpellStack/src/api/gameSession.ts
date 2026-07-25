@@ -124,10 +124,11 @@ export async function answerWord(
     return response.json()
 }
 
-export async function recordRushHourStart(id: number): Promise<void> {
+export async function recordRushHourStart(id: number, multiplayerRaceId?: string): Promise<void> {
     const response = await fetch(`${API_URL}/game/rush-hour/${id}/start`, {
         method: "POST",
-        headers: authHeaders()
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ multiplayerRaceId })
     })
 
     if (!response.ok) throw new Error("Failed to record rush hour start")
@@ -136,12 +137,14 @@ export async function recordRushHourStart(id: number): Promise<void> {
 export async function completeRushHour(
     id: number,
     bonusScore: number,
-    durationSeconds?: number
+    durationSeconds?: number,
+    multiplayerRaceId?: string,
+    cleared = true
 ): Promise<GameSession> {
     const response = await fetch(`${API_URL}/game/rush-hour/${id}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ bonusScore, durationSeconds })
+        body: JSON.stringify({ bonusScore, durationSeconds, multiplayerRaceId, cleared })
     })
 
     if (!response.ok) throw new Error("Failed to complete rush hour")

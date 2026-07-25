@@ -320,7 +320,7 @@ namespace SpellStack.Api.Controllers {
         }
 
         [HttpPost("rush-hour/{id}/start")]
-        public async Task<IActionResult> StartRushHour(int id) {
+        public async Task<IActionResult> StartRushHour(int id, [FromBody] RushHourStartRequest? request) {
             var user = await GetCurrentUser();
             if (user == null) return Unauthorized();
 
@@ -329,6 +329,20 @@ namespace SpellStack.Api.Controllers {
 
             if (session == null) return NotFound();
             if (!session.IsActive) return BadRequest("Session er ikke aktiv");
+
+            if (!string.IsNullOrWhiteSpace(request?.MultiplayerRaceId)) {
+                try {
+                    var started = _multiplayerRooms.StartRaceRushHour(
+                        user.Id.ToString(),
+                        request.MultiplayerRaceId,
+                        session.DeckId);
+
+                    if (!started) return Conflict("Rush Hour is already active.");
+                }
+                catch (MultiplayerRoomException exception) {
+                    return BadRequest(exception.Message);
+                }
+            }
 
             session.RushHoursTriggered++;
             await _context.SaveChangesAsync();
@@ -348,8 +362,31 @@ namespace SpellStack.Api.Controllers {
             if (session == null) return NotFound();
             if (!session.IsActive) return BadRequest("Session er ikke aktiv");
 
-            session.FinalScore += Math.Max(0, request.BonusScore);
-            session.RushHoursCompleted++;
+            var bonusScore = Math.Max(0, request.BonusScore);
+            MultiplayerRaceUpdateDto? raceUpdate = null;
+            var rushHourApplied = true;
+
+            if (!string.IsNullOrWhiteSpace(request.MultiplayerRaceId)) {
+                try {
+                    var raceResult = _multiplayerRooms.EndRaceRushHour(
+                        user.Id.ToString(),
+                        request.MultiplayerRaceId,
+                        session.DeckId,
+                        request.Cleared != false);
+
+                    rushHourApplied = raceResult.Applied;
+                    bonusScore = raceResult.BonusScore;
+                    raceUpdate = raceResult.RaceUpdate;
+                }
+                catch (MultiplayerRoomException exception) {
+                    return BadRequest(exception.Message);
+                }
+            }
+
+            if (rushHourApplied) {
+                session.FinalScore += bonusScore;
+                if (request.Cleared != false) session.RushHoursCompleted++;
+            }
 
             var durationSeconds = ClampDuration(request.DurationSeconds);
             if (durationSeconds.HasValue) {
@@ -359,6 +396,12 @@ namespace SpellStack.Api.Controllers {
             }
 
             await _context.SaveChangesAsync();
+
+            if (raceUpdate != null) {
+                await _multiplayerHub.Clients
+                    .Group(raceUpdate.RoomCode)
+                    .SendAsync("RaceUpdated", raceUpdate);
+            }
 
             return Ok(session);
         }
@@ -596,6 +639,11 @@ namespace SpellStack.Api.Controllers {
         bool? EnemyDefeated
     );
 
-    public record RushHourCompleteRequest(int BonusScore, double? DurationSeconds);
+    public record RushHourStartRequest(string? MultiplayerRaceId);
+    public record RushHourCompleteRequest(
+        int BonusScore,
+        double? DurationSeconds,
+        string? MultiplayerRaceId,
+        bool? Cleared);
     public record FinishSessionResult(int HighScore, bool IsNewHighScore);
 }

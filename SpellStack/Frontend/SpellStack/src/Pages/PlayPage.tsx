@@ -590,7 +590,8 @@ export default function PlayPage({ multiplayerRace }: { multiplayerRace?: Multip
                     const bonusSession = await completeRushHour(
                         response.session.id,
                         bonusScore,
-                        rushHourElapsedSeconds
+                        rushHourElapsedSeconds,
+                        multiplayerRace?.raceId
                     )
                     nextSession = { ...response.session, finalScore: bonusSession.finalScore }
                     setRushBonusFlash(true)
@@ -599,19 +600,39 @@ export default function PlayPage({ multiplayerRace }: { multiplayerRace?: Multip
                     shouldResetTimerRef.current = true
                 }
             } else if (rushTimedOut) {
+                if (multiplayerRace) {
+                    try {
+                        await completeRushHour(
+                            response.session.id,
+                            0,
+                            rushHourElapsedSeconds,
+                            multiplayerRace.raceId,
+                            false
+                        )
+                    } catch (error) {
+                        console.error("Kunne ikke avslutte Rush Hour i Race", error)
+                    }
+                }
                 endRushHour()
                 shouldResetTimerRef.current = true
             }
 
-            if (!multiplayerRace && !isRushActive && wasCorrect) {
+            if (!isRushActive && wasCorrect) {
                 const nextFastCorrectCount = answerTimeMs <= RUSH_FAST_ANSWER_MS
                     ? fastCorrectCount + 1
                     : 0
 
                 if (nextFastCorrectCount >= RUSH_TRIGGER_COUNT) {
-                    startRushHour(response.session.id, response.session.finalScore)
-                    shouldResetTimerRef.current = false
-                    timeLeftRef.current = Math.min(timerDuration, RUSH_START_SECONDS)
+                    const started = await startRushHour(
+                        response.session.id,
+                        response.session.finalScore,
+                        multiplayerRace?.raceId
+                    )
+
+                    if (started) {
+                        shouldResetTimerRef.current = false
+                        timeLeftRef.current = Math.min(timerDuration, RUSH_START_SECONDS)
+                    }
                     setFastCorrectCount(0)
                 } else {
                     setFastCorrectCount(nextFastCorrectCount)
@@ -692,15 +713,31 @@ export default function PlayPage({ multiplayerRace }: { multiplayerRace?: Multip
         setTimeout(() => inputRef.current?.focus(), 50)
     }
 
-    const startRushHour = (sessionId: number, scoreStart: number) => {
+    const activateRushHour = (scoreStart: number) => {
         rushActiveRef.current = true
         rushScoreStartRef.current = scoreStart
         rushStartedAtRef.current = Date.now()
         setRushAnswers(0)
         setRushActive(true)
+    }
+
+    const startRushHour = async (sessionId: number, scoreStart: number, multiplayerRaceId?: string) => {
+        if (multiplayerRaceId) {
+            try {
+                await recordRushHourStart(sessionId, multiplayerRaceId)
+                activateRushHour(scoreStart)
+                return true
+            } catch (error) {
+                console.error("Kunne ikke starte Rush Hour i Race", error)
+                return false
+            }
+        }
+
+        activateRushHour(scoreStart)
         void recordRushHourStart(sessionId).catch(error => {
             console.error("Kunne ikke lagre Rush Hour-start", error)
         })
+        return true
     }
 
     const endRushHour = () => {
