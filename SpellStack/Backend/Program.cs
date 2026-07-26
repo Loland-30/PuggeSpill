@@ -53,7 +53,14 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<AchievementService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
-builder.Services.AddSingleton<IPasswordResetEmailSender, SmtpPasswordResetEmailSender>();
+builder.Services.Configure<MailtrapOptions>(
+    builder.Configuration.GetSection(MailtrapOptions.SectionName));
+builder.Services.AddHttpClient(
+    MailtrapPasswordResetEmailSender.HttpClientName,
+    client => client.Timeout = TimeSpan.FromSeconds(12));
+builder.Services.AddScoped<
+    IPasswordResetEmailSender,
+    MailtrapPasswordResetEmailSender>();
 builder.Services.AddSingleton<
     IPasswordResetIdentifierRateLimiter,
     PasswordResetIdentifierRateLimiter>();
@@ -115,6 +122,11 @@ static void AddPasswordResetRateLimit(
 static void ValidatePasswordResetConfiguration(
     IConfiguration configuration,
     IWebHostEnvironment environment) {
+    var mailtrapOptions = configuration
+        .GetSection(MailtrapOptions.SectionName)
+        .Get<MailtrapOptions>() ?? new MailtrapOptions();
+    mailtrapOptions.Validate();
+
     if (!environment.IsProduction()) return;
 
     var hmacKey = configuration["PASSWORD_RESET_HMAC_KEY"]

@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-using System.Net.Mail;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using SpellStack.Api.Data;
@@ -129,9 +128,11 @@ public sealed class PasswordResetService : IPasswordResetService {
                 record.ExpiresAt,
                 cancellationToken);
         } catch (Exception exception) when (
-            exception is SmtpException or
+            exception is HttpRequestException or
             InvalidOperationException or
-            FormatException) {
+            FormatException ||
+            (exception is OperationCanceledException &&
+             !cancellationToken.IsCancellationRequested)) {
             record.SupersededAt = DateTime.UtcNow;
             record.ConcurrencyStamp = NewConcurrencyStamp();
             await context.SaveChangesAsync(cancellationToken);

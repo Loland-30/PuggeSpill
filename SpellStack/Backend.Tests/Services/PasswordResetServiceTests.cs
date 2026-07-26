@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -46,6 +47,22 @@ public class PasswordResetServiceTests {
         Assert.NotEqual(message.Code, record.CodeHash);
         Assert.NotEqual(message.Code, record.CodeSalt);
         Assert.DoesNotContain(message.Code, record.CodeHash);
+    }
+
+    [Fact]
+    public async Task RequestKeepsGenericResultWhenEmailDeliveryFails() {
+        await using var context = CreateContext();
+        var user = AddUser(context);
+        var service = CreateService(context, new FailingEmailSender());
+
+        var result = await service.RequestCode(
+            user.Email,
+            "127.0.0.1",
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(PasswordResetService.ResendCooldownSeconds, result.RetryAfterSeconds);
+        var record = Assert.Single(context.PasswordResetTokens);
+        Assert.NotNull(record.SupersededAt);
     }
 
     [Fact]
@@ -284,6 +301,18 @@ public class PasswordResetServiceTests {
             Messages.Add(new EmailMessage(recipient, code, expiresAtUtc));
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class FailingEmailSender : IPasswordResetEmailSender {
+        public Task SendResetCode(
+            string recipient,
+            string code,
+            DateTime expiresAtUtc,
+            CancellationToken cancellationToken) =>
+            throw new HttpRequestException(
+                "Mailtrap password reset delivery failed with status 503.",
+                null,
+                HttpStatusCode.ServiceUnavailable);
     }
 
     private sealed record EmailMessage(
