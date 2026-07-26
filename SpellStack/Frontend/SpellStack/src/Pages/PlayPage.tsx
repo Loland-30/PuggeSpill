@@ -14,7 +14,6 @@ import GameModeModal from "../components/GameModeModal"
 import type { ActiveEnemy } from "../data/enemies/enemyTypes"
 import { useZoneRun } from "../hooks/useZoneRun"
 import { cacheGameImages } from "../utils/gameImageCache"
-import { isAnswerAccepted, splitAcceptedAnswers } from "../utils/answerUtils"
 import correctSoundUrl from "../assets/SFX/correct_sound.mp3"
 import correctSoundTwoUrl from "../assets/SFX/correct_2.mp3"
 import gameStartCountdownUrl from "../assets/SFX/game_start_countdown.mp3"
@@ -208,6 +207,7 @@ export default function PlayPage({ multiplayerRace }: { multiplayerRace?: Multip
     const incorrectSoundRefs = useRef<HTMLAudioElement[] | null>(null)
     const countdownSoundRef = useRef<HTMLAudioElement | null>(null)
     const countdownSoundStartedRef = useRef(false)
+    const answerSubmittingRef = useRef(false)
     const gameOverMusicRef = useRef<HTMLAudioElement | null>(null)
     const endTransitionTimerRef = useRef<number | null>(null)
     const visualEnemyTimerRef = useRef<number | null>(null)
@@ -482,30 +482,13 @@ export default function PlayPage({ multiplayerRace }: { multiplayerRace?: Multip
         startEndTransition("complete")
     }
 
-    const isLocallyCorrect = (answer: string) => {
-        if (!session) return false
-
-        if (currentDirection === "translation") {
-            return isAnswerAccepted(
-                answer,
-                session.currentWord.original,
-                splitAcceptedAnswers(session.currentWord.alternativeOriginal)
-            )
-        }
-
-        return isAnswerAccepted(
-            answer,
-            session.currentWord.translation,
-            splitAcceptedAnswers(session.currentWord.alternativeTranslation)
-        )
-    }
-
     const handleSubmit = async (submittedAnswer: string, timedOut = false) => {
-        if (result || gameOver || runComplete || multiplayerRace?.isFinished || !session) return
+        if (result || answerSubmittingRef.current || gameOver || runComplete || multiplayerRace?.isFinished || !session) return
+        answerSubmittingRef.current = true
+
         const isRushActive = rushActiveRef.current
         const submittedTimeLeft = timedOut ? 0 : timeLeftRef.current
         const answer = timedOut ? "" : submittedAnswer
-        const localCorrect = !timedOut && isLocallyCorrect(answer)
         const answerTimeMs = Date.now() - wordStartedAtRef.current
         const responseTimeSeconds = answerTimeMs / 1000
         const rushHourElapsedSeconds = isRushActive && rushStartedAtRef.current !== null
@@ -514,28 +497,13 @@ export default function PlayPage({ multiplayerRace }: { multiplayerRace?: Multip
 
         stopTimer()
         setScoreDelta(null)
-        setResult(localCorrect ? "correct" : "incorrect")
-        if (localCorrect) {
-            const sounds = correctSoundRefs.current
-            if (sounds && sounds.length > 0) {
-                const sound = sounds[Math.floor(Math.random() * sounds.length)]
-                playSound(sound, rushActiveRef.current ? 0.9 : 0.7)
-            }
-        } else {
-            const sounds = incorrectSoundRefs.current
-            if (sounds && sounds.length > 0) {
-                const sound = sounds[Math.floor(Math.random() * sounds.length)]
-                playSound(sound, 0.65)
-            }
-        }
 
-        setTimeout(async () => {
-            try {
+        try {
             const multiplayerAnswer = multiplayerRace
                 ? {
                     raceId: multiplayerRace.raceId,
                     answerSequence: ++multiplayerAnswerSequenceRef.current,
-                    enemyDefeated: localCorrect && currentEnemy.hp <= 1
+                    enemyDefeated: currentEnemy.hp <= 1
                 }
                 : undefined
             const response = await answerWord(
@@ -549,6 +517,26 @@ export default function PlayPage({ multiplayerRace }: { multiplayerRace?: Multip
                 multiplayerAnswer
             )
             const wasCorrect = response.correct
+            setResult(wasCorrect ? "correct" : "incorrect")
+
+            if (wasCorrect) {
+                const sounds = correctSoundRefs.current
+                if (sounds && sounds.length > 0) {
+                    const sound = sounds[Math.floor(Math.random() * sounds.length)]
+                    playSound(sound, rushActiveRef.current ? 0.9 : 0.7)
+                }
+            } else {
+                const sounds = incorrectSoundRefs.current
+                if (sounds && sounds.length > 0) {
+                    const sound = sounds[Math.floor(Math.random() * sounds.length)]
+                    playSound(sound, 0.65)
+                }
+            }
+
+            await new Promise<void>(resolve => {
+                window.setTimeout(resolve, isRushActive ? 120 : 800)
+            })
+
             const nextStreak = wasCorrect ? streak + 1 : 0
             const rushTimedOut = isRushActive && timedOut
             const wasBossEncounter = isBossEncounter
@@ -663,6 +651,7 @@ export default function PlayPage({ multiplayerRace }: { multiplayerRace?: Multip
             }
 
             showAchievements(response.newlyUnlockedAchievements)
+            answerSubmittingRef.current = false
 
             if (response.gameOver) {
                 await handleGameOver(response.session)
@@ -675,14 +664,14 @@ export default function PlayPage({ multiplayerRace }: { multiplayerRace?: Multip
             }
 
             setTimeout(() => inputRef.current?.focus(), 50)
-            } catch (error) {
-                console.error("Could not submit answer", error)
-                setResult(null)
-                if (!multiplayerRace?.isFinished) {
-                    setTimeout(() => inputRef.current?.focus(), 50)
-                }
+        } catch (error) {
+            console.error("Could not submit answer", error)
+            answerSubmittingRef.current = false
+            setResult(null)
+            if (!multiplayerRace?.isFinished) {
+                setTimeout(() => inputRef.current?.focus(), 50)
             }
-        }, isRushActive ? 120 : 800)
+        }
     }
 
     const restartGame = async () => {
@@ -691,6 +680,7 @@ export default function PlayPage({ multiplayerRace }: { multiplayerRace?: Multip
         endRushHour()
         setSession(newSession)
         setResult(null)
+        answerSubmittingRef.current = false
         setGameOver(false)
         setRunComplete(false)
         resetEndTransition()

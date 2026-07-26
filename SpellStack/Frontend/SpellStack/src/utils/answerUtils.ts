@@ -1,9 +1,8 @@
 ﻿export function normalizeAnswer(value: string) {
     return value
         .trim()
+        .normalize("NFC")
         .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
 }
 
 export function splitAcceptedAnswers(value: string | null | undefined) {

@@ -477,31 +477,17 @@ namespace SpellStack.Api.Controllers {
         }
 
         private static bool IsAnswerCorrect(Word word, string answer, string direction) {
-            var normalizedAnswer = Normalize(answer);
-
             if (direction == "translation") {
-                if (normalizedAnswer == Normalize(word.Original)) return true;
-
-                if (!string.IsNullOrWhiteSpace(word.AlternativeOriginal)) {
-                    var alternatives = word.AlternativeOriginal
-                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-                    return alternatives.Any(alternative => normalizedAnswer == Normalize(alternative));
-                }
-
-                return false;
+                return AnswerEvaluator.IsAccepted(
+                    answer,
+                    word.Original,
+                    word.AlternativeOriginal);
             }
 
-            if (normalizedAnswer == Normalize(word.Translation)) return true;
-
-            if (!string.IsNullOrWhiteSpace(word.AlternativeTranslation)) {
-                var alternatives = word.AlternativeTranslation
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-                return alternatives.Any(alternative => normalizedAnswer == Normalize(alternative));
-            }
-
-            return false;
+            return AnswerEvaluator.IsAccepted(
+                answer,
+                word.Translation,
+                word.AlternativeTranslation);
         }
 
         private static int GetStartingLives(IReadOnlyCollection<string> modifiers) {
@@ -595,10 +581,6 @@ namespace SpellStack.Api.Controllers {
                 "notime" => "notime",
                 _ => "normal"
             };
-        }
-
-        private static string Normalize(string value) {
-            return value.Trim().ToLowerInvariant();
         }
 
         private async Task<User?> GetCurrentUser() {
