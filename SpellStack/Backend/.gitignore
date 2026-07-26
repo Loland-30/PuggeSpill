@@ -48,3 +48,21 @@ Thumbs.db
 !.env.example
 
 tools/lexicon-import/data/
+
+# Local configuration / secrets
+appsettings.Local.json
+appsettings.*.Local.json
+secrets.json
+
+# Tests and coverage
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# JetBrains Rider
+.idea/
+
+# Publish / generated artifacts
+artifacts/
+publish/

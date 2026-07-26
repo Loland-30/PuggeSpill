@@ -31,3 +31,6 @@ Thumbs.db
 .cache/
 .vite/
 .eslintcache
+
+# TypeScript build metadata
+*.tsbuildinfo
