@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +18,8 @@ namespace SpellStack.Api.Controllers {
         private readonly AchievementService _achievementService;
         private readonly MultiplayerRoomService _multiplayerRooms;
         private readonly IHubContext<MultiplayerHub> _multiplayerHub;
+        private readonly ActiveGameRunStore _activeGameRuns;
+        private readonly ILogger<GameController> _logger;
         private const int MomentumStackInterval = 5;
         private const int MomentumMaxStacks = 5;
         private const double MomentumScoreMultiplierPerStack = 0.08;
@@ -25,11 +28,15 @@ namespace SpellStack.Api.Controllers {
             AppDbContext context,
             AchievementService achievementService,
             MultiplayerRoomService multiplayerRooms,
-            IHubContext<MultiplayerHub> multiplayerHub) {
+            IHubContext<MultiplayerHub> multiplayerHub,
+            ActiveGameRunStore activeGameRuns,
+            ILogger<GameController> logger) {
             _context = context;
             _achievementService = achievementService;
             _multiplayerRooms = multiplayerRooms;
             _multiplayerHub = multiplayerHub;
+            _activeGameRuns = activeGameRuns;
+            _logger = logger;
         }
 
         [HttpPost("start/{deckId}")]
@@ -73,164 +80,259 @@ namespace SpellStack.Api.Controllers {
             _context.GameSessions.Add(session);
             await _context.SaveChangesAsync();
 
+            var wordSnapshots = shuffled.Select(ActiveGameWordSnapshot.FromWord).ToArray();
+            var activeRun = _activeGameRuns.CreateRun(
+                session.Id,
+                user.Id,
+                deck.Id,
+                wordSnapshots,
+                firstWord.Id);
+            await _activeGameRuns.WithSessionLockAsync(
+                session.Id,
+                lockedRun => {
+                    lockedRun.Set(activeRun);
+                    return Task.FromResult(true);
+                },
+                HttpContext.RequestAborted);
+
             return Ok(session);
         }
 
         [HttpPost("answer/{id}")]
         public async Task<IActionResult> Answer(int id, [FromBody] AnswerRequest request) {
-            var user = await GetCurrentUser();
-            if (user == null) return Unauthorized();
+            var totalStopwatch = Stopwatch.StartNew();
+            int? userId = null;
 
-            var session = await _context.GameSessions
-                .Include(s => s.CurrentWord)
-                .FirstOrDefaultAsync(s => s.Id == id && s.UserId == user.Id);
+            try {
+                var stageStopwatch = Stopwatch.StartNew();
+                var user = await GetCurrentUser();
+                stageStopwatch.Stop();
+                userId = user?.Id;
+                LogAnswerTiming(id, userId, "authentication", stageStopwatch.ElapsedMilliseconds);
+                if (user == null) return Unauthorized();
 
-            if (session == null) return NotFound();
-            if (!session.IsActive) return BadRequest("Session er ikke aktiv");
+                return await _activeGameRuns.WithSessionLockAsync<IActionResult>(
+                    id,
+                    async lockedRun => {
+                        stageStopwatch.Restart();
+                        var session = await _context.GameSessions
+                            .FirstOrDefaultAsync(s => s.Id == id && s.UserId == user.Id);
+                        stageStopwatch.Stop();
+                        LogAnswerTiming(id, user.Id, "game_session_lookup", stageStopwatch.ElapsedMilliseconds);
 
-            var isMultiplayerRace = !string.IsNullOrWhiteSpace(request.MultiplayerRaceId);
+                        if (session == null) return NotFound();
+                        if (!session.IsActive) {
+                            lockedRun.Clear();
+                            return BadRequest("Session er ikke aktiv");
+                        }
 
-            if (isMultiplayerRace) {
-                if (!request.MultiplayerAnswerSequence.HasValue) {
-                    return BadRequest("Multiplayer answer sequence is required.");
-                }
+                        stageStopwatch.Restart();
+                        var activeRun = lockedRun.Run;
+                        var rebuilt = false;
 
-                try {
-                    _multiplayerRooms.ValidateRaceAnswer(
-                        user.Id.ToString(),
-                        request.MultiplayerRaceId!,
-                        request.MultiplayerAnswerSequence.Value,
-                        session.DeckId);
-                }
-                catch (MultiplayerRoomException exception) {
-                    return BadRequest(exception.Message);
-                }
+                        if (activeRun == null ||
+                            activeRun.UserId != user.Id ||
+                            activeRun.DeckId != session.DeckId) {
+                            var words = await _context.Words
+                                .AsNoTracking()
+                                .Where(word =>
+                                    word.DeckId == session.DeckId &&
+                                    word.Deck.UserId == user.Id)
+                                .Select(word => new ActiveGameWordSnapshot(
+                                    word.Id,
+                                    word.DeckId,
+                                    word.Original,
+                                    word.Translation,
+                                    word.AlternativeOriginal,
+                                    word.AlternativeTranslation,
+                                    word.Hint))
+                                .ToListAsync();
+
+                            if (words.Count == 0 ||
+                                words.All(word => word.Id != session.CurrentWordId)) {
+                                return Conflict("The active game could not be restored. Please start a new run.");
+                            }
+
+                            activeRun = _activeGameRuns.CreateRun(
+                                session.Id,
+                                user.Id,
+                                session.DeckId,
+                                words,
+                                session.CurrentWordId);
+                            lockedRun.Set(activeRun);
+                            rebuilt = true;
+                        }
+
+                        stageStopwatch.Stop();
+                        _logger.LogInformation(
+                            "Game answer timing for session {GameSessionId}, user {UserId}: {Stage} took {ElapsedMs} ms (rebuilt: {Rebuilt}).",
+                            id,
+                            user.Id,
+                            "active_run_lookup",
+                            stageStopwatch.ElapsedMilliseconds,
+                            rebuilt);
+
+                        var currentWord = activeRun.CurrentWord;
+                        var isMultiplayerRace = !string.IsNullOrWhiteSpace(request.MultiplayerRaceId);
+
+                        if (isMultiplayerRace) {
+                            if (!request.MultiplayerAnswerSequence.HasValue) {
+                                return BadRequest("Multiplayer answer sequence is required.");
+                            }
+
+                            try {
+                                _multiplayerRooms.ValidateRaceAnswer(
+                                    user.Id.ToString(),
+                                    request.MultiplayerRaceId!,
+                                    request.MultiplayerAnswerSequence.Value,
+                                    session.DeckId);
+                            }
+                            catch (MultiplayerRoomException exception) {
+                                return BadRequest(exception.Message);
+                            }
+                        }
+
+                        var previousFinalScore = session.FinalScore;
+                        var direction = request.Direction?.ToLowerInvariant() == "translation"
+                            ? "translation"
+                            : "original";
+
+                        var modifiers = GetSessionModifiers(session, request.Modifiers, request.Modifier);
+                        stageStopwatch.Restart();
+                        var correct = IsAnswerCorrect(currentWord, request.Answer, direction);
+                        stageStopwatch.Stop();
+                        LogAnswerTiming(id, user.Id, "answer_evaluation", stageStopwatch.ElapsedMilliseconds);
+                        var responseTimeSeconds = ClampDuration(request.ResponseTimeSeconds);
+
+                        if (responseTimeSeconds.HasValue) {
+                            session.TotalResponseTimeSeconds =
+                                (session.TotalResponseTimeSeconds ?? 0) + responseTimeSeconds.Value;
+                        }
+
+                        var rushHourElapsedSeconds = ClampDuration(request.RushHourElapsedSeconds);
+                        if (rushHourElapsedSeconds.HasValue) {
+                            session.LongestRushHourDurationSeconds = Math.Max(
+                                session.LongestRushHourDurationSeconds ?? 0,
+                                rushHourElapsedSeconds.Value);
+                        }
+
+                        if (correct) {
+                            var nextStreak = session.StreakCount + 1;
+                            var timeBonus = Math.Max(0, request.TimeLeft ?? 0) * 5;
+                            var streakBonus = nextStreak >= 3 ? nextStreak * 25 : 0;
+                            var momentumStacks = modifiers.Contains("momentum")
+                                ? GetMomentumStacks(nextStreak)
+                                : 0;
+
+                            var score = modifiers.Contains("zen") ? 0 : 100 + timeBonus + streakBonus;
+                            score = (int)Math.Round(score * GetScoreMultiplier(modifiers, momentumStacks));
+
+                            session.FinalScore += score;
+                            session.StreakCount = nextStreak;
+                            session.CorrectAnswers++;
+                            session.BestStreak = Math.Max(session.BestStreak, nextStreak);
+                        } else {
+                            var shouldLoseLife = !isMultiplayerRace && !modifiers.Contains("zen");
+
+                            if (shouldLoseLife) session.Lives--;
+
+                            session.StreakCount = 0;
+                            session.WrongAnswers++;
+                        }
+
+                        session.QuestionsAnswered++;
+
+                        if (isMultiplayerRace &&
+                            request.MultiplayerAnswerSequence.HasValue) {
+                            try {
+                                var raceUpdate = _multiplayerRooms.RecordRaceAnswer(
+                                    user.Id.ToString(),
+                                    request.MultiplayerRaceId!,
+                                    request.MultiplayerAnswerSequence.Value,
+                                    session.DeckId,
+                                    session.FinalScore - previousFinalScore,
+                                    session.CorrectAnswers,
+                                    session.QuestionsAnswered,
+                                    session.BestStreak,
+                                    session.RushHoursTriggered,
+                                    correct && request.EnemyDefeated == true);
+
+                                if (raceUpdate != null) {
+                                    await _multiplayerHub.Clients
+                                        .Group(raceUpdate.RoomCode)
+                                        .SendAsync("RaceUpdated", raceUpdate);
+                                }
+                            }
+                            catch (MultiplayerRoomException exception) {
+                                return BadRequest(exception.Message);
+                            }
+                        }
+
+                        if (!isMultiplayerRace && session.Lives <= 0) {
+                            await FinishSession(session, "gameOver");
+                            stageStopwatch.Restart();
+                            await _context.SaveChangesAsync();
+                            stageStopwatch.Stop();
+                            LogAnswerTiming(id, user.Id, "save_changes", stageStopwatch.ElapsedMilliseconds);
+                            lockedRun.Clear();
+                            session.CurrentWord = currentWord.ToWord();
+                            var newlyUnlockedAchievements =
+                                await _achievementService.UnlockNewAchievements(user.Id);
+
+                            return Ok(new {
+                                correct,
+                                session,
+                                gameOver = true,
+                                gameComplete = false,
+                                newlyUnlockedAchievements
+                            });
+                        }
+
+                        if (session.RoundLimit.HasValue &&
+                            session.QuestionsAnswered >= session.RoundLimit.Value) {
+                            await FinishSession(session, "completed");
+                            stageStopwatch.Restart();
+                            await _context.SaveChangesAsync();
+                            stageStopwatch.Stop();
+                            LogAnswerTiming(id, user.Id, "save_changes", stageStopwatch.ElapsedMilliseconds);
+                            lockedRun.Clear();
+                            session.CurrentWord = currentWord.ToWord();
+                            var newlyUnlockedAchievements =
+                                await _achievementService.UnlockNewAchievements(user.Id);
+
+                            return Ok(new {
+                                correct,
+                                session,
+                                gameOver = false,
+                                gameComplete = true,
+                                newlyUnlockedAchievements
+                            });
+                        }
+
+                        var nextWord = activeRun.SelectNext(DateTime.UtcNow);
+                        session.CurrentWordId = nextWord.Id;
+
+                        stageStopwatch.Restart();
+                        await _context.SaveChangesAsync();
+                        stageStopwatch.Stop();
+                        LogAnswerTiming(id, user.Id, "save_changes", stageStopwatch.ElapsedMilliseconds);
+
+                        // Set the detached snapshot only after persistence so EF never tracks cached words.
+                        session.CurrentWord = nextWord.ToWord();
+
+                        return Ok(new {
+                            correct,
+                            session,
+                            gameOver = false,
+                            gameComplete = false
+                        });
+                    },
+                    HttpContext.RequestAborted);
             }
-
-            var previousFinalScore = session.FinalScore;
-            var direction = request.Direction?.ToLowerInvariant() == "translation"
-                ? "translation"
-                : "original";
-
-            var modifiers = GetSessionModifiers(session, request.Modifiers, request.Modifier);
-            var correct = IsAnswerCorrect(session.CurrentWord, request.Answer, direction);
-            var responseTimeSeconds = ClampDuration(request.ResponseTimeSeconds);
-
-            if (responseTimeSeconds.HasValue) {
-                session.TotalResponseTimeSeconds =
-                    (session.TotalResponseTimeSeconds ?? 0) + responseTimeSeconds.Value;
+            finally {
+                totalStopwatch.Stop();
+                LogAnswerTiming(id, userId, "total", totalStopwatch.ElapsedMilliseconds);
             }
-
-            var rushHourElapsedSeconds = ClampDuration(request.RushHourElapsedSeconds);
-            if (rushHourElapsedSeconds.HasValue) {
-                session.LongestRushHourDurationSeconds = Math.Max(
-                    session.LongestRushHourDurationSeconds ?? 0,
-                    rushHourElapsedSeconds.Value);
-            }
-
-            if (correct) {
-                var nextStreak = session.StreakCount + 1;
-                var timeBonus = Math.Max(0, request.TimeLeft ?? 0) * 5;
-                var streakBonus = nextStreak >= 3 ? nextStreak * 25 : 0;
-                var momentumStacks = modifiers.Contains("momentum")
-                    ? GetMomentumStacks(nextStreak)
-                    : 0;
-
-                var score = modifiers.Contains("zen") ? 0 : 100 + timeBonus + streakBonus;
-                score = (int)Math.Round(score * GetScoreMultiplier(modifiers, momentumStacks));
-
-                session.FinalScore += score;
-                session.StreakCount = nextStreak;
-                session.CorrectAnswers++;
-                session.BestStreak = Math.Max(session.BestStreak, nextStreak);
-            } else {
-                var shouldLoseLife = !isMultiplayerRace && !modifiers.Contains("zen");
-
-                if (shouldLoseLife) session.Lives--;
-
-                session.StreakCount = 0;
-                session.WrongAnswers++;
-            }
-
-            session.QuestionsAnswered++;
-
-            if (isMultiplayerRace &&
-                request.MultiplayerAnswerSequence.HasValue) {
-                try {
-                    var raceUpdate = _multiplayerRooms.RecordRaceAnswer(
-                        user.Id.ToString(),
-                        request.MultiplayerRaceId!,
-                        request.MultiplayerAnswerSequence.Value,
-                        session.DeckId,
-                        session.FinalScore - previousFinalScore,
-                        session.CorrectAnswers,
-                        session.QuestionsAnswered,
-                        session.BestStreak,
-                        session.RushHoursTriggered,
-                        correct && request.EnemyDefeated == true);
-
-                    if (raceUpdate != null) {
-                        await _multiplayerHub.Clients
-                            .Group(raceUpdate.RoomCode)
-                            .SendAsync("RaceUpdated", raceUpdate);
-                    }
-                }
-                catch (MultiplayerRoomException exception) {
-                    return BadRequest(exception.Message);
-                }
-            }
-
-            if (!isMultiplayerRace && session.Lives <= 0) {
-                await FinishSession(session, "gameOver");
-                await _context.SaveChangesAsync();
-                var newlyUnlockedAchievements = await _achievementService.UnlockNewAchievements(user.Id);
-
-                return Ok(new {
-                    correct,
-                    session,
-                    gameOver = true,
-                    gameComplete = false,
-                    newlyUnlockedAchievements
-                });
-            }
-
-            if (session.RoundLimit.HasValue && session.QuestionsAnswered >= session.RoundLimit.Value) {
-                await FinishSession(session, "completed");
-                await _context.SaveChangesAsync();
-                var newlyUnlockedAchievements = await _achievementService.UnlockNewAchievements(user.Id);
-
-                return Ok(new {
-                    correct,
-                    session,
-                    gameOver = false,
-                    gameComplete = true,
-                    newlyUnlockedAchievements
-                });
-            }
-
-            var deck = await _context.Decks
-                .Include(d => d.Words)
-                .FirstOrDefaultAsync(d => d.Id == session.DeckId && d.UserId == user.Id);
-
-            if (deck == null) return NotFound();
-
-            var nextWord = deck.Words
-                .OrderBy(_ => Guid.NewGuid())
-                .FirstOrDefault(w => w.Id != session.CurrentWordId);
-
-            if (nextWord != null) {
-                session.CurrentWordId = nextWord.Id;
-                session.CurrentWord = nextWord;
-            }
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new {
-                correct,
-                session,
-                gameOver = false,
-                gameComplete = false
-            });
         }
 
         [HttpGet("state/{id}")]
@@ -253,21 +355,29 @@ namespace SpellStack.Api.Controllers {
             var user = await GetCurrentUser();
             if (user == null) return Unauthorized();
 
-            var session = await _context.GameSessions
-                .Include(s => s.Deck)
-                .FirstOrDefaultAsync(s => s.Id == id && s.UserId == user.Id);
+            return await _activeGameRuns.WithSessionLockAsync<IActionResult>(
+                id,
+                async lockedRun => {
+                    var session = await _context.GameSessions
+                        .Include(s => s.Deck)
+                        .FirstOrDefaultAsync(s => s.Id == id && s.UserId == user.Id);
 
-            if (session == null) return NotFound();
+                    if (session == null) return NotFound();
 
-            var result = await FinishSession(session, "endedByUser");
-            await _context.SaveChangesAsync();
-            var newlyUnlockedAchievements = await _achievementService.UnlockNewAchievements(user.Id);
+                    var result = await FinishSession(session, "endedByUser");
+                    await _context.SaveChangesAsync();
+                    lockedRun.Clear();
 
-            return Ok(new {
-                highScore = result.HighScore,
-                isNewHighScore = result.IsNewHighScore,
-                newlyUnlockedAchievements
-            });
+                    var newlyUnlockedAchievements =
+                        await _achievementService.UnlockNewAchievements(user.Id);
+
+                    return Ok(new {
+                        highScore = result.HighScore,
+                        isNewHighScore = result.IsNewHighScore,
+                        newlyUnlockedAchievements
+                    });
+                },
+                HttpContext.RequestAborted);
         }
 
         [HttpGet("history")]
@@ -476,7 +586,10 @@ namespace SpellStack.Api.Controllers {
             return Math.Clamp(durationSeconds.Value, 0, 300);
         }
 
-        private static bool IsAnswerCorrect(Word word, string answer, string direction) {
+        private static bool IsAnswerCorrect(
+            ActiveGameWordSnapshot word,
+            string answer,
+            string direction) {
             if (direction == "translation") {
                 return AnswerEvaluator.IsAccepted(
                     answer,
@@ -488,6 +601,19 @@ namespace SpellStack.Api.Controllers {
                 answer,
                 word.Translation,
                 word.AlternativeTranslation);
+        }
+
+        private void LogAnswerTiming(
+            int gameSessionId,
+            int? userId,
+            string stage,
+            long elapsedMilliseconds) {
+            _logger.LogInformation(
+                "Game answer timing for session {GameSessionId}, user {UserId}: {Stage} took {ElapsedMs} ms.",
+                gameSessionId,
+                userId,
+                stage,
+                elapsedMilliseconds);
         }
 
         private static int GetStartingLives(IReadOnlyCollection<string> modifiers) {

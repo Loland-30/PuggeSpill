@@ -75,6 +75,7 @@ builder.Services.AddSingleton<TranslationRequestLimiter>();
 builder.Services.AddSingleton<UploadStorageService>();
 builder.Services.AddSingleton<MultiplayerRoomService>();
 builder.Services.AddSingleton<MultiplayerDisconnectCleanupService>();
+builder.Services.AddSingleton<ActiveGameRunStore>();
 
 var app = builder.Build();
 
