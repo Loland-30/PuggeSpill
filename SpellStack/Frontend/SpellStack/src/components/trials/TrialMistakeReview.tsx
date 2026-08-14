@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react"
 import type { DeckTrialAnswer } from "../../hooks/useDeckTrialSession"
 import { useI18n } from "../../i18n/I18nContext"
 import { useTheme } from "../../theme/ThemeContext"
+import AutoFitText from "../AutoFitText"
 
 interface TrialMistakeReviewProps {
     mistakes: DeckTrialAnswer[]
@@ -25,19 +26,22 @@ const TrialMistakeReview = forwardRef<HTMLHeadingElement, TrialMistakeReviewProp
                 <button
                     type="button"
                     onClick={onBack}
-                    className="inline-flex w-fit items-center gap-2 rounded-full bg-black/30 px-4 py-2 font-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    className={`group inline-flex h-12 w-12 shrink-0 items-center justify-center gap-0 overflow-hidden rounded-full shadow-lg transition-[width,gap,transform,box-shadow] duration-300 ease-out hover:w-52 hover:gap-2.5 focus-visible:w-52 focus-visible:gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${palette.primaryButton} ${palette.primaryButtonText} ${palette.glow}`}
                     aria-label={t.trials.backToResults}
                 >
-                    <ArrowLeft size={19} /> {t.trials.backToResults}
+                    <ArrowLeft size={21} strokeWidth={2.7} className="shrink-0" />
+                    <span className="ml-0 max-w-0 translate-x-1 overflow-hidden whitespace-nowrap text-sm font-black opacity-0 transition-[max-width,opacity,transform] duration-300 ease-out group-hover:max-w-40 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:max-w-40 group-focus-visible:translate-x-0 group-focus-visible:opacity-100">
+                        {t.trials.backToResults}
+                    </span>
                 </button>
-                <h1 ref={headingRef} tabIndex={-1} className="text-center text-[clamp(1.75rem,2vw,3.25rem)] font-black outline-none sm:col-start-2">
+                <h1 ref={headingRef} tabIndex={-1} className="text-center text-[clamp(1.5rem,1.8vw,2.5rem)] font-black outline-none sm:col-start-2">
                     {t.trials.incorrectSummary
                         .replace("{incorrect}", String(mistakes.length))
                         .replace("{total}", String(totalQuestions))}
                 </h1>
             </header>
 
-            <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className={`mx-auto mt-10 grid w-full grid-cols-1 gap-5 md:gap-7 ${mistakes.length > 1 ? "max-w-[78rem] md:grid-cols-2" : "max-w-[38rem]"}`}>
                 {mistakes.map((record, index) => (
                     <article
                         key={`${record.question.wordId}-${record.question.direction}-${index}`}
@@ -71,8 +75,12 @@ function ReviewSection({
 }) {
     return (
         <section className={`${separator ? "border-t border-white/20 pt-6" : ""} mb-6 last:mb-0`}>
-            <h2 className="text-[clamp(1.25rem,1.4vw,2.25rem)] font-bold text-white/70">{label}</h2>
-            <p className={`mt-4 break-words text-center text-[clamp(2.5rem,3.75vw,6rem)] font-black leading-tight [overflow-wrap:anywhere] ${valueClassName}`}>{value}</p>
+            <h2 className="text-[clamp(1.125rem,1.2vw,1.5rem)] font-bold text-white/70">{label}</h2>
+            <AutoFitText
+                text={value}
+                className={`mt-4 text-center font-black ${valueClassName}`}
+                maxFontSize="clamp(2rem, 3vw, 4.5rem)"
+            />
         </section>
     )
 }
